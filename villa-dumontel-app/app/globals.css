@@ -203,3 +203,7 @@ form textarea:focus {
 .alloggi-list li:last-child {
   border-bottom: none;
 }
+form input[type="checkbox"] {
+  width: auto;
+  margin-bottom: 0;
+}
