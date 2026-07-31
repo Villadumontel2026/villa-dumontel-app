@@ -12,7 +12,7 @@ const CHECKLIST_PULIZIE = [
   "Riordino generale",
 ];
 
-export default function NuovaRichiestaForm({ alloggi, famiglie }) {
+export default function NuovaRichiestaForm({ alloggi }) {
   const [tipo, setTipo] = useState("trasporto");
 
   return (
@@ -37,17 +37,6 @@ export default function NuovaRichiestaForm({ alloggi, famiglie }) {
           {alloggi?.map((a) => (
             <option key={a.id} value={a.id}>
               {a.nome}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label>
-        Famiglia
-        <select name="famiglia_id" required>
-          {famiglie?.map((f) => (
-            <option key={f.id} value={f.id}>
-              {f.nome}
             </option>
           ))}
         </select>
