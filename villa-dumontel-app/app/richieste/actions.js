@@ -9,9 +9,15 @@ export async function creaRichiesta(formData) {
   const famiglia_id = formData.get("famiglia_id");
   const data = formData.get("data") || null;
   const ora = formData.get("ora") || null;
+  const sotto_tipo = formData.get("sotto_tipo") || null;
   const paxRaw = formData.get("pax");
-  const descrizione = formData.get("descrizione");
   const note = formData.get("note");
+
+  let descrizione = formData.get("descrizione") || "";
+  const voci = formData.getAll("voci");
+  if (voci.length > 0) {
+    descrizione = voci.join(", ");
+  }
 
   await supabase.from("richieste").insert({
     tipo,
@@ -19,6 +25,7 @@ export async function creaRichiesta(formData) {
     famiglia_id,
     data,
     ora,
+    sotto_tipo,
     pax: paxRaw ? parseInt(paxRaw, 10) : null,
     descrizione,
     note,
