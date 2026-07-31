@@ -6,7 +6,6 @@ import { revalidatePath } from "next/cache";
 export async function creaRichiesta(formData) {
   const tipo = formData.get("tipo");
   const alloggio_id = formData.get("alloggio_id");
-  const famiglia_id = formData.get("famiglia_id");
   const data = formData.get("data") || null;
   const ora = formData.get("ora") || null;
   const sotto_tipo = formData.get("sotto_tipo") || null;
@@ -19,10 +18,16 @@ export async function creaRichiesta(formData) {
     descrizione = voci.join(", ");
   }
 
+  const { data: alloggio } = await supabase
+    .from("alloggi")
+    .select("famiglia_id")
+    .eq("id", alloggio_id)
+    .single();
+
   await supabase.from("richieste").insert({
     tipo,
     alloggio_id,
-    famiglia_id,
+    famiglia_id: alloggio?.famiglia_id || null,
     data,
     ora,
     sotto_tipo,
