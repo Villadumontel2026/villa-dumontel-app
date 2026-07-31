@@ -13,9 +13,6 @@ export default async function Home() {
       {error && (
         <p style={{ color: "red" }}>
           Errore nel leggere gli alloggi: {error.message}
-          <br />
-          (Se dice "permission denied", serve una policy RLS che permetta
-          la lettura pubblica della tabella "alloggi".)
         </p>
       )}
 
@@ -27,9 +24,7 @@ export default async function Home() {
         </ul>
       )}
 
-      {alloggi && alloggi.length === 0 && !error && (
-        <p>Connessione riuscita, ma nessun alloggio trovato (controlla la policy RLS).</p>
-      )}
+      <p><a href="/richieste">Vai alle richieste &rarr;</a></p>
     </main>
   );
 }
