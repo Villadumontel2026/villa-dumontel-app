@@ -4,6 +4,17 @@ import StatoButtons from "./StatoButtons";
 
 export const dynamic = "force-dynamic";
 
+const ETICHETTE_STATO = {
+  nuova: "nuova",
+  "in gestione": "in gestione",
+  confermata: "confermata",
+  completata: "completata",
+};
+
+function classeBadge(stato) {
+  return "badge badge-" + stato.replace(" ", "-");
+}
+
 export default async function RichiestePage() {
   const { data: richieste } = await supabase
     .from("richieste")
@@ -26,94 +37,101 @@ export default async function RichiestePage() {
 
   return (
     <main>
-      <p><a href="/">&larr; Home</a></p>
+      <p>
+        <a href="/">&larr; Home</a>
+      </p>
       <h1>Richieste</h1>
 
-      <form
-        action={creaRichiesta}
-        style={{
-          marginBottom: "2rem",
-          display: "grid",
-          gap: "0.5rem",
-          maxWidth: 420,
-          border: "1px solid #ddd",
-          padding: "1rem",
-          borderRadius: 8,
-        }}
-      >
-        <label>
-          Tipo
-          <select name="tipo" required style={{ width: "100%" }}>
-            <option value="trasporto">Trasporto</option>
-            <option value="ristorante">Ristorante</option>
-            <option value="attivita">Attivit&agrave;</option>
-            <option value="pulizie">Pulizie</option>
-          </select>
-        </label>
-        <label>
-          Alloggio
-          <select name="alloggio_id" required style={{ width: "100%" }}>
-            {alloggi?.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.nome}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Famiglia
-          <select name="famiglia_id" required style={{ width: "100%" }}>
-            {famiglie?.map((f) => (
-              <option key={f.id} value={f.id}>
-                {f.nome}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label>
-          Data
-          <input type="date" name="data" style={{ width: "100%" }} />
-        </label>
-        <label>
-          Ora
-          <input type="time" name="ora" style={{ width: "100%" }} />
-        </label>
-        <label>
-          Numero persone
-          <input type="number" name="pax" style={{ width: "100%" }} />
-        </label>
-        <label>
-          Descrizione
-          <input
-            type="text"
-            name="descrizione"
-            placeholder="es. nome del ristorante"
-            style={{ width: "100%" }}
-          />
-        </label>
-        <label>
-          Note
-          <textarea name="note" style={{ width: "100%" }}></textarea>
-        </label>
-        <button type="submit">Aggiungi richiesta</button>
-      </form>
+      <div className="card" style={{ marginBottom: "2rem" }}>
+        <h2>Nuova richiesta</h2>
+        <form action={creaRichiesta}>
+          <label>
+            Tipo
+            <select name="tipo" required>
+              <option value="trasporto">Trasporto</option>
+              <option value="ristorante">Ristorante</option>
+              <option value="attivita">Attivit&agrave;</option>
+              <option value="pulizie">Pulizie</option>
+            </select>
+          </label>
+          <label>
+            Alloggio
+            <select name="alloggio_id" required>
+              {alloggi?.map((a) => (
+                <option key={a.id} value={a.id}>
+                  {a.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Famiglia
+            <select name="famiglia_id" required>
+              {famiglie?.map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            Data
+            <input type="date" name="data" />
+          </label>
+          <label>
+            Ora
+            <input type="time" name="ora" />
+          </label>
+          <label>
+            Numero persone
+            <input type="number" name="pax" />
+          </label>
+          <label>
+            Descrizione
+            <input
+              type="text"
+              name="descrizione"
+              placeholder="es. nome del ristorante"
+            />
+          </label>
+          <label>
+            Note
+            <textarea name="note"></textarea>
+          </label>
+          <button type="submit" className="btn">
+            Aggiungi richiesta
+          </button>
+        </form>
+      </div>
 
       {Object.entries(gruppi).map(([stato, items]) => (
-        <section key={stato} style={{ marginBottom: "1.5rem" }}>
-          <h2 style={{ textTransform: "capitalize" }}>
-            {stato} ({items.length})
+        <section key={stato} style={{ marginBottom: "1.75rem" }}>
+          <h2>
+            {ETICHETTE_STATO[stato]}{" "}
+            <span className="muted" style={{ fontWeight: 400 }}>
+              ({items.length})
+            </span>
           </h2>
-          {items.length === 0 && <p>Nessuna richiesta.</p>}
-          <ul>
-            {items.map((r) => (
-              <li key={r.id} style={{ marginBottom: "0.5rem" }}>
-                <strong>{r.tipo}</strong> &mdash; {r.alloggi?.nome} &mdash;{" "}
-                {r.famiglie?.nome} &mdash; {r.data} {r.ora} &mdash;{" "}
-                {r.descrizione} {r.note ? `(${r.note})` : ""}
-                <StatoButtons id={r.id} statoAttuale={r.stato} />
-              </li>
-            ))}
-          </ul>
+
+          {items.length === 0 && <p className="muted">Nessuna richiesta.</p>}
+
+          {items.length > 0 && (
+            <div className="card">
+              {items.map((r) => (
+                <div key={r.id} className="richiesta-item">
+                  <span className={classeBadge(r.stato)}>{r.tipo}</span>{" "}
+                  <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
+                  <p className="descrizione">
+                    {r.data} {r.ora} &mdash; {r.descrizione}
+                    {r.note ? ` (${r.note})` : ""}
+                  </p>
+                  <div className="stato-actions">
+                    <StatoButtons id={r.id} statoAttuale={r.stato} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </section>
       ))}
     </main>
