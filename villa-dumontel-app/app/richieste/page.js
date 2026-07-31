@@ -44,7 +44,7 @@ export default async function RichiestePage() {
 
       <div className="card" style={{ marginBottom: "2rem" }}>
         <h2>Nuova richiesta</h2>
-        <NuovaRichiestaForm alloggi={alloggi} famiglie={famiglie} />
+        <NuovaRichiestaForm alloggi={alloggi} />
       </div>
 
       {Object.entries(gruppi).map(([stato, items]) => (
@@ -65,20 +65,4 @@ export default async function RichiestePage() {
                   <span className={classeBadge(r.stato)}>{r.tipo}</span>{" "}
                   <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
                   <p className="descrizione">
-                    {r.data} {r.ora} &mdash;{" "}
-                    {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
-                    {r.descrizione}
-                    {r.note ? ` (${r.note})` : ""}
-                  </p>
-                  <div className="stato-actions">
-                    <StatoButtons id={r.id} statoAttuale={r.stato} />
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      ))}
-    </main>
-  );
-}
+                    {r.data} {r.ora} &mdash;{"
