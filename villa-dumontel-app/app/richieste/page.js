@@ -65,4 +65,20 @@ export default async function RichiestePage() {
                   <span className={classeBadge(r.stato)}>{r.tipo}</span>{" "}
                   <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
                   <p className="descrizione">
-                    {r.data} {r.ora} &mdash;{"
+                    {r.data} {r.ora} &mdash;{" "}
+                    {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
+                    {r.descrizione}
+                    {r.note ? ` (${r.note})` : ""}
+                  </p>
+                  <div className="stato-actions">
+                    <StatoButtons id={r.id} statoAttuale={r.stato} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      ))}
+    </main>
+  );
+}
