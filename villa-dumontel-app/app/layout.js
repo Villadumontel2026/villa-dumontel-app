@@ -16,6 +16,7 @@ export default function RootLayout({ children }) {
             </a>
             <nav>
               <a href="/richieste">Richieste</a>
+              <a href="/login">Accedi</a>
             </nav>
           </div>
         </header>
