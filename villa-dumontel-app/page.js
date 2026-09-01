@@ -1,37 +1,39 @@
-import { supabase } from "../../../lib/supabaseClient";
+import { supabase } from "../lib/supabaseClient";
 
-export const dynamic = "force-dynamic";
-
-export default async function AttivitaPage() {
-  const { data: posti } = await supabase
-    .from("posti")
-    .select("*")
-    .eq("categoria", "attivita")
-    .order("id", { ascending: true });
+export default async function Home() {
+  const { data: alloggi, error } = await supabase.from("alloggi").select("*");
 
   return (
     <main>
-      <p>
-        <a href="/info">&larr; Informazioni</a>
+      <h1>Benvenuti a Villa Dumontel</h1>
+      <p className="muted">
+        Qui in futuro trover&agrave; le informazioni per gli ospiti. Per ora,
+        questa &egrave; la pagina di test collegata al database.
       </p>
-      <h1>Attività</h1>
 
-      <div style={{ display: "grid", gap: "1rem" }}>
-        {(posti || []).map((p) => (
-          <div key={p.id} className="card">
-            <h3 style={{ marginBottom: "0.25rem" }}>
-              {p.sito_web ? (
-                <a href={p.sito_web} target="_blank" rel="noreferrer">
-                  {p.nome}
-                </a>
-              ) : (
-                p.nome
-              )}
-            </h3>
-            {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
-          </div>
-        ))}
+      <div className="card" style={{ marginTop: "1.5rem" }}>
+        <h2>Alloggi</h2>
+
+        {error && (
+          <p style={{ color: "#a32d2d" }}>
+            Errore nel leggere gli alloggi: {error.message}
+          </p>
+        )}
+
+        {alloggi && alloggi.length > 0 && (
+          <ul className="alloggi-list">
+            {alloggi.map((a) => (
+              <li key={a.id}>{a.nome}</li>
+            ))}
+          </ul>
+        )}
       </div>
+
+      <p style={{ marginTop: "1.5rem" }}>
+        <a className="btn" href="/richieste">
+          Vai alle richieste &rarr;
+        </a>
+      </p>
     </main>
   );
 }
