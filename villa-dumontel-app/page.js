@@ -1,54 +1,38 @@
-import Link from "next/link";
-
-const SEZIONI = [
-  {
-    href: "/info/generale",
-    titolo: "Informazioni generali",
-    descrizione: "Contatti, wifi e indirizzo",
-  },
-  {
-    href: "/info/ristoranti",
-    titolo: "Ristoranti",
-    descrizione: "Entrèves, Courmayeur, Valle d'Aosta, stellati, estero",
-  },
-  {
-    href: "/info/bar",
-    titolo: "Bar",
-    descrizione: "Dove prendere un caffè o un aperitivo",
-  },
-  {
-    href: "/info/food-drink",
-    titolo: "Food & Drink",
-    descrizione: "Catering, gastronomie, macellerie",
-  },
-  {
-    href: "/info/attivita",
-    titolo: "Attività",
-    descrizione: "Sport, benessere e tempo libero",
-  },
-];
-
-export default function InfoPage() {
+export default function InfoGeneralePage() {
   return (
     <main>
       <p>
-        <a href="/">&larr; Home</a>
+        <a href="/info">&larr; Informazioni</a>
       </p>
-      <h1>Informazioni</h1>
-      <p className="muted">
-        Tutto quello che serve per organizzare il soggiorno: contatti, ristoranti,
-        bar e attività consigliate nei dintorni.
-      </p>
+      <h1>Informazioni generali</h1>
 
-      <div style={{ display: "grid", gap: "1rem", marginTop: "1.5rem" }}>
-        {SEZIONI.map((s) => (
-          <Link key={s.href} href={s.href} className="card" style={{ display: "block" }}>
-            <h2 style={{ marginBottom: "0.25rem" }}>{s.titolo}</h2>
-            <p className="muted" style={{ margin: 0 }}>
-              {s.descrizione}
-            </p>
-          </Link>
-        ))}
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <h2>Contatti</h2>
+        <p>
+          Joël Désayeux
+          <br />
+          +39 340 2462592
+        </p>
+        <p>
+          Giorgia Barbieri
+          <br />
+          +39 346 0987549
+        </p>
+        <p>villadumontel@gmail.com</p>
+      </div>
+
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <h2>Wi-fi</h2>
+        <p>
+          Rete: <strong>Villadumontel</strong>
+          <br />
+          Password: <strong>Entreves2023!</strong>
+        </p>
+      </div>
+
+      <div className="card">
+        <h2>Indirizzo</h2>
+        <p>Via Passerin D&apos;Entrèves, 3, 11013 Courmayeur (AO), Italia</p>
       </div>
     </main>
   );
