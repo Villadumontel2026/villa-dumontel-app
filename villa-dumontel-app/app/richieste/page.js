@@ -42,6 +42,10 @@ export default async function RichiestePage() {
       </p>
       <h1>Richieste</h1>
 
+      <p>
+        <a href="/pulizie/admin">Vai a Pulizie (gestione) &rarr;</a>
+      </p>
+
       <div className="card" style={{ marginBottom: "2rem" }}>
         <h2>Nuova richiesta</h2>
         <NuovaRichiestaForm alloggi={alloggi} />
