@@ -28,9 +28,7 @@ export default function DopoLogin() {
       } else if (profilo.ruolo === "collaboratore") {
         router.replace("/pulizie/collaboratore");
       } else {
-        setStato(
-          "Accesso riuscito come ospite. La tua pagina dedicata arrivera' a breve."
-        );
+        router.replace("/pulizie/ospite");
       }
     }
 
