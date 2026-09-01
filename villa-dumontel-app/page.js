@@ -1,39 +1,66 @@
-export default function InfoGeneralePage() {
+import { supabase } from "../../../lib/supabaseClient";
+
+export const dynamic = "force-dynamic";
+
+const ORDINE_GRUPPI = ["Entrèves", "Courmayeur", "Aosta Valley", "Michelin", "Abroad"];
+
+export default async function RistorantiPage() {
+  const { data: posti } = await supabase
+    .from("posti")
+    .select("*")
+    .eq("categoria", "ristorante")
+    .order("id", { ascending: true });
+
+  const gruppi = {};
+  (posti || []).forEach((p) => {
+    const key = p.sotto_categoria || "Altro";
+    if (!gruppi[key]) gruppi[key] = [];
+    gruppi[key].push(p);
+  });
+
+  const ordineFinale = [
+    ...ORDINE_GRUPPI.filter((g) => gruppi[g]),
+    ...Object.keys(gruppi).filter((g) => !ORDINE_GRUPPI.includes(g)),
+  ];
+
   return (
     <main>
       <p>
         <a href="/info">&larr; Informazioni</a>
       </p>
-      <h1>Informazioni generali</h1>
+      <h1>Ristoranti</h1>
 
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2>Contatti</h2>
-        <p>
-          Joël Désayeux
-          <br />
-          +39 340 2462592
-        </p>
-        <p>
-          Giorgia Barbieri
-          <br />
-          +39 346 0987549
-        </p>
-        <p>villadumontel@gmail.com</p>
-      </div>
-
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2>Wi-fi</h2>
-        <p>
-          Rete: <strong>Villadumontel</strong>
-          <br />
-          Password: <strong>Entreves2023!</strong>
-        </p>
-      </div>
-
-      <div className="card">
-        <h2>Indirizzo</h2>
-        <p>Via Passerin D&apos;Entrèves, 3, 11013 Courmayeur (AO), Italia</p>
-      </div>
+      {ordineFinale.map((gruppo) => (
+        <section key={gruppo} style={{ marginBottom: "1.75rem" }}>
+          <h2>{gruppo}</h2>
+          <div style={{ display: "grid", gap: "1rem" }}>
+            {gruppi[gruppo].map((p) => (
+              <div key={p.id} className="card">
+                <h3 style={{ marginBottom: "0.25rem" }}>
+                  {p.sito_web ? (
+                    <a href={p.sito_web} target="_blank" rel="noreferrer">
+                      {p.nome}
+                    </a>
+                  ) : (
+                    p.nome
+                  )}
+                </h3>
+                {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
+                {p.quando && (
+                  <p className="muted" style={{ margin: "0.25rem 0" }}>
+                    {p.quando}
+                  </p>
+                )}
+                {p.indirizzo && (
+                  <p className="muted" style={{ margin: "0.25rem 0", fontSize: "0.9em" }}>
+                    {p.indirizzo}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        </section>
+      ))}
     </main>
   );
 }
