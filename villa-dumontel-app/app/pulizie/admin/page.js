@@ -84,6 +84,7 @@ export default function PaginaAdminPulizie() {
   }, []);
 
   async function approvaTurno(id) {
+    const turno = turni.find((t) => t.id === id);
     const { error } = await supabase
       .from("turni_pulizia")
       .update({ stato: "approvato" })
@@ -333,3 +334,51 @@ export default function PaginaAdminPulizie() {
                   <option key={f.id} value={f.id}>
                     {f.nome}
                   </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              Importo ricevuto (&euro;)
+              <input type="number" step="0.01" name="importo" required />
+            </label>
+            <label>
+              Data
+              <input type="date" name="data" required />
+            </label>
+            <label>
+              Modalita&apos;
+              <select name="metodo" required>
+                <option value="bonifico">Bonifico</option>
+                <option value="contanti">Contanti</option>
+              </select>
+            </label>
+            <label>
+              Note
+              <textarea name="note"></textarea>
+            </label>
+            <button type="submit" className="btn">
+              Registra incasso
+            </button>
+          </form>
+        </div>
+      </section>
+
+      <section>
+        <h2>Storico turni</h2>
+        <div className="card">
+          {turniStorico.length === 0 && (
+            <p className="muted">Nessun turno registrato.</p>
+          )}
+          {turniStorico.map((t) => (
+            <div key={t.id} className="richiesta-item">
+              <span className={classeBadgeStato(t.stato)}>{t.stato}</span>{" "}
+              <strong>{t.collaboratori?.nome}</strong> &mdash; {t.alloggi?.nome}{" "}
+              &mdash; {t.data} &mdash; {t.ore} ore
+              {t.note && <p className="descrizione">{t.note}</p>}
+            </div>
+          ))}
+        </div>
+      </section>
+    </main>
+  );
+}
