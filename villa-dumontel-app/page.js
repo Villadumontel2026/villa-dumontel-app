@@ -2,11 +2,11 @@ import { supabase } from "../../../lib/supabaseClient";
 
 export const dynamic = "force-dynamic";
 
-export default async function FoodDrinkPage() {
+export default async function AttivitaPage() {
   const { data: posti } = await supabase
     .from("posti")
     .select("*")
-    .eq("categoria", "food_drink")
+    .eq("categoria", "attivita")
     .order("id", { ascending: true });
 
   return (
@@ -14,7 +14,7 @@ export default async function FoodDrinkPage() {
       <p>
         <a href="/info">&larr; Informazioni</a>
       </p>
-      <h1>Food &amp; Drink</h1>
+      <h1>Attività</h1>
 
       <div style={{ display: "grid", gap: "1rem" }}>
         {(posti || []).map((p) => (
@@ -29,11 +29,6 @@ export default async function FoodDrinkPage() {
               )}
             </h3>
             {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
-            {p.indirizzo && (
-              <p className="muted" style={{ margin: "0.25rem 0", fontSize: "0.9em" }}>
-                {p.indirizzo}
-              </p>
-            )}
           </div>
         ))}
       </div>
