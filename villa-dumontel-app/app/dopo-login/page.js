@@ -18,11 +18,7 @@ export default function DopoLogin() {
 
       if (error || !profilo) {
         setStato(
-          "Accesso riuscito, ma non hai ancora un profilo associato. Contatta l'amministratore. " +
-            "Dettaglio tecnico: " +
-            (error ? error.message + " (codice " + error.code + ")" : "nessuna riga trovata") +
-            " | uid: " +
-            session.user.id
+          "Accesso riuscito, ma non hai ancora un profilo associato. Contatta l'amministratore."
         );
         return;
       }
