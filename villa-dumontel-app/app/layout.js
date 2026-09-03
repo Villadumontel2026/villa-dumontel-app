@@ -11,8 +11,9 @@ export default function RootLayout({ children }) {
       <body>
         <header className="site-header">
           <div className="header-inner">
-            <a href="/" style={{ fontWeight: 700, fontSize: "1.1rem" }}>
-              Villa Dumontel
+            <a href="/" className="site-brand">
+              <span className="nome">Villa Dumontel</span>
+              <span className="luogo">Entrèves &middot; Courmayeur</span>
             </a>
             <nav>
               <a href="/richieste">Richieste</a>
