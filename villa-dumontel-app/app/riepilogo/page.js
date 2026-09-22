@@ -95,7 +95,11 @@ export default function RiepilogoPage() {
       .reduce((s, p) => s + (p.importo || 0), 0);
 
     const totaleSpese = speseFamiglia
-      .filter((s) => s.famiglia_id === f.id)
+      .filter((s) => s.famiglia_id === f.id && s.categoria !== "gasolio")
+      .reduce((s, r) => s + (r.importo || 0), 0);
+
+    const totaleGasolio = speseFamiglia
+      .filter((s) => s.famiglia_id === f.id && s.categoria === "gasolio")
       .reduce((s, r) => s + (r.importo || 0), 0);
 
     const totaleDovuto = totalePulizie + totaleSpese;
@@ -108,6 +112,7 @@ export default function RiepilogoPage() {
       ...f,
       totalePulizie,
       totaleSpese,
+      totaleGasolio,
       totaleDovuto,
       totaleIncassato,
       saldo: totaleDovuto - totaleIncassato,
@@ -143,6 +148,11 @@ export default function RiepilogoPage() {
             <p style={{ margin: "0.5rem 0 0" }}>
               <strong>Saldo: {f.saldo.toFixed(2)} &euro;</strong>
             </p>
+            {f.totaleGasolio > 0 && (
+              <p className="muted" style={{ margin: "0.75rem 0 0", fontSize: "0.85em" }}>
+                Gasolio (storico, non incluso nel saldo sopra): {f.totaleGasolio.toFixed(2)} &euro;
+              </p>
+            )}
           </div>
         ))}
       </div>
