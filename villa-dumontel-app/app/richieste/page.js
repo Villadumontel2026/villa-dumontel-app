@@ -45,6 +45,12 @@ export default async function RichiestePage() {
       <p>
         <a href="/pulizie/admin">Vai a Pulizie (gestione) &rarr;</a>
       </p>
+      <p>
+        <a href="/spese/admin">Vai a Spese generiche &rarr;</a>
+      </p>
+      <p>
+        <a href="/riepilogo">Vai al Riepilogo &rarr;</a>
+      </p>
 
       <div className="card" style={{ marginBottom: "2rem" }}>
         <h2>Nuova richiesta</h2>
