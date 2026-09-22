@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+
+const ANNO_CORRENTE = new Date().getFullYear();
+
+function anno(dataStr) {
+  if (!dataStr) return null;
+  return parseInt(String(dataStr).slice(0, 4), 10);
+}
 
 export default function RiepilogoPage() {
   const [caricamento, setCaricamento] = useState(true);
@@ -12,6 +19,8 @@ export default function RiepilogoPage() {
   const [pagamentiCollab, setPagamentiCollab] = useState([]);
   const [speseFamiglia, setSpeseFamiglia] = useState([]);
   const [pagamentiFam, setPagamentiFam] = useState([]);
+
+  const [annoSelezionato, setAnnoSelezionato] = useState(String(ANNO_CORRENTE));
 
   useEffect(() => {
     async function carica() {
@@ -64,6 +73,17 @@ export default function RiepilogoPage() {
     carica();
   }, []);
 
+  const anniDisponibili = useMemo(() => {
+    const anni = new Set();
+    pagamentiCollab.forEach((p) => anni.add(anno(p.data)));
+    speseFamiglia.forEach((s) => anni.add(anno(s.data)));
+    pagamentiFam.forEach((p) => anni.add(anno(p.data)));
+    anni.add(ANNO_CORRENTE);
+    return Array.from(anni)
+      .filter(Boolean)
+      .sort((a, b) => b - a);
+  }, [pagamentiCollab, speseFamiglia, pagamentiFam]);
+
   if (caricamento) {
     return (
       <main>
@@ -85,34 +105,32 @@ export default function RiepilogoPage() {
     );
   }
 
+  const filtroAnno = (dataStr) =>
+    annoSelezionato === "tutti" || anno(dataStr) === parseInt(annoSelezionato, 10);
+
   const riepilogo = famiglie.map((f) => {
     const alloggiFamiglia = alloggi
       .filter((a) => a.famiglia_id === f.id)
       .map((a) => a.id);
 
     const totalePulizie = pagamentiCollab
-      .filter((p) => alloggiFamiglia.includes(p.alloggio_id))
+      .filter((p) => alloggiFamiglia.includes(p.alloggio_id) && filtroAnno(p.data))
       .reduce((s, p) => s + (p.importo || 0), 0);
 
     const totaleSpese = speseFamiglia
-      .filter((s) => s.famiglia_id === f.id && s.categoria !== "gasolio")
-      .reduce((s, r) => s + (r.importo || 0), 0);
-
-    const totaleGasolio = speseFamiglia
-      .filter((s) => s.famiglia_id === f.id && s.categoria === "gasolio")
+      .filter((s) => s.famiglia_id === f.id && filtroAnno(s.data))
       .reduce((s, r) => s + (r.importo || 0), 0);
 
     const totaleDovuto = totalePulizie + totaleSpese;
 
     const totaleIncassato = pagamentiFam
-      .filter((p) => p.famiglia_id === f.id)
+      .filter((p) => p.famiglia_id === f.id && filtroAnno(p.data))
       .reduce((s, p) => s + (p.importo || 0), 0);
 
     return {
       ...f,
       totalePulizie,
       totaleSpese,
-      totaleGasolio,
       totaleDovuto,
       totaleIncassato,
       saldo: totaleDovuto - totaleIncassato,
@@ -125,9 +143,24 @@ export default function RiepilogoPage() {
         <a href="/richieste">&larr; Richieste</a>
       </p>
       <h1>Riepilogo</h1>
-      <p className="muted" style={{ marginBottom: "1.5rem" }}>
+      <p className="muted" style={{ marginBottom: "1rem" }}>
         Pulizie + spese generiche per famiglia. Il gasolio verra&apos; aggiunto in seguito.
       </p>
+
+      <label style={{ maxWidth: "220px", marginBottom: "1.5rem" }}>
+        Anno
+        <select
+          value={annoSelezionato}
+          onChange={(e) => setAnnoSelezionato(e.target.value)}
+        >
+          {anniDisponibili.map((a) => (
+            <option key={a} value={a}>
+              {a}
+            </option>
+          ))}
+          <option value="tutti">Tutti gli anni (verifica)</option>
+        </select>
+      </label>
 
       <div style={{ display: "grid", gap: "1rem" }}>
         {riepilogo.map((f) => (
@@ -148,11 +181,6 @@ export default function RiepilogoPage() {
             <p style={{ margin: "0.5rem 0 0" }}>
               <strong>Saldo: {f.saldo.toFixed(2)} &euro;</strong>
             </p>
-            {f.totaleGasolio > 0 && (
-              <p className="muted" style={{ margin: "0.75rem 0 0", fontSize: "0.85em" }}>
-                Gasolio (storico, non incluso nel saldo sopra): {f.totaleGasolio.toFixed(2)} &euro;
-              </p>
-            )}
           </div>
         ))}
       </div>
