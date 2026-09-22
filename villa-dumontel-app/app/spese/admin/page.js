@@ -71,7 +71,7 @@ export default function SpeseAdminPage() {
 
   const totali = famiglie.map((f) => {
     const totale = spese
-      .filter((s) => s.famiglia_id === f.id)
+      .filter((s) => s.famiglia_id === f.id && s.categoria !== "gasolio")
       .reduce((s, r) => s + (r.importo || 0), 0);
     return { ...f, totale };
   });
