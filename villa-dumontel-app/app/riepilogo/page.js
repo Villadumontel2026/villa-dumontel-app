@@ -167,9 +167,22 @@ export default function RiepilogoPage() {
             <p className="muted" style={{ margin: "0.25rem 0" }}>
               Gia&apos; incassato: {f.totaleIncassato.toFixed(2)} &euro;
             </p>
-            <p style={{ margin: "0.5rem 0 0" }}>
-              <strong>Saldo: {f.saldo.toFixed(2)} &euro;</strong>
-            </p>
+            <div
+              style={{
+                marginTop: "0.75rem",
+                padding: "0.75rem 1rem",
+                borderRadius: "10px",
+                fontWeight: 600,
+                background: f.saldo > 0 ? "#fde2e2" : "#dff3e3",
+                color: f.saldo > 0 ? "#8a1f1f" : "#1f5c2e",
+              }}
+            >
+              {f.saldo > 0
+                ? `Da incassare: ${f.saldo.toFixed(2)} €`
+                : f.saldo < 0
+                ? `Credito della famiglia: ${(-f.saldo).toFixed(2)} €`
+                : "Saldo in pari: 0.00 €"}
+            </div>
           </div>
         ))}
       </div>
