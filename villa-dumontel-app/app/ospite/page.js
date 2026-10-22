@@ -81,10 +81,10 @@ export default function OspiteHome() {
           <h2>Informazioni</h2>
           <p className="muted">Contatti, Wi-fi, ristoranti, bar e attivit&agrave;.</p>
         </a>
-        <div className="card" style={{ opacity: 0.6 }}>
+        <a href="/ospite/prenota" className="card">
           <h2>Prenota / Le mie richieste</h2>
-          <p className="muted">In arrivo.</p>
-        </div>
+          <p className="muted">Ristoranti, attivit&agrave;, trasporti, pulizie.</p>
+        </a>
       </div>
     </main>
   );
