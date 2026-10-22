@@ -2,17 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import FormRichiesta from "../components/FormRichiesta";
 
-const STATI = ["nuova", "in gestione", "confermata", "completata"];
-
-const CHECKLIST_PULIZIE = [
-  "Cambio lenzuola",
-  "Cambio asciugamani",
-  "Pulizia bagni",
-  "Pulizia cucina",
-  "Pulizia terrazzo/balcone",
-  "Riordino generale",
-];
+const STATI = ["nuova", "in gestione", "confermata", "completata", "annullata"];
 
 function classeBadge(stato) {
   return "badge badge-" + String(stato).replace(" ", "-");
@@ -23,7 +15,7 @@ export default function RichiestePage() {
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [richieste, setRichieste] = useState([]);
   const [alloggi, setAlloggi] = useState([]);
-  const [tipo, setTipo] = useState("trasporto");
+  const [posti, setPosti] = useState([]);
   const [errore, setErrore] = useState(null);
 
   async function caricaRichieste() {
@@ -60,6 +52,12 @@ export default function RichiestePage() {
 
       const { data: alloggiData } = await supabase.from("alloggi").select("*");
       setAlloggi(alloggiData || []);
+      const { data: postiData } = await supabase
+        .from("posti")
+        .select("id, nome, categoria, sotto_categoria")
+        .in("categoria", ["ristorante", "attivita"])
+        .order("id", { ascending: true });
+      setPosti(postiData || []);
       await caricaRichieste();
       setCaricamento(false);
     }
@@ -76,40 +74,17 @@ export default function RichiestePage() {
     await caricaRichieste();
   }
 
-  async function creaRichiesta(e) {
-    e.preventDefault();
+  async function creaRichiesta(valori) {
     setErrore(null);
-    const f = e.target;
-    const val = (n) => (f[n] && f[n].value ? f[n].value : null);
-
-    let descrizione = val("descrizione") || "";
-    const voci = Array.from(f.querySelectorAll('input[name="voci"]:checked')).map(
-      (c) => c.value
-    );
-    if (voci.length > 0) descrizione = voci.join(", ");
-
-    const alloggioId = val("alloggio_id");
-    const alloggio = alloggi.find((a) => String(a.id) === String(alloggioId));
-
+    const alloggio = alloggi.find((a) => String(a.id) === String(valori.alloggio_id));
     const { error } = await supabase.from("richieste").insert({
-      tipo,
-      alloggio_id: alloggioId,
+      ...valori,
       famiglia_id: alloggio?.famiglia_id || null,
-      data: val("data"),
-      ora: val("ora"),
-      sotto_tipo: val("sotto_tipo"),
-      pax: val("pax") ? parseInt(val("pax"), 10) : null,
-      descrizione,
-      note: val("note"),
       stato: "nuova",
     });
-
-    if (error) {
-      setErrore("Errore: " + error.message);
-      return;
-    }
-    f.reset();
+    if (error) return "Errore: " + error.message;
     await caricaRichieste();
+    return null;
   }
 
   if (caricamento) {
@@ -133,7 +108,7 @@ export default function RichiestePage() {
     );
   }
 
-  const gruppi = { nuova: [], "in gestione": [], confermata: [], completata: [] };
+  const gruppi = { nuova: [], "in gestione": [], confermata: [], completata: [], annullata: [] };
   richieste.forEach((r) => {
     const key = gruppi[r.stato] ? r.stato : "nuova";
     gruppi[key].push(r);
@@ -164,138 +139,13 @@ export default function RichiestePage() {
 
       <div className="card" style={{ marginBottom: "2rem" }}>
         <h2>Nuova richiesta</h2>
-        <form onSubmit={creaRichiesta} key={tipo}>
-          <label>
-            Tipo di richiesta
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)}>
-              <option value="trasporto">Trasporto</option>
-              <option value="ristorante">Ristorante</option>
-              <option value="attivita">Attivit&agrave;</option>
-              <option value="pulizie">Pulizie</option>
-            </select>
-          </label>
-
-          <label>
-            Alloggio
-            <select name="alloggio_id" required>
-              {alloggi.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {tipo === "trasporto" && (
-            <>
-              <label>
-                Direzione
-                <select name="sotto_tipo">
-                  <option value="andata">Arrivo in valle</option>
-                  <option value="ritorno">Verso aeroporto</option>
-                </select>
-              </label>
-              <label>
-                Data
-                <input type="date" name="data" />
-              </label>
-              <label>
-                Orario volo
-                <input type="time" name="ora" />
-              </label>
-              <label>
-                Numero passeggeri
-                <input type="number" name="pax" />
-              </label>
-              <label>
-                Aeroporto / luogo
-                <input type="text" name="descrizione" placeholder="es. Malpensa T1 -> Courmayeur" />
-              </label>
-            </>
-          )}
-
-          {tipo === "ristorante" && (
-            <>
-              <label>
-                Pasto
-                <select name="sotto_tipo">
-                  <option value="pranzo">Pranzo</option>
-                  <option value="cena">Cena</option>
-                </select>
-              </label>
-              <label>
-                Data
-                <input type="date" name="data" />
-              </label>
-              <label>
-                Ora
-                <input type="time" name="ora" />
-              </label>
-              <label>
-                Numero persone
-                <input type="number" name="pax" />
-              </label>
-              <label>
-                Ristorante preferito
-                <input type="text" name="descrizione" placeholder="lascia vuoto per un consiglio" />
-              </label>
-            </>
-          )}
-
-          {tipo === "attivita" && (
-            <>
-              <label>
-                Tipo di attivit&agrave;
-                <input type="text" name="sotto_tipo" placeholder="es. sci, escursione, spa" />
-              </label>
-              <label>
-                Data
-                <input type="date" name="data" />
-              </label>
-              <label>
-                Numero partecipanti
-                <input type="number" name="pax" />
-              </label>
-              <label>
-                Dettagli
-                <input type="text" name="descrizione" placeholder="es. livello, orario preferito" />
-              </label>
-            </>
-          )}
-
-          {tipo === "pulizie" && (
-            <>
-              <label>
-                Data desiderata
-                <input type="date" name="data" />
-              </label>
-              <label>Cosa serve</label>
-              {CHECKLIST_PULIZIE.map((voce) => (
-                <label
-                  key={voce}
-                  style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
-                >
-                  <input
-                    type="checkbox"
-                    name="voci"
-                    value={voce}
-                    style={{ width: "auto", marginBottom: 0 }}
-                  />
-                  {voce}
-                </label>
-              ))}
-            </>
-          )}
-
-          <label>
-            Note
-            <textarea name="note"></textarea>
-          </label>
-
-          <button type="submit" className="btn">
-            Aggiungi richiesta
-          </button>
-        </form>
+        <FormRichiesta
+          alloggi={alloggi}
+          posti={posti}
+          tipoIniziale="trasporto"
+          onSubmit={creaRichiesta}
+          etichettaBottone="Aggiungi richiesta"
+        />
       </div>
 
       {Object.entries(gruppi).map(([stato, items]) => (
@@ -324,7 +174,7 @@ export default function RichiestePage() {
                   <div className="stato-actions">
                     {STATI.filter((s) => s !== r.stato).map((s) => (
                       <button key={s} onClick={() => cambiaStato(r.id, s)}>
-                        &rarr; {s}
+                        {s === "annullata" ? "Annulla" : "→ " + s}
                       </button>
                     ))}
                   </div>
