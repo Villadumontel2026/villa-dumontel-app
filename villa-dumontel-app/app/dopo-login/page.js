@@ -1,55 +1,90 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 
-export default function DopoLogin() {
-  const [stato, setStato] = useState("Verifica in corso...");
-  const router = useRouter();
+export default function OspiteHome() {
+  const [caricamento, setCaricamento] = useState(true);
+  const [erroreAccesso, setErroreAccesso] = useState(null);
+  const [famiglia, setFamiglia] = useState(null);
 
   useEffect(() => {
-    async function verifica(session) {
-      const { data: profilo, error } = await supabase
+    async function carica() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session) {
+        setErroreAccesso("Devi accedere per vedere questa pagina.");
+        setCaricamento(false);
+        return;
+      }
+
+      const { data: profilo } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
 
-      if (error || !profilo) {
-        setStato(
-          "Accesso riuscito, ma non hai ancora un profilo associato. Contatta l'amministratore."
-        );
+      if (!profilo || profilo.ruolo !== "ospite" || !profilo.famiglia_id) {
+        setErroreAccesso("Questa pagina e' riservata agli ospiti.");
+        setCaricamento(false);
         return;
       }
 
-      if (profilo.ruolo === "admin") {
-        router.replace("/richieste");
-      } else if (profilo.ruolo === "collaboratore") {
-        router.replace("/pulizie/collaboratore");
-      } else {
-        router.replace("/pulizie/ospite");
-      }
+      const { data: fam } = await supabase
+        .from("famiglie")
+        .select("*")
+        .eq("id", profilo.famiglia_id)
+        .single();
+      setFamiglia(fam);
+      setCaricamento(false);
     }
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) verifica(session);
-    });
+    carica();
+  }, []);
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (session) verifica(session);
-      }
+  if (caricamento) {
+    return (
+      <main>
+        <p>Caricamento...</p>
+      </main>
     );
+  }
 
-    return () => listener.subscription.unsubscribe();
-  }, [router]);
+  if (erroreAccesso) {
+    return (
+      <main>
+        <div className="card">
+          <p>{erroreAccesso}</p>
+          <p>
+            <a href="/login">Vai al login &rarr;</a>
+          </p>
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main>
-      <h1>Accesso</h1>
-      <div className="card">
-        <p>{stato}</p>
+      <h1>Benvenuti{famiglia?.nome ? `, ${famiglia.nome}` : ""}</h1>
+      <p className="muted" style={{ marginBottom: "1.5rem" }}>
+        Cosa desiderate fare?
+      </p>
+
+      <div style={{ display: "grid", gap: "1rem" }}>
+        <a href="/ospite/costi" className="card">
+          <h2>I miei costi</h2>
+          <p className="muted">Spese, versamenti e saldo per anno.</p>
+        </a>
+        <a href="/info" className="card">
+          <h2>Informazioni</h2>
+          <p className="muted">Contatti, Wi-fi, ristoranti, bar e attivit&agrave;.</p>
+        </a>
+        <div className="card" style={{ opacity: 0.6 }}>
+          <h2>Prenota / Le mie richieste</h2>
+          <p className="muted">In arrivo.</p>
+        </div>
       </div>
     </main>
   );
