@@ -75,14 +75,13 @@ export default function RiepilogoPage() {
 
   const anniDisponibili = useMemo(() => {
     const anni = new Set();
-    pagamentiCollab.forEach((p) => anni.add(anno(p.data)));
-    speseFamiglia.forEach((s) => anni.add(anno(s.data)));
+    speseFamiglia.forEach((s) => anni.add(s.anno_riferimento || anno(s.data)));
     pagamentiFam.forEach((p) => anni.add(anno(p.data)));
     anni.add(ANNO_CORRENTE);
     return Array.from(anni)
       .filter(Boolean)
       .sort((a, b) => b - a);
-  }, [pagamentiCollab, speseFamiglia, pagamentiFam]);
+  }, [speseFamiglia, pagamentiFam]);
 
   if (caricamento) {
     return (
@@ -105,35 +104,28 @@ export default function RiepilogoPage() {
     );
   }
 
-  const filtroAnno = (dataStr) =>
-    annoSelezionato === "tutti" || anno(dataStr) === parseInt(annoSelezionato, 10);
+  const annoSpesa = (s) => s.anno_riferimento || anno(s.data);
+  const tutti = annoSelezionato === "tutti";
+  const Y = parseInt(annoSelezionato, 10);
 
   const riepilogo = famiglie.map((f) => {
-    const alloggiFamiglia = alloggi
-      .filter((a) => a.famiglia_id === f.id)
-      .map((a) => a.id);
+    const spese = speseFamiglia.filter((s) => s.famiglia_id === f.id);
+    const incassi = pagamentiFam.filter((p) => p.famiglia_id === f.id);
+    const somma = (arr) => arr.reduce((t, r) => t + (r.importo || 0), 0);
 
-    const totalePulizie = pagamentiCollab
-      .filter((p) => alloggiFamiglia.includes(p.alloggio_id) && filtroAnno(p.data))
-      .reduce((s, p) => s + (p.importo || 0), 0);
-
-    const totaleSpese = speseFamiglia
-      .filter((s) => s.famiglia_id === f.id && filtroAnno(s.data))
-      .reduce((s, r) => s + (r.importo || 0), 0);
-
-    const totaleDovuto = totalePulizie + totaleSpese;
-
-    const totaleIncassato = pagamentiFam
-      .filter((p) => p.famiglia_id === f.id && filtroAnno(p.data))
-      .reduce((s, p) => s + (p.importo || 0), 0);
+    const totaleSpese = somma(spese.filter((s) => tutti || annoSpesa(s) === Y));
+    const totaleIncassato = somma(incassi.filter((p) => tutti || anno(p.data) === Y));
+    const riporto = tutti
+      ? 0
+      : somma(spese.filter((s) => annoSpesa(s) < Y)) -
+        somma(incassi.filter((p) => anno(p.data) < Y));
 
     return {
       ...f,
-      totalePulizie,
       totaleSpese,
-      totaleDovuto,
+      riporto,
       totaleIncassato,
-      saldo: totaleDovuto - totaleIncassato,
+      saldo: riporto + totaleSpese - totaleIncassato,
     };
   });
 
@@ -144,7 +136,7 @@ export default function RiepilogoPage() {
       </p>
       <h1>Riepilogo</h1>
       <p className="muted" style={{ marginBottom: "1rem" }}>
-        Pulizie + spese generiche per famiglia. Il gasolio verra&apos; aggiunto in seguito.
+        Spese per anno di competenza, incassi per data. Il saldo include il riporto degli anni precedenti.
       </p>
 
       <label style={{ maxWidth: "220px", marginBottom: "1.5rem" }}>
@@ -167,13 +159,10 @@ export default function RiepilogoPage() {
           <div key={f.id} className="card">
             <h2 style={{ marginBottom: "0.5rem" }}>{f.nome}</h2>
             <p className="muted" style={{ margin: "0.25rem 0" }}>
-              Pulizie: {f.totalePulizie.toFixed(2)} &euro;
+              Riporto anni precedenti: {f.riporto.toFixed(2)} &euro;
             </p>
             <p className="muted" style={{ margin: "0.25rem 0" }}>
-              Spese generiche: {f.totaleSpese.toFixed(2)} &euro;
-            </p>
-            <p className="muted" style={{ margin: "0.25rem 0" }}>
-              Totale dovuto: {f.totaleDovuto.toFixed(2)} &euro;
+              Spese dell&apos;anno (pulizie e gasolio incluse): {f.totaleSpese.toFixed(2)} &euro;
             </p>
             <p className="muted" style={{ margin: "0.25rem 0" }}>
               Gia&apos; incassato: {f.totaleIncassato.toFixed(2)} &euro;
