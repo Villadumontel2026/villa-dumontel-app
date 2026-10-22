@@ -107,7 +107,11 @@ export default function SpeseAdminPage() {
           <div key={s.id} className="richiesta-item">
             <strong>{s.oggetto}</strong> &mdash; {s.famiglie?.nome}
             <p className="descrizione">
-              {s.data} &mdash; {Number(s.importo).toFixed(2)} &euro;
+              {s.data}
+              {s.anno_riferimento && String(s.anno_riferimento) !== String(s.data).slice(0, 4)
+                ? ` (competenza ${s.anno_riferimento})`
+                : ""}{" "}
+              &mdash; {Number(s.importo).toFixed(2)} &euro;
               {s.note ? ` (${s.note})` : ""}
             </p>
           </div>
