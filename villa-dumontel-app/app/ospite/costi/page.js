@@ -138,15 +138,22 @@ export default function CostiOspitePage() {
         <p className="muted" style={{ margin: "0.25rem 0" }}>
           Versamenti {Y}: {euro(totIncassi)} &euro;
         </p>
-        <p style={{ margin: "0.5rem 0 0" }}>
-          <strong>
-            {saldo > 0
-              ? `Da versare: ${euro(saldo)} €`
-              : saldo < 0
-              ? `Credito: ${euro(-saldo)} €`
-              : "Saldo in pari"}
-          </strong>
-        </p>
+        <div
+          style={{
+            marginTop: "0.75rem",
+            padding: "0.75rem 1rem",
+            borderRadius: "10px",
+            fontWeight: 600,
+            background: saldo > 0 ? "#fde2e2" : "#dff3e3",
+            color: saldo > 0 ? "#8a1f1f" : "#1f5c2e",
+          }}
+        >
+          {saldo > 0
+            ? `Da versare: ${euro(saldo)} €`
+            : saldo < 0
+            ? `Credito: ${euro(-saldo)} €`
+            : "Saldo in pari: 0,00 €"}
+        </div>
       </div>
 
       <h2>Spese {Y}</h2>
