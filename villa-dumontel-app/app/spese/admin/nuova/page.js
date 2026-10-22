@@ -51,6 +51,7 @@ export default function NuovaSpesaPage() {
     const data = form.data.value;
     const importo = parseFloat(form.importo.value);
     const note = form.note.value;
+    const anno_riferimento = parseInt(form.anno_riferimento.value, 10) || parseInt(data.slice(0, 4), 10);
 
     const { error } = await supabase.from("spese_famiglia").insert({
       famiglia_id,
@@ -58,6 +59,7 @@ export default function NuovaSpesaPage() {
       data,
       importo,
       note,
+      anno_riferimento,
     });
 
     if (!error) {
@@ -114,6 +116,10 @@ export default function NuovaSpesaPage() {
           <label>
             Data
             <input type="date" name="data" required />
+          </label>
+          <label>
+            Anno di riferimento (lascia vuoto = anno della data)
+            <input type="number" name="anno_riferimento" min="2020" max="2100" placeholder="es. 2025" />
           </label>
           <label>
             Importo (&euro;)
