@@ -56,6 +56,14 @@ export default async function RistorantiPage() {
                     {p.indirizzo}
                   </p>
                 )}
+                <p style={{ margin: "0.75rem 0 0" }}>
+                  <a
+                    className="btn"
+                    href={"/ospite/prenota?tipo=ristorante&nome=" + encodeURIComponent(p.nome)}
+                  >
+                    Prenota
+                  </a>
+                </p>
               </div>
             ))}
           </div>
