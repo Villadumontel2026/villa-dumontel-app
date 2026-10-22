@@ -2,26 +2,19 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
-
-const CHECKLIST_PULIZIE = [
-  "Cambio lenzuola",
-  "Cambio asciugamani",
-  "Pulizia bagni",
-  "Pulizia cucina",
-  "Pulizia terrazzo/balcone",
-  "Riordino generale",
-];
+import FormRichiesta from "../../components/FormRichiesta";
 
 const TIPI_VALIDI = ["trasporto", "ristorante", "attivita", "pulizie"];
+const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
 export default function PrenotaOspitePage() {
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [profilo, setProfilo] = useState(null);
   const [alloggi, setAlloggi] = useState([]);
+  const [posti, setPosti] = useState([]);
   const [richieste, setRichieste] = useState([]);
-  const [tipo, setTipo] = useState("ristorante");
-  const [nome, setNome] = useState("");
+  const [iniziale, setIniziale] = useState({ tipo: "ristorante", nome: "" });
   const [inviata, setInviata] = useState(false);
   const [errore, setErrore] = useState(null);
 
@@ -38,8 +31,10 @@ export default function PrenotaOspitePage() {
     async function carica() {
       const params = new URLSearchParams(window.location.search);
       const t = params.get("tipo");
-      if (t && TIPI_VALIDI.includes(t)) setTipo(t);
-      if (params.get("nome")) setNome(params.get("nome"));
+      setIniziale({
+        tipo: t && TIPI_VALIDI.includes(t) ? t : "ristorante",
+        nome: params.get("nome") || "",
+      });
 
       const {
         data: { session },
@@ -70,6 +65,13 @@ export default function PrenotaOspitePage() {
         .eq("famiglia_id", p.famiglia_id);
       setAlloggi(alloggiData || []);
 
+      const { data: postiData } = await supabase
+        .from("posti")
+        .select("id, nome, categoria, sotto_categoria")
+        .in("categoria", ["ristorante", "attivita"])
+        .order("id", { ascending: true });
+      setPosti(postiData || []);
+
       await caricaRichieste(p.famiglia_id);
       setCaricamento(false);
     }
@@ -77,42 +79,31 @@ export default function PrenotaOspitePage() {
     carica();
   }, []);
 
-  async function invia(e) {
-    e.preventDefault();
+  async function invia(valori) {
+    setInviata(false);
     setErrore(null);
-    const f = e.target;
-    const val = (n) => (f[n] && f[n].value ? f[n].value : null);
-
-    let note = val("note");
-    if (tipo === "pulizie") {
-      const voci = Array.from(f.querySelectorAll('input[name="voci"]:checked')).map(
-        (c) => c.value
-      );
-      if (voci.length) {
-        note = "Servizi: " + voci.join(", ") + (note ? " — " + note : "");
-      }
-    }
-
     const { error } = await supabase.from("richieste").insert({
+      ...valori,
       famiglia_id: profilo.famiglia_id,
-      alloggio_id: val("alloggio_id"),
-      tipo,
-      sotto_tipo: val("sotto_tipo"),
-      data: val("data"),
-      ora: val("ora"),
-      pax: val("pax") ? parseInt(val("pax"), 10) : null,
-      descrizione: val("descrizione"),
-      note,
       stato: "nuova",
     });
+    if (error) return "Errore: " + error.message;
+    setInviata(true);
+    await caricaRichieste(profilo.famiglia_id);
+    return null;
+  }
 
+  async function annulla(id) {
+    if (!window.confirm("Vuoi annullare questa richiesta?")) return;
+    setErrore(null);
+    const { error } = await supabase
+      .from("richieste")
+      .update({ stato: "annullata" })
+      .eq("id", id);
     if (error) {
       setErrore("Errore: " + error.message);
       return;
     }
-    f.reset();
-    setNome("");
-    setInviata(true);
     await caricaRichieste(profilo.famiglia_id);
   }
 
@@ -156,155 +147,15 @@ export default function PrenotaOspitePage() {
       )}
 
       <div className="card" style={{ marginBottom: "2rem" }}>
-        <form onSubmit={invia} key={tipo + nome}>
-          <label>
-            Cosa desideri prenotare
-            <select
-              value={tipo}
-              onChange={(e) => {
-                setTipo(e.target.value);
-                setNome("");
-                setInviata(false);
-              }}
-            >
-              <option value="ristorante">Ristorante</option>
-              <option value="attivita">Attivit&agrave;</option>
-              <option value="trasporto">Trasporto</option>
-              <option value="pulizie">Pulizie</option>
-            </select>
-          </label>
-
-          <label>
-            Alloggio
-            <select name="alloggio_id" required>
-              {alloggi.map((a) => (
-                <option key={a.id} value={a.id}>
-                  {a.nome}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          {tipo === "trasporto" && (
-            <>
-              <label>
-                Direzione
-                <select name="sotto_tipo">
-                  <option value="andata">Arrivo in valle</option>
-                  <option value="ritorno">Verso aeroporto</option>
-                </select>
-              </label>
-              <label>
-                Data
-                <input type="date" name="data" />
-              </label>
-              <label>
-                Orario volo
-                <input type="time" name="ora" />
-              </label>
-              <label>
-                Numero passeggeri
-                <input type="number" name="pax" min="1" />
-              </label>
-              <label>
-                Aeroporto / luogo
-                <input type="text" name="descrizione" placeholder="es. Malpensa T1 -> Courmayeur" />
-              </label>
-            </>
-          )}
-
-          {tipo === "ristorante" && (
-            <>
-              <label>
-                Pasto
-                <select name="sotto_tipo">
-                  <option value="pranzo">Pranzo</option>
-                  <option value="cena">Cena</option>
-                </select>
-              </label>
-              <label>
-                Data
-                <input type="date" name="data" />
-              </label>
-              <label>
-                Ora
-                <input type="time" name="ora" />
-              </label>
-              <label>
-                Numero persone
-                <input type="number" name="pax" min="1" />
-              </label>
-              <label>
-                Ristorante
-                <input
-                  type="text"
-                  name="descrizione"
-                  defaultValue={nome}
-                  placeholder="lascia vuoto per un consiglio"
-                />
-              </label>
-            </>
-          )}
-
-          {tipo === "attivita" && (
-            <>
-              <label>
-                Tipo di attivit&agrave;
-                <input type="text" name="sotto_tipo" placeholder="es. sci, escursione, spa" />
-              </label>
-              <label>
-                Data
-                <input type="date" name="data" />
-              </label>
-              <label>
-                Numero partecipanti
-                <input type="number" name="pax" min="1" />
-              </label>
-              <label>
-                Dettagli
-                <input
-                  type="text"
-                  name="descrizione"
-                  defaultValue={nome}
-                  placeholder="es. nome del posto, livello, orario preferito"
-                />
-              </label>
-            </>
-          )}
-
-          {tipo === "pulizie" && (
-            <>
-              <label>
-                Data desiderata
-                <input type="date" name="data" />
-              </label>
-              <label>Cosa serve</label>
-              {CHECKLIST_PULIZIE.map((voce) => (
-                <label
-                  key={voce}
-                  style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
-                >
-                  <input
-                    type="checkbox"
-                    name="voci"
-                    value={voce}
-                    style={{ width: "auto", marginBottom: 0 }}
-                  />
-                  {voce}
-                </label>
-              ))}
-            </>
-          )}
-
-          <label>
-            Note
-            <textarea name="note"></textarea>
-          </label>
-
-          <button type="submit" className="btn">
-            Invia richiesta
-          </button>
-        </form>
+        <FormRichiesta
+          key={iniziale.tipo + iniziale.nome + posti.length}
+          alloggi={alloggi}
+          posti={posti}
+          tipoIniziale={iniziale.tipo}
+          nomeIniziale={iniziale.nome}
+          onSubmit={invia}
+          etichettaBottone="Invia richiesta"
+        />
       </div>
 
       <h2>Le mie richieste</h2>
@@ -312,7 +163,9 @@ export default function PrenotaOspitePage() {
         {richieste.length === 0 && <p className="muted">Nessuna richiesta.</p>}
         {richieste.map((r) => (
           <div key={r.id} className="richiesta-item">
-            <span className={"badge badge-" + String(r.stato).replace(" ", "-")}>{r.stato}</span>{" "}
+            <span className={"badge badge-" + String(r.stato).replace(" ", "-")}>
+              {r.stato}
+            </span>{" "}
             <strong>{r.tipo}</strong>
             <p className="descrizione">
               {r.data || ""} {r.ora ? String(r.ora).slice(0, 5) : ""}{" "}
@@ -320,6 +173,11 @@ export default function PrenotaOspitePage() {
               {r.descrizione ? `— ${r.descrizione}` : ""}
               {r.pax ? ` (${r.pax} pers.)` : ""}
             </p>
+            {ANNULLABILI.includes(r.stato) && (
+              <div className="stato-actions">
+                <button onClick={() => annulla(r.id)}>Annulla richiesta</button>
+              </div>
+            )}
           </div>
         ))}
       </div>
