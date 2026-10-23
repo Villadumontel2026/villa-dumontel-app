@@ -38,6 +38,7 @@ function raggruppa(posti) {
 export default function FormRichiesta({
   alloggi,
   posti = [],
+  collaboratori = null,
   tipoIniziale = "ristorante",
   nomeIniziale = "",
   onSubmit,
@@ -103,6 +104,8 @@ export default function FormRichiesta({
       data: val("data"),
       ora: val("ora"),
       pax: val("pax") ? parseInt(val("pax"), 10) : null,
+      durata_ore: tipo === "pulizie" && val("durata_ore") ? parseFloat(val("durata_ore")) : null,
+      collaboratore_id: tipo === "pulizie" ? val("collaboratore_id") : null,
       descrizione,
       posto_id,
       note: val("note"),
@@ -262,7 +265,28 @@ export default function FormRichiesta({
         <>
           <label>
             Data desiderata
-            <input type="date" name="data" />
+            <input type="date" name="data" required />
+          </label>
+          <label>
+            Ora di inizio
+            <input type="time" name="ora" required />
+          </label>
+          {collaboratori && (
+            <label>
+              Collaboratrice (facoltativa)
+              <select name="collaboratore_id" defaultValue="">
+                <option value="">— da assegnare —</option>
+                {collaboratori.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label>
+            Durata prevista (ore)
+            <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue="3" required />
           </label>
           <label>Cosa serve</label>
           {CHECKLIST_PULIZIE.map((voce) => (
