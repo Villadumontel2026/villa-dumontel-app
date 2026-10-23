@@ -43,12 +43,14 @@ export default function CollaboratriciPage() {
       const { data: turniData } = await supabase
         .from("turni_pulizia")
         .select("*")
-        .eq("stato", "approvato");
+        .eq("stato", "approvato")
+        .eq("storico", false);
       setTurni(turniData || []);
 
       const { data: pagCollabData } = await supabase
         .from("pagamenti_collaboratori")
-        .select("*");
+        .select("*")
+        .eq("storico", false);
       setPagamentiCollab(pagCollabData || []);
 
       setCaricamento(false);
@@ -106,7 +108,7 @@ export default function CollaboratriciPage() {
           <div key={c.id} className="card">
             <h3 style={{ marginBottom: "0.25rem" }}>{c.nome}</h3>
             <p className="muted" style={{ margin: "0.25rem 0" }}>
-              Dovuto (turni approvati): {c.dovuto.toFixed(2)} &euro;
+              Dovuto (turni effettuati): {c.dovuto.toFixed(2)} &euro;
             </p>
             <p className="muted" style={{ margin: "0.25rem 0" }}>
               Gia&apos; versato: {c.pagato.toFixed(2)} &euro;
