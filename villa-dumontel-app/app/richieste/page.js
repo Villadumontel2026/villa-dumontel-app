@@ -108,11 +108,48 @@ export default function RichiestePage() {
     );
   }
 
-  const gruppi = { nuova: [], "in gestione": [], confermata: [], completata: [], annullata: [] };
-  richieste.forEach((r) => {
-    const key = gruppi[r.stato] ? r.stato : "nuova";
-    gruppi[key].push(r);
+  const CATEGORIE = [
+    { tipo: "trasporto", titolo: "Trasporti" },
+    { tipo: "ristorante", titolo: "Ristoranti" },
+    { tipo: "attivita", titolo: "Attività" },
+    { tipo: "pulizie", titolo: "Pulizie" },
+  ];
+  const ORDINE_STATO = { nuova: 0, "in gestione": 1, confermata: 2 };
+  const CHIUSE = ["completata", "annullata"];
+  const perData = (x, y) => String(x.data || "9999").localeCompare(String(y.data || "9999"));
+
+  const categorie = CATEGORIE.map((c) => {
+    const tutte = richieste.filter((r) => r.tipo === c.tipo);
+    const aperte = tutte
+      .filter((r) => !CHIUSE.includes(r.stato))
+      .sort((x, y) => (ORDINE_STATO[x.stato] ?? 0) - (ORDINE_STATO[y.stato] ?? 0) || perData(x, y));
+    const chiuse = tutte.filter((r) => CHIUSE.includes(r.stato)).sort((x, y) => perData(y, x));
+    const nuove = tutte.filter((r) => r.stato === "nuova").length;
+    return { ...c, aperte, chiuse, nuove };
   });
+
+  function riga(r) {
+    return (
+      <div key={r.id} className="richiesta-item">
+        <span className={classeBadge(r.stato)}>{r.stato}</span>{" "}
+        <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
+        <p className="descrizione">
+          {r.data} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash;{" "}
+          {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
+          {r.descrizione}
+          {r.pax ? ` (${r.pax} pers.)` : ""}
+          {r.note ? ` (${r.note})` : ""}
+        </p>
+        <div className="stato-actions">
+          {STATI.filter((s) => s !== r.stato).map((s) => (
+            <button key={s} onClick={() => cambiaStato(r.id, s)}>
+              {s === "annullata" ? "Annulla" : "→ " + s}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <main>
@@ -137,52 +174,48 @@ export default function RichiestePage() {
         </div>
       )}
 
-      <div className="card" style={{ marginBottom: "2rem" }}>
-        <h2>Nuova richiesta</h2>
-        <FormRichiesta
-          alloggi={alloggi}
-          posti={posti}
-          tipoIniziale="trasporto"
-          onSubmit={creaRichiesta}
-          etichettaBottone="Aggiungi richiesta"
-        />
-      </div>
+      <details className="card" style={{ marginBottom: "2rem" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>+ Nuova richiesta</summary>
+        <div style={{ marginTop: "1rem" }}>
+          <FormRichiesta
+            alloggi={alloggi}
+            posti={posti}
+            tipoIniziale="trasporto"
+            onSubmit={creaRichiesta}
+            etichettaBottone="Aggiungi richiesta"
+          />
+        </div>
+      </details>
 
-      {Object.entries(gruppi).map(([stato, items]) => (
-        <section key={stato} style={{ marginBottom: "1.75rem" }}>
-          <h2>
-            {stato}{" "}
+      {categorie.map((c) => (
+        <details
+          key={c.tipo}
+          open={c.aperte.length > 0}
+          className="card"
+          style={{ marginBottom: "1rem" }}
+        >
+          <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "1.1em" }}>
+            {c.titolo}{" "}
             <span className="muted" style={{ fontWeight: 400 }}>
-              ({items.length})
+              ({c.aperte.length} aperte
+              {c.nuove > 0 ? `, ${c.nuove} nuove` : ""})
             </span>
-          </h2>
+          </summary>
 
-          {items.length === 0 && <p className="muted">Nessuna richiesta.</p>}
+          <div style={{ marginTop: "0.75rem" }}>
+            {c.aperte.length === 0 && <p className="muted">Nessuna richiesta aperta.</p>}
+            {c.aperte.map(riga)}
 
-          {items.length > 0 && (
-            <div className="card">
-              {items.map((r) => (
-                <div key={r.id} className="richiesta-item">
-                  <span className={classeBadge(r.stato)}>{r.tipo}</span>{" "}
-                  <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
-                  <p className="descrizione">
-                    {r.data} {r.ora} &mdash;{" "}
-                    {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
-                    {r.descrizione}
-                    {r.note ? ` (${r.note})` : ""}
-                  </p>
-                  <div className="stato-actions">
-                    {STATI.filter((s) => s !== r.stato).map((s) => (
-                      <button key={s} onClick={() => cambiaStato(r.id, s)}>
-                        {s === "annullata" ? "Annulla" : "→ " + s}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
+            {c.chiuse.length > 0 && (
+              <details style={{ marginTop: "1rem" }}>
+                <summary className="muted" style={{ cursor: "pointer" }}>
+                  Completate e annullate ({c.chiuse.length})
+                </summary>
+                <div style={{ marginTop: "0.5rem" }}>{c.chiuse.map(riga)}</div>
+              </details>
+            )}
+          </div>
+        </details>
       ))}
     </main>
   );
