@@ -93,7 +93,7 @@ export default function NuovaSpesaPage() {
   return (
     <main>
       <p>
-        <a href="/spese/admin">&larr; Spese generiche</a>
+        <a href="/spese/admin">&larr; Spese</a>
       </p>
       <h1>Aggiungi una spesa</h1>
 
