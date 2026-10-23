@@ -12,6 +12,7 @@ export default function CollaboratriciPage() {
   const [pagamentiCollab, setPagamentiCollab] = useState([]);
   const [alloggiList, setAlloggiList] = useState([]);
   const [famiglie, setFamiglie] = useState([]);
+  const [escluse, setEscluse] = useState([]);
 
   useEffect(() => {
     async function carica() {
@@ -117,12 +118,35 @@ export default function CollaboratriciPage() {
     return { dovuto, versato, saldo: dovuto - versato };
   }
 
-  const situazione = collaboratori.map((c) => {
+  const visibili = collaboratori.filter((c) => !escluse.includes(c.id));
+  const idVisibili = visibili.map((c) => c.id);
+
+  const situazione = visibili.map((c) => {
     const t = turni.filter((x) => x.collaboratore_id === c.id);
     const p = pagamentiCollab.filter((x) => x.collaboratore_id === c.id);
     return { ...c, righe: colonne.map((col) => calcola(t, p, col.alloggioId)) };
   });
-  const complessivo = colonne.map((col) => calcola(turni, pagamentiCollab, col.alloggioId));
+  const complessivo = colonne.map((col) =>
+    calcola(
+      turni.filter((x) => idVisibili.includes(x.collaboratore_id)),
+      pagamentiCollab.filter((x) => idVisibili.includes(x.collaboratore_id)),
+      col.alloggioId
+    )
+  );
+
+  function toggleCollab(id) {
+    setEscluse((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  }
+
+  const chip = (attivo) => ({
+    border: "1px solid #2f4739",
+    background: attivo ? "#2f4739" : "transparent",
+    color: attivo ? "white" : "#2f4739",
+    borderRadius: "999px",
+    padding: "0.35rem 0.9rem",
+    fontSize: "0.9rem",
+    cursor: "pointer",
+  });
 
   const euro = (n) => n.toFixed(2) + " €";
 
@@ -183,17 +207,48 @@ export default function CollaboratriciPage() {
         </a>
       </p>
 
-      <div style={{ display: "grid", gap: "1rem" }}>
-        {situazione.map((c) => (
-          <div key={c.id} className="card">
-            <h3 style={{ marginBottom: "0.5rem" }}>{c.nome}</h3>
-            {tabella(c.righe)}
-          </div>
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
+        {collaboratori.map((c) => (
+          <button
+            key={c.id}
+            type="button"
+            style={chip(!escluse.includes(c.id))}
+            onClick={() => toggleCollab(c.id)}
+          >
+            {c.nome}
+          </button>
         ))}
-        <div className="card">
-          <h3 style={{ marginBottom: "0.5rem" }}>Tutte le collaboratrici</h3>
-          {tabella(complessivo)}
-        </div>
+        {escluse.length > 0 && (
+          <button type="button" style={{ ...chip(false), border: "1px dashed #2f4739" }} onClick={() => setEscluse([])}>
+            Mostra tutte
+          </button>
+        )}
+      </div>
+
+      <div style={{ display: "grid", gap: "1rem" }}>
+        <details open className="card">
+          <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+            {visibili.length === collaboratori.length ? "Tutte le collaboratrici" : "Selezione"}{" "}
+            <span className="muted" style={{ fontWeight: 400 }}>
+              &mdash; saldo residuo {euro(complessivo[0] ? complessivo[0].saldo : 0)}
+            </span>
+          </summary>
+          <div style={{ marginTop: "0.75rem" }}>{tabella(complessivo)}</div>
+        </details>
+
+        {situazione.length === 0 && <p className="muted">Nessuna collaboratrice selezionata.</p>}
+
+        {situazione.map((c) => (
+          <details key={c.id} className="card">
+            <summary style={{ cursor: "pointer", fontWeight: 700 }}>
+              {c.nome}{" "}
+              <span className="muted" style={{ fontWeight: 400 }}>
+                &mdash; saldo residuo {euro(c.righe[0].saldo)}
+              </span>
+            </summary>
+            <div style={{ marginTop: "0.75rem" }}>{tabella(c.righe)}</div>
+          </details>
+        ))}
       </div>
 
       <h2 style={{ marginTop: "2rem" }}>Ultimi versamenti</h2>
