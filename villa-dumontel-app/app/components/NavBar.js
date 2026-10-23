@@ -9,16 +9,19 @@ const LINK_PER_RUOLO = {
     { href: "/pulizie/admin", label: "Pulizie" },
     { href: "/spese/admin", label: "Spese" },
     { href: "/riepilogo", label: "Riepilogo" },
+    { href: "/calendario", label: "Calendario" },
     { href: "/info", label: "Info" },
   ],
   collaboratore: [
     { href: "/pulizie/collaboratore", label: "Pulizie" },
+    { href: "/calendario", label: "Calendario" },
     { href: "/info", label: "Info" },
   ],
   ospite: [
     { href: "/ospite", label: "Home" },
     { href: "/ospite/prenota", label: "Prenota" },
     { href: "/ospite/richieste", label: "Richieste" },
+    { href: "/calendario", label: "Calendario" },
     { href: "/info", label: "Info" },
   ],
 };
