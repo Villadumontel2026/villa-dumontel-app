@@ -3,13 +3,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 
-const ETICHETTE_TIPO = {
-  trasporto: "Trasporto",
-  ristorante: "Ristorante",
-  attivita: "Attività",
-  pulizie: "Pulizie",
-};
-
 export default function OspiteHome() {
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
@@ -60,6 +53,9 @@ export default function OspiteHome() {
     carica();
   }, []);
 
+  const inviate = inCorso.filter((r) => r.stato === "nuova" || r.stato === "in gestione").length;
+  const prenotate = inCorso.filter((r) => r.stato === "confermata").length;
+
   if (caricamento) {
     return (
       <main>
@@ -88,32 +84,18 @@ export default function OspiteHome() {
         Cosa desiderate fare?
       </p>
 
-      {inCorso.length > 0 && (
-        <div className="card" style={{ marginBottom: "1.5rem" }}>
-          <h2>Le tue richieste in corso</h2>
-          {inCorso.map((r) => (
-            <div key={r.id} className="richiesta-item">
-              <span
-                className={
-                  "badge " + (r.stato === "confermata" ? "badge-confermata" : "badge-nuova")
-                }
-              >
-                {r.stato === "confermata" ? "Prenotata" : "Inviata"}
-              </span>{" "}
-              <strong>{ETICHETTE_TIPO[r.tipo] || r.tipo}</strong>
-              <p className="descrizione">
-                {r.data || ""} {r.ora ? String(r.ora).slice(0, 5) : ""}
-                {r.sotto_tipo ? ` — ${r.sotto_tipo}` : ""}
-                {r.descrizione ? ` — ${r.descrizione}` : ""}
-                {r.pax ? ` (${r.pax} pers.)` : ""}
-              </p>
-            </div>
-          ))}
-          <p style={{ margin: "0.75rem 0 0" }}>
-            <a href="/ospite/prenota">Gestisci o annulla le richieste &rarr;</a>
-          </p>
-        </div>
-      )}
+      <div className="card" style={{ marginBottom: "1.5rem" }}>
+        <h2>Richieste</h2>
+        <p style={{ margin: "0.25rem 0" }}>
+          <strong>{inviate}</strong> inviate &middot; <strong>{prenotate}</strong> prenotate
+        </p>
+        <p style={{ margin: "0.75rem 0 0", display: "flex", gap: "1rem", alignItems: "center", flexWrap: "wrap" }}>
+          <a href="/ospite/prenota" className="btn">
+            Prenota
+          </a>
+          <a href="/ospite/richieste">Vedi le richieste &rarr;</a>
+        </p>
+      </div>
 
       <div style={{ display: "grid", gap: "1rem" }}>
         <a href="/ospite/costi" className="card">
@@ -123,10 +105,6 @@ export default function OspiteHome() {
         <a href="/info" className="card">
           <h2>Informazioni</h2>
           <p className="muted">Contatti, Wi-fi, ristoranti, bar e attivit&agrave;.</p>
-        </a>
-        <a href="/ospite/prenota" className="card">
-          <h2>Prenota / Le mie richieste</h2>
-          <p className="muted">Ristoranti, attivit&agrave;, trasporti, pulizie.</p>
         </a>
       </div>
     </main>
