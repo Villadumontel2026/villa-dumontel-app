@@ -1,4 +1,5 @@
 import "./globals.css";
+import NavBar from "./components/NavBar";
 
 export const metadata = {
   title: "Villa Dumontel",
@@ -15,11 +16,7 @@ export default function RootLayout({ children }) {
               <span className="nome">Villa Dumontel</span>
               <span className="luogo">Entrèves &middot; Courmayeur</span>
             </a>
-            <nav>
-              <a href="/richieste">Richieste</a>
-              <a href="/info">Info</a>
-              <a href="/login">Accedi</a>
-            </nav>
+            <NavBar />
           </div>
         </header>
         <div className="container">{children}</div>
