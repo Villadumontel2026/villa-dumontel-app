@@ -4,6 +4,17 @@ import NavBar from "./components/NavBar";
 export const metadata = {
   title: "Villa Dumontel",
   description: "Gestione alloggi e richieste ospiti",
+  appleWebApp: {
+    capable: true,
+    title: "Villa Dumontel",
+    statusBarStyle: "default",
+  },
+};
+
+export const viewport = {
+  themeColor: "#2f4739",
+  width: "device-width",
+  initialScale: 1,
 };
 
 export default function RootLayout({ children }) {
