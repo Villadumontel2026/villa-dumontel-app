@@ -27,6 +27,7 @@ export default function NavBar() {
   const [pronto, setPronto] = useState(false);
   const [email, setEmail] = useState(null);
   const [ruolo, setRuolo] = useState(null);
+  const [aperto, setAperto] = useState(false);
 
   useEffect(() => {
     let attivo = true;
@@ -71,30 +72,84 @@ export default function NavBar() {
   const links = ruolo && LINK_PER_RUOLO[ruolo] ? LINK_PER_RUOLO[ruolo] : [{ href: "/info", label: "Info" }];
 
   return (
-    <nav>
-      {pronto &&
-        links.map((l) => (
-          <a key={l.href} href={l.href}>
-            {l.label}
-          </a>
-        ))}
-      {pronto && !email && <a href="/login">Accedi</a>}
-      {pronto && email && (
-        <>
-          <a href="/account" title={email}>
-            Account
-          </a>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              esci();
-            }}
-          >
-            Esci
-          </a>
-        </>
-      )}
-    </nav>
+    <>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .site-header { position: relative; }
+            .nav-toggle { display: none; }
+            @media (max-width: 720px) {
+              .nav-toggle {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.4rem;
+                background: rgba(255,255,255,0.14);
+                color: white;
+                border: none;
+                border-radius: 999px;
+                padding: 0.45rem 0.9rem;
+                font-size: 0.9rem;
+                cursor: pointer;
+              }
+              .header-inner nav.menu-links {
+                display: none;
+                position: absolute;
+                top: 100%;
+                left: 0;
+                right: 0;
+                z-index: 50;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 0.15rem;
+                padding: 0.5rem 1rem 1rem;
+                background: var(--color-primary-dark, #1f3226);
+                box-shadow: 0 8px 16px rgba(0,0,0,0.25);
+              }
+              .header-inner nav.menu-links.aperto { display: flex; }
+              .header-inner nav.menu-links a {
+                padding: 0.8rem 0.9rem;
+                font-size: 1rem;
+                opacity: 1;
+                border-radius: 10px;
+              }
+            }
+          `,
+        }}
+      />
+      <button
+        type="button"
+        className="nav-toggle"
+        aria-expanded={aperto}
+        aria-label="Menu"
+        onClick={() => setAperto((v) => !v)}
+      >
+        {aperto ? "Chiudi ✕" : "Menu ☰"}
+      </button>
+      <nav className={"menu-links" + (aperto ? " aperto" : "")} onClick={() => setAperto(false)}>
+        {pronto &&
+          links.map((l) => (
+            <a key={l.href} href={l.href}>
+              {l.label}
+            </a>
+          ))}
+        {pronto && !email && <a href="/login">Accedi</a>}
+        {pronto && email && (
+          <>
+            <a href="/account" title={email}>
+              Account
+            </a>
+            <a
+              href="#"
+              onClick={(e) => {
+                e.preventDefault();
+                esci();
+              }}
+            >
+              Esci
+            </a>
+          </>
+        )}
+      </nav>
+    </>
   );
 }
