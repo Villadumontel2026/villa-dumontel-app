@@ -56,6 +56,16 @@ export default function SpeseAdminPage() {
     carica();
   }, []);
 
+  async function eliminaSpesa(id) {
+    if (!window.confirm("Eliminare definitivamente questa spesa?")) return;
+    const { error } = await supabase.from("spese_famiglia").delete().eq("id", id);
+    if (error) {
+      alert("Errore: " + error.message);
+      return;
+    }
+    setSpese((prev) => prev.filter((x) => x.id !== id));
+  }
+
   const anni = useMemo(() => {
     const set = new Set([ANNO_CORRENTE]);
     spese.forEach((x) => set.add(annoSpesa(x)));
@@ -172,6 +182,20 @@ export default function SpeseAdminPage() {
               &mdash; {Number(s.importo).toFixed(2)} &euro;
               {s.note ? ` (${s.note})` : ""}
             </p>
+            {s.pagamento_collaboratore_id ? (
+              <p className="muted" style={{ fontSize: "0.85em", margin: "0.25rem 0 0" }}>
+                Generata da un versamento alla collaboratrice: si modifica da Pulizie &gt; Collaboratrici.
+              </p>
+            ) : (
+              <div className="stato-actions">
+                <a href={"/spese/admin/modifica?id=" + s.id}>
+                  <button type="button">Modifica</button>
+                </a>{" "}
+                <button type="button" onClick={() => eliminaSpesa(s.id)}>
+                  Elimina
+                </button>
+              </div>
+            )}
           </div>
         ))}
       </div>
