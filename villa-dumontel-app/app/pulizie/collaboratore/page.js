@@ -2,29 +2,52 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
+import CalendarButton from "../../components/CalendarButton";
 
-const ETICHETTE_STATO = {
-  "da approvare": "da validare",
-  approvato: "effettuato",
-  rifiutato: "rifiutato",
+const ANNULLABILI = ["nuova", "in gestione", "confermata"];
+
+const CHECKLIST_PULIZIE = [
+  "Cambio lenzuola",
+  "Cambio asciugamani",
+  "Pulizia bagni",
+  "Pulizia cucina",
+  "Pulizia terrazzo/balcone",
+  "Riordino generale",
+];
+
+const ETICHETTE_TIPO = {
+  trasporto: "Trasporto",
+  ristorante: "Ristorante",
+  attivita: "Attività",
+  pulizie: "Pulizie",
 };
 
-function classeBadgeStato(stato) {
-  if (stato === "da approvare") return "badge badge-nuova";
-  if (stato === "approvato") return "badge badge-confermata";
-  if (stato === "rifiutato") return "badge badge-completata";
-  return "badge";
+function etichettaStato(stato) {
+  if (stato === "nuova" || stato === "in gestione") return "Inviata";
+  if (stato === "confermata") return "Prenotata";
+  if (stato === "completata") return "Completata";
+  if (stato === "annullata") return "Annullata";
+  return stato;
 }
 
-export default function PaginaCollaboratrice() {
+export default function RichiesteOspitePage() {
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
-  const [collaboratore, setCollaboratore] = useState(null);
-  const [turni, setTurni] = useState([]);
-  const [pagamenti, setPagamenti] = useState([]);
+  const [famigliaId, setFamigliaId] = useState(null);
+  const [richieste, setRichieste] = useState([]);
+  const [errore, setErrore] = useState(null);
+
+  async function carica(famiglia_id) {
+    const { data } = await supabase
+      .from("richieste")
+      .select("*")
+      .eq("famiglia_id", famiglia_id)
+      .order("data", { ascending: true });
+    setRichieste(data || []);
+  }
 
   useEffect(() => {
-    async function carica() {
+    async function inizia() {
       const {
         data: { session },
       } = await supabase.auth.getSession();
@@ -35,45 +58,54 @@ export default function PaginaCollaboratrice() {
         return;
       }
 
-      const { data: profilo } = await supabase
+      const { data: p } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
 
-      if (!profilo || profilo.ruolo !== "collaboratore" || !profilo.collaboratore_id) {
-        setErroreAccesso("Questa pagina e' riservata alle collaboratrici.");
+      if (!p || p.ruolo !== "ospite" || !p.famiglia_id) {
+        setErroreAccesso("Questa pagina e' riservata agli ospiti.");
         setCaricamento(false);
         return;
       }
 
-      const { data: collab } = await supabase
-        .from("collaboratori")
-        .select("*")
-        .eq("id", profilo.collaboratore_id)
-        .single();
-      setCollaboratore(collab);
-
-      const { data: turniData } = await supabase
-        .from("turni_pulizia")
-        .select("*, alloggi(nome)")
-        .eq("collaboratore_id", profilo.collaboratore_id)
-        .eq("storico", false)
-        .order("data", { ascending: false });
-      setTurni(turniData || []);
-
-      const { data: pagamentiData } = await supabase
-        .from("pagamenti_collaboratori")
-        .select("*")
-        .eq("collaboratore_id", profilo.collaboratore_id)
-        .eq("storico", false);
-      setPagamenti(pagamentiData || []);
-
+      setFamigliaId(p.famiglia_id);
+      await carica(p.famiglia_id);
       setCaricamento(false);
     }
-
-    carica();
+    inizia();
   }, []);
+
+  async function salvaCosaFare(e, r) {
+    e.preventDefault();
+    setErrore(null);
+    const f = e.target;
+    const voci = Array.from(f.querySelectorAll('input[name="voci"]:checked')).map((c) => c.value);
+    const { error } = await supabase
+      .from("richieste")
+      .update({ descrizione: voci.length ? voci.join(", ") : null, note: f.note.value || null })
+      .eq("id", r.id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await carica(famigliaId);
+  }
+
+  async function annulla(id) {
+    if (!window.confirm("Vuoi annullare questa richiesta?")) return;
+    setErrore(null);
+    const { error } = await supabase
+      .from("richieste")
+      .update({ stato: "annullata" })
+      .eq("id", id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await carica(famigliaId);
+  }
 
   if (caricamento) {
     return (
@@ -96,42 +128,105 @@ export default function PaginaCollaboratrice() {
     );
   }
 
-  const totaleDovuto = turni
-    .filter((t) => t.stato === "approvato")
-    .reduce((s, t) => s + (t.importo_dovuto || 0), 0);
-  const totalePagato = pagamenti.reduce((s, p) => s + (p.importo || 0), 0);
-  const saldo = totaleDovuto - totalePagato;
+  const inCorso = richieste.filter((r) => ANNULLABILI.includes(r.stato));
+  const chiuse = richieste
+    .filter((r) => !ANNULLABILI.includes(r.stato))
+    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+
+  function riga(r) {
+    return (
+      <div key={r.id} className="richiesta-item">
+        <span
+          className={
+            "badge " +
+            (r.stato === "confermata"
+              ? "badge-confermata"
+              : r.stato === "completata"
+              ? "badge-completata"
+              : "badge-nuova")
+          }
+        >
+          {etichettaStato(r.stato)}
+        </span>{" "}
+        <strong>{ETICHETTE_TIPO[r.tipo] || r.tipo}</strong>
+        <p className="descrizione">
+          {r.data || ""} {r.ora ? String(r.ora).slice(0, 5) : ""}
+          {r.sotto_tipo ? ` — ${r.sotto_tipo}` : ""}
+          {r.descrizione ? ` — ${r.descrizione}` : ""}
+          {r.pax ? ` (${r.pax} pers.)` : ""}
+          {r.durata_ore ? ` — durata ${r.durata_ore} ore` : ""}
+          {r.tipo === "pulizie" && r.note ? ` — ${r.note}` : ""}
+          {r.tipo === "pulizie" && r.accettata_il ? " — accettata dalla collaboratrice" : ""}
+        </p>
+        {r.tipo === "pulizie" && ANNULLABILI.includes(r.stato) && (
+          <details style={{ margin: "0.5rem 0" }}>
+            <summary style={{ cursor: "pointer" }}>Indica cosa fare</summary>
+            <form onSubmit={(e) => salvaCosaFare(e, r)} style={{ marginTop: "0.5rem" }}>
+              {CHECKLIST_PULIZIE.map((voce) => (
+                <label
+                  key={voce}
+                  style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                >
+                  <input
+                    type="checkbox"
+                    name="voci"
+                    value={voce}
+                    defaultChecked={String(r.descrizione || "").includes(voce)}
+                    style={{ width: "auto", marginBottom: 0 }}
+                  />
+                  {voce}
+                </label>
+              ))}
+              <label>
+                Note per chi fa le pulizie
+                <textarea name="note" defaultValue={r.note || ""}></textarea>
+              </label>
+              <button type="submit" className="btn">
+                Salva
+              </button>
+            </form>
+          </details>
+        )}
+        {ANNULLABILI.includes(r.stato) && (
+          <div className="stato-actions">
+            {(r.stato === "confermata" || r.tipo === "pulizie") && <CalendarButton richiesta={r} />}{" "}
+            <button onClick={() => annulla(r.id)}>Annulla richiesta</button>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <main>
-      <h1>Ciao {collaboratore?.nome}</h1>
+      <h1>Le mie richieste</h1>
 
       <p style={{ marginBottom: "1.5rem" }}>
-        <a href="/pulizie/collaboratore/nuovo" className="btn">
-          Segnala un turno
+        <a href="/ospite/prenota" className="btn">
+          Prenota
         </a>
       </p>
 
+      {errore && (
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          <p style={{ color: "#a32d2d" }}>{errore}</p>
+        </div>
+      )}
+
+      <h2>In corso</h2>
       <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2>Il tuo saldo</h2>
-        <p>Totale dovuto (turni effettuati): {totaleDovuto.toFixed(2)} &euro;</p>
-        <p>Totale gia&apos; ricevuto: {totalePagato.toFixed(2)} &euro;</p>
-        <p>
-          <strong>Saldo residuo: {saldo.toFixed(2)} &euro;</strong>
-        </p>
+        {inCorso.length === 0 && <p className="muted">Nessuna richiesta in corso.</p>}
+        {inCorso.map(riga)}
       </div>
 
-      <h2>I tuoi turni</h2>
-      <div className="card">
-        {turni.length === 0 && <p className="muted">Nessun turno registrato.</p>}
-        {turni.map((t) => (
-          <div key={t.id} className="richiesta-item">
-            <span className={classeBadgeStato(t.stato)}>{ETICHETTE_STATO[t.stato] || t.stato}</span>{" "}
-            <strong>{t.alloggi?.nome}</strong> &mdash; {t.data} &mdash; {t.ore} ore
-            {t.note && <p className="descrizione">{t.note}</p>}
-          </div>
-        ))}
-      </div>
+      {chiuse.length > 0 && (
+        <details className="card">
+          <summary className="muted" style={{ cursor: "pointer" }}>
+            Completate e annullate ({chiuse.length})
+          </summary>
+          <div style={{ marginTop: "0.75rem" }}>{chiuse.map(riga)}</div>
+        </details>
+      )}
     </main>
   );
 }
