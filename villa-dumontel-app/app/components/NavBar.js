@@ -6,6 +6,8 @@ import { supabase } from "../../lib/supabaseClient";
 const LINK_PER_RUOLO = {
   admin: [
     { href: "/richieste", label: "Richieste" },
+    { href: "/pulizie/admin", label: "Pulizie" },
+    { href: "/spese/admin", label: "Spese" },
     { href: "/riepilogo", label: "Riepilogo" },
     { href: "/info", label: "Info" },
   ],
@@ -16,6 +18,7 @@ const LINK_PER_RUOLO = {
   ospite: [
     { href: "/ospite", label: "Home" },
     { href: "/ospite/prenota", label: "Prenota" },
+    { href: "/ospite/richieste", label: "Richieste" },
     { href: "/info", label: "Info" },
   ],
 };
