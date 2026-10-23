@@ -5,7 +5,6 @@ import { supabase } from "../../../lib/supabaseClient";
 import FormRichiesta from "../../components/FormRichiesta";
 
 const TIPI_VALIDI = ["trasporto", "ristorante", "attivita", "pulizie"];
-const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
 export default function PrenotaOspitePage() {
   const [caricamento, setCaricamento] = useState(true);
@@ -13,19 +12,9 @@ export default function PrenotaOspitePage() {
   const [profilo, setProfilo] = useState(null);
   const [alloggi, setAlloggi] = useState([]);
   const [posti, setPosti] = useState([]);
-  const [richieste, setRichieste] = useState([]);
   const [iniziale, setIniziale] = useState({ tipo: "ristorante", nome: "" });
   const [inviata, setInviata] = useState(false);
   const [errore, setErrore] = useState(null);
-
-  async function caricaRichieste(famiglia_id) {
-    const { data } = await supabase
-      .from("richieste")
-      .select("*")
-      .eq("famiglia_id", famiglia_id)
-      .order("id", { ascending: false });
-    setRichieste(data || []);
-  }
 
   useEffect(() => {
     async function carica() {
@@ -72,7 +61,6 @@ export default function PrenotaOspitePage() {
         .order("id", { ascending: true });
       setPosti(postiData || []);
 
-      await caricaRichieste(p.famiglia_id);
       setCaricamento(false);
     }
 
@@ -89,22 +77,7 @@ export default function PrenotaOspitePage() {
     });
     if (error) return "Errore: " + error.message;
     setInviata(true);
-    await caricaRichieste(profilo.famiglia_id);
     return null;
-  }
-
-  async function annulla(id) {
-    if (!window.confirm("Vuoi annullare questa richiesta?")) return;
-    setErrore(null);
-    const { error } = await supabase
-      .from("richieste")
-      .update({ stato: "annullata" })
-      .eq("id", id);
-    if (error) {
-      setErrore("Errore: " + error.message);
-      return;
-    }
-    await caricaRichieste(profilo.famiglia_id);
   }
 
   if (caricamento) {
@@ -137,7 +110,10 @@ export default function PrenotaOspitePage() {
 
       {inviata && (
         <div className="card" style={{ marginBottom: "1rem" }}>
-          <p>Richiesta inviata. Ti risponderemo al pi&ugrave; presto.</p>
+          <p>
+            Richiesta inviata. Ti risponderemo al pi&ugrave; presto.{" "}
+            <a href="/ospite/richieste">Vedi le tue richieste &rarr;</a>
+          </p>
         </div>
       )}
       {errore && (
@@ -158,29 +134,6 @@ export default function PrenotaOspitePage() {
         />
       </div>
 
-      <h2>Le mie richieste</h2>
-      <div className="card">
-        {richieste.length === 0 && <p className="muted">Nessuna richiesta.</p>}
-        {richieste.map((r) => (
-          <div key={r.id} className="richiesta-item">
-            <span className={"badge badge-" + String(r.stato).replace(" ", "-")}>
-              {r.stato}
-            </span>{" "}
-            <strong>{r.tipo}</strong>
-            <p className="descrizione">
-              {r.data || ""} {r.ora ? String(r.ora).slice(0, 5) : ""}{" "}
-              {r.sotto_tipo ? `— ${r.sotto_tipo}` : ""}{" "}
-              {r.descrizione ? `— ${r.descrizione}` : ""}
-              {r.pax ? ` (${r.pax} pers.)` : ""}
-            </p>
-            {ANNULLABILI.includes(r.stato) && (
-              <div className="stato-actions">
-                <button onClick={() => annulla(r.id)}>Annulla richiesta</button>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
     </main>
   );
 }
