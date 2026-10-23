@@ -1,4 +1,5 @@
 import { supabase } from "../../../lib/supabaseClient";
+import PrenotaButton from "../../components/PrenotaButton";
 
 export const dynamic = "force-dynamic";
 
@@ -29,14 +30,7 @@ export default async function AttivitaPage() {
               )}
             </h3>
             {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
-            <p style={{ margin: "0.75rem 0 0" }}>
-              <a
-                className="btn"
-                href={"/ospite/prenota?tipo=attivita&nome=" + encodeURIComponent(p.nome)}
-              >
-                Prenota
-              </a>
-            </p>
+            <PrenotaButton tipo="attivita" nome={p.nome} />
           </div>
         ))}
       </div>
