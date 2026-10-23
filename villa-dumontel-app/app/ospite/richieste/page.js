@@ -6,6 +6,15 @@ import CalendarButton from "../../components/CalendarButton";
 
 const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
+const CHECKLIST_PULIZIE = [
+  "Cambio lenzuola",
+  "Cambio asciugamani",
+  "Pulizia bagni",
+  "Pulizia cucina",
+  "Pulizia terrazzo/balcone",
+  "Riordino generale",
+];
+
 const ETICHETTE_TIPO = {
   trasporto: "Trasporto",
   ristorante: "Ristorante",
@@ -68,6 +77,22 @@ export default function RichiesteOspitePage() {
     inizia();
   }, []);
 
+  async function salvaCosaFare(e, r) {
+    e.preventDefault();
+    setErrore(null);
+    const f = e.target;
+    const voci = Array.from(f.querySelectorAll('input[name="voci"]:checked')).map((c) => c.value);
+    const { error } = await supabase
+      .from("richieste")
+      .update({ descrizione: voci.length ? voci.join(", ") : null, note: f.note.value || null })
+      .eq("id", r.id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await carica(famigliaId);
+  }
+
   async function annulla(id) {
     if (!window.confirm("Vuoi annullare questa richiesta?")) return;
     setErrore(null);
@@ -129,10 +154,42 @@ export default function RichiesteOspitePage() {
           {r.sotto_tipo ? ` — ${r.sotto_tipo}` : ""}
           {r.descrizione ? ` — ${r.descrizione}` : ""}
           {r.pax ? ` (${r.pax} pers.)` : ""}
+          {r.durata_ore ? ` — durata ${r.durata_ore} ore` : ""}
+          {r.tipo === "pulizie" && r.note ? ` — ${r.note}` : ""}
+          {r.tipo === "pulizie" && r.accettata_il ? " — accettata dalla collaboratrice" : ""}
         </p>
+        {r.tipo === "pulizie" && ANNULLABILI.includes(r.stato) && (
+          <details style={{ margin: "0.5rem 0" }}>
+            <summary style={{ cursor: "pointer" }}>Indica cosa fare</summary>
+            <form onSubmit={(e) => salvaCosaFare(e, r)} style={{ marginTop: "0.5rem" }}>
+              {CHECKLIST_PULIZIE.map((voce) => (
+                <label
+                  key={voce}
+                  style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                >
+                  <input
+                    type="checkbox"
+                    name="voci"
+                    value={voce}
+                    defaultChecked={String(r.descrizione || "").includes(voce)}
+                    style={{ width: "auto", marginBottom: 0 }}
+                  />
+                  {voce}
+                </label>
+              ))}
+              <label>
+                Note per chi fa le pulizie
+                <textarea name="note" defaultValue={r.note || ""}></textarea>
+              </label>
+              <button type="submit" className="btn">
+                Salva
+              </button>
+            </form>
+          </details>
+        )}
         {ANNULLABILI.includes(r.stato) && (
           <div className="stato-actions">
-            {r.stato === "confermata" && <CalendarButton richiesta={r} />}{" "}
+            {(r.stato === "confermata" || r.tipo === "pulizie") && <CalendarButton richiesta={r} />}{" "}
             <button onClick={() => annulla(r.id)}>Annulla richiesta</button>
           </div>
         )}
