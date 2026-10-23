@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import FormRichiesta from "../components/FormRichiesta";
+import CalendarButton from "../components/CalendarButton";
 
 const STATI = ["nuova", "in gestione", "confermata", "completata", "annullata"];
 
@@ -141,6 +142,7 @@ export default function RichiestePage() {
           {r.note ? ` (${r.note})` : ""}
         </p>
         <div className="stato-actions">
+          {r.stato === "confermata" && <CalendarButton richiesta={r} />}{" "}
           {STATI.filter((s) => s !== r.stato).map((s) => (
             <button key={s} onClick={() => cambiaStato(r.id, s)}>
               {s === "annullata" ? "Annulla" : "→ " + s}
