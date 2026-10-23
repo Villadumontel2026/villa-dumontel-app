@@ -10,6 +10,7 @@ export default function CollaboratriciPage() {
   const [collaboratori, setCollaboratori] = useState([]);
   const [turni, setTurni] = useState([]);
   const [pagamentiCollab, setPagamentiCollab] = useState([]);
+  const [alloggiList, setAlloggiList] = useState([]);
 
   useEffect(() => {
     async function carica() {
@@ -53,11 +54,24 @@ export default function CollaboratriciPage() {
         .eq("storico", false);
       setPagamentiCollab(pagCollabData || []);
 
+      const { data: alloggiData } = await supabase.from("alloggi").select("*");
+      setAlloggiList(alloggiData || []);
+
       setCaricamento(false);
     }
 
     carica();
   }, []);
+
+  async function eliminaVersamento(id) {
+    if (!window.confirm("Eliminare questo versamento? Verra' tolta anche la spesa collegata.")) return;
+    const { error } = await supabase.from("pagamenti_collaboratori").delete().eq("id", id);
+    if (error) {
+      alert("Errore: " + error.message);
+      return;
+    }
+    setPagamentiCollab((prev) => prev.filter((p) => p.id !== id));
+  }
 
   if (caricamento) {
     return (
@@ -118,6 +132,30 @@ export default function CollaboratriciPage() {
             </p>
           </div>
         ))}
+      </div>
+
+      <h2 style={{ marginTop: "2rem" }}>Ultimi versamenti</h2>
+      <div className="card">
+        {pagamentiCollab.length === 0 && <p className="muted">Nessun versamento registrato.</p>}
+        {[...pagamentiCollab]
+          .sort((a, b) => String(b.data).localeCompare(String(a.data)) || b.id - a.id)
+          .map((p) => {
+            const c = collaboratori.find((x) => x.id === p.collaboratore_id);
+            const al = alloggiList.find((x) => x.id === p.alloggio_id);
+            return (
+              <div key={p.id} className="richiesta-item">
+                <strong>{Number(p.importo).toFixed(2)} &euro;</strong> &mdash; {c?.nome}{" "}
+                &mdash; {al?.nome}
+                <p className="descrizione">
+                  {p.data}
+                  {p.note ? ` (${p.note})` : ""}
+                </p>
+                <div className="stato-actions">
+                  <button onClick={() => eliminaVersamento(p.id)}>Elimina</button>
+                </div>
+              </div>
+            );
+          })}
       </div>
     </main>
   );
