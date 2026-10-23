@@ -11,6 +11,7 @@ export default function CollaboratriciPage() {
   const [turni, setTurni] = useState([]);
   const [pagamentiCollab, setPagamentiCollab] = useState([]);
   const [alloggiList, setAlloggiList] = useState([]);
+  const [famiglie, setFamiglie] = useState([]);
 
   useEffect(() => {
     async function carica() {
@@ -57,6 +58,9 @@ export default function CollaboratriciPage() {
       const { data: alloggiData } = await supabase.from("alloggi").select("*");
       setAlloggiList(alloggiData || []);
 
+      const { data: famData } = await supabase.from("famiglie").select("*");
+      setFamiglie(famData || []);
+
       setCaricamento(false);
     }
 
@@ -94,15 +98,77 @@ export default function CollaboratriciPage() {
     );
   }
 
+  const somma = (arr, campo) => arr.reduce((t, r) => t + (r[campo] || 0), 0);
+
+  // Colonne: Totale + una per alloggio (con il nome della famiglia)
+  const colonne = [
+    { chiave: "totale", titolo: "Totale", alloggioId: null },
+    ...alloggiList.map((a) => {
+      const f = famiglie.find((x) => x.id === a.famiglia_id);
+      return { chiave: String(a.id), titolo: f ? f.nome : a.nome, alloggioId: a.id };
+    }),
+  ];
+
+  function calcola(turniSel, pagSel, alloggioId) {
+    const t = alloggioId ? turniSel.filter((x) => x.alloggio_id === alloggioId) : turniSel;
+    const p = alloggioId ? pagSel.filter((x) => x.alloggio_id === alloggioId) : pagSel;
+    const dovuto = somma(t, "importo_dovuto");
+    const versato = somma(p, "importo");
+    return { dovuto, versato, saldo: dovuto - versato };
+  }
+
   const situazione = collaboratori.map((c) => {
-    const dovuto = turni
-      .filter((t) => t.collaboratore_id === c.id)
-      .reduce((s, t) => s + (t.importo_dovuto || 0), 0);
-    const pagato = pagamentiCollab
-      .filter((p) => p.collaboratore_id === c.id)
-      .reduce((s, p) => s + (p.importo || 0), 0);
-    return { ...c, dovuto, pagato, saldo: dovuto - pagato };
+    const t = turni.filter((x) => x.collaboratore_id === c.id);
+    const p = pagamentiCollab.filter((x) => x.collaboratore_id === c.id);
+    return { ...c, righe: colonne.map((col) => calcola(t, p, col.alloggioId)) };
   });
+  const complessivo = colonne.map((col) => calcola(turni, pagamentiCollab, col.alloggioId));
+
+  const euro = (n) => n.toFixed(2) + " €";
+
+  function tabella(righe) {
+    return (
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.92rem" }}>
+          <thead>
+            <tr>
+              <th style={{ textAlign: "left", padding: "0.3rem 0.4rem" }}></th>
+              {colonne.map((c) => (
+                <th key={c.chiave} style={{ textAlign: "right", padding: "0.3rem 0.4rem" }}>
+                  {c.titolo}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {[
+              ["Dovuto (turni effettuati)", "dovuto"],
+              ["Già versato", "versato"],
+              ["Saldo residuo", "saldo"],
+            ].map(([etichetta, campo]) => (
+              <tr key={campo} style={campo === "saldo" ? { fontWeight: 700 } : {}}>
+                <td style={{ padding: "0.3rem 0.4rem", borderTop: campo === "saldo" ? "1px solid #ddd" : "none" }}>
+                  {etichetta}
+                </td>
+                {righe.map((r, i) => (
+                  <td
+                    key={i}
+                    style={{
+                      textAlign: "right",
+                      padding: "0.3rem 0.4rem",
+                      borderTop: campo === "saldo" ? "1px solid #ddd" : "none",
+                    }}
+                  >
+                    {euro(r[campo])}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   return (
     <main>
@@ -120,18 +186,14 @@ export default function CollaboratriciPage() {
       <div style={{ display: "grid", gap: "1rem" }}>
         {situazione.map((c) => (
           <div key={c.id} className="card">
-            <h3 style={{ marginBottom: "0.25rem" }}>{c.nome}</h3>
-            <p className="muted" style={{ margin: "0.25rem 0" }}>
-              Dovuto (turni effettuati): {c.dovuto.toFixed(2)} &euro;
-            </p>
-            <p className="muted" style={{ margin: "0.25rem 0" }}>
-              Gia&apos; versato: {c.pagato.toFixed(2)} &euro;
-            </p>
-            <p style={{ margin: "0.25rem 0" }}>
-              <strong>Saldo residuo: {c.saldo.toFixed(2)} &euro;</strong>
-            </p>
+            <h3 style={{ marginBottom: "0.5rem" }}>{c.nome}</h3>
+            {tabella(c.righe)}
           </div>
         ))}
+        <div className="card">
+          <h3 style={{ marginBottom: "0.5rem" }}>Tutte le collaboratrici</h3>
+          {tabella(complessivo)}
+        </div>
       </div>
 
       <h2 style={{ marginTop: "2rem" }}>Ultimi versamenti</h2>
