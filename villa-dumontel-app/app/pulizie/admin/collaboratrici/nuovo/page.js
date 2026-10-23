@@ -102,6 +102,9 @@ export default function NuovoVersamentoPage() {
       <h1>Registra un versamento</h1>
 
       <div className="card">
+        <p className="muted">
+          Se il versamento copre entrambi gli alloggi, registrane uno per ciascuno.
+        </p>
         <form onSubmit={registraPagamentoCollaboratrice}>
           <label>
             Collaboratrice
