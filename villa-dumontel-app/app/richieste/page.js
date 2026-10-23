@@ -17,6 +17,7 @@ export default function RichiestePage() {
   const [richieste, setRichieste] = useState([]);
   const [alloggi, setAlloggi] = useState([]);
   const [posti, setPosti] = useState([]);
+  const [collaboratori, setCollaboratori] = useState([]);
   const [errore, setErrore] = useState(null);
 
   async function caricaRichieste() {
@@ -59,6 +60,9 @@ export default function RichiestePage() {
         .in("categoria", ["ristorante", "attivita"])
         .order("id", { ascending: true });
       setPosti(postiData || []);
+
+      const { data: collData } = await supabase.from("collaboratori").select("*");
+      setCollaboratori(collData || []);
       await caricaRichieste();
       setCaricamento(false);
     }
@@ -68,6 +72,54 @@ export default function RichiestePage() {
 
   async function cambiaStato(id, stato) {
     const { error } = await supabase.from("richieste").update({ stato }).eq("id", id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaRichieste();
+  }
+
+  async function assegnaCollaboratrice(id, collaboratore_id) {
+    const { error } = await supabase
+      .from("richieste")
+      .update({ collaboratore_id: collaboratore_id || null, convalidata_il: null })
+      .eq("id", id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaRichieste();
+  }
+
+  async function cambiaDurata(id, durata) {
+    const { error } = await supabase
+      .from("richieste")
+      .update({ durata_ore: durata ? parseFloat(durata) : null })
+      .eq("id", id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaRichieste();
+  }
+
+  async function salvaModifica(e, r) {
+    e.preventDefault();
+    setErrore(null);
+    const f = e.target;
+    const v = (n) => (f[n] && f[n].value !== "" ? f[n].value : null);
+    const { error } = await supabase
+      .from("richieste")
+      .update({
+        data: v("data"),
+        ora: v("ora"),
+        durata_ore: v("durata_ore") ? parseFloat(v("durata_ore")) : null,
+        pax: v("pax") ? parseInt(v("pax"), 10) : null,
+        sotto_tipo: v("sotto_tipo"),
+        descrizione: v("descrizione"),
+        note: v("note"),
+      })
+      .eq("id", r.id);
     if (error) {
       setErrore("Errore: " + error.message);
       return;
@@ -141,8 +193,94 @@ export default function RichiestePage() {
           {r.pax ? ` (${r.pax} pers.)` : ""}
           {r.note ? ` (${r.note})` : ""}
         </p>
+        {r.tipo === "pulizie" && (
+          <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", margin: "0.5rem 0" }}>
+            <label style={{ margin: 0, fontWeight: 400 }}>
+              Collaboratrice{" "}
+              <select
+                value={r.collaboratore_id || ""}
+                onChange={(e) => assegnaCollaboratrice(r.id, e.target.value)}
+                style={{ width: "auto", marginBottom: 0 }}
+              >
+                <option value="">— da assegnare —</option>
+                {collaboratori.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nome}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label style={{ margin: 0, fontWeight: 400 }}>
+              Durata (ore){" "}
+              <input
+                type="number"
+                min="0.5"
+                max="12"
+                step="0.5"
+                defaultValue={r.durata_ore || ""}
+                onBlur={(e) => {
+                  if (String(e.target.value) !== String(r.durata_ore || "")) cambiaDurata(r.id, e.target.value);
+                }}
+                style={{ width: "5rem", marginBottom: 0 }}
+              />
+            </label>
+            <span
+              className={
+                "badge " + (r.accettata_il ? "badge-confermata" : "badge-nuova")
+              }
+            >
+              {!r.collaboratore_id
+                ? "da assegnare"
+                : r.stato === "completata"
+                ? "pulizia fatta"
+                : r.accettata_il
+                ? "accettata dalla collaboratrice"
+                : "in attesa di accettazione"}
+            </span>
+          </div>
+        )}
+        <details style={{ margin: "0.5rem 0" }}>
+          <summary style={{ cursor: "pointer" }}>Modifica</summary>
+          <form onSubmit={(e) => salvaModifica(e, r)} style={{ marginTop: "0.5rem" }}>
+            <label>
+              Data
+              <input type="date" name="data" defaultValue={r.data || ""} />
+            </label>
+            <label>
+              Ora
+              <input type="time" name="ora" defaultValue={r.ora ? String(r.ora).slice(0, 5) : ""} />
+            </label>
+            {r.tipo === "pulizie" && (
+              <label>
+                Durata (ore)
+                <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue={r.durata_ore || ""} />
+              </label>
+            )}
+            <label>
+              Persone
+              <input type="number" name="pax" min="1" defaultValue={r.pax || ""} />
+            </label>
+            <label>
+              Dettaglio (tipo)
+              <input type="text" name="sotto_tipo" defaultValue={r.sotto_tipo || ""} />
+            </label>
+            <label>
+              {r.tipo === "pulizie" ? "Cosa fare" : "Posto / dettagli"}
+              <input type="text" name="descrizione" defaultValue={r.descrizione || ""} />
+            </label>
+            <label>
+              Note
+              <textarea name="note" defaultValue={r.note || ""}></textarea>
+            </label>
+            <button type="submit" className="btn">
+              Salva modifiche
+            </button>
+          </form>
+        </details>
         <div className="stato-actions">
-          {r.stato === "confermata" && <CalendarButton richiesta={r} />}{" "}
+          {(r.stato === "confermata" || (r.tipo === "pulizie" && !CHIUSE.includes(r.stato))) && (
+            <CalendarButton richiesta={r} />
+          )}{" "}
           {STATI.filter((s) => s !== r.stato).map((s) => (
             <button key={s} onClick={() => cambiaStato(r.id, s)}>
               {s === "annullata" ? "Annulla" : "→ " + s}
@@ -172,6 +310,7 @@ export default function RichiestePage() {
           <FormRichiesta
             alloggi={alloggi}
             posti={posti}
+            collaboratori={collaboratori}
             tipoIniziale="trasporto"
             onSubmit={creaRichiesta}
             etichettaBottone="Aggiungi richiesta"
