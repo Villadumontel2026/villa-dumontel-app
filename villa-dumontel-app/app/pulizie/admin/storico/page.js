@@ -3,6 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 
+const ETICHETTE_STATO = {
+  "da approvare": "da validare",
+  approvato: "effettuato",
+  rifiutato: "rifiutato",
+};
+
 function classeBadgeStato(stato) {
   if (stato === "da approvare") return "badge badge-nuova";
   if (stato === "approvato") return "badge badge-confermata";
@@ -82,7 +88,7 @@ export default function StoricoTurniPage() {
         {turni.length === 0 && <p className="muted">Nessun turno registrato.</p>}
         {turni.map((t) => (
           <div key={t.id} className="richiesta-item">
-            <span className={classeBadgeStato(t.stato)}>{t.stato}</span>{" "}
+            <span className={classeBadgeStato(t.stato)}>{ETICHETTE_STATO[t.stato] || t.stato}</span>{" "}
             <strong>{t.collaboratori?.nome}</strong> &mdash; {t.alloggi?.nome}{" "}
             &mdash; {t.data} &mdash; {t.ore} ore
             {t.note && <p className="descrizione">{t.note}</p>}
