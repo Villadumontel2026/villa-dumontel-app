@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
+import CalendarButton from "../../components/CalendarButton";
 
 const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
@@ -131,6 +132,7 @@ export default function RichiesteOspitePage() {
         </p>
         {ANNULLABILI.includes(r.stato) && (
           <div className="stato-actions">
+            {r.stato === "confermata" && <CalendarButton richiesta={r} />}{" "}
             <button onClick={() => annulla(r.id)}>Annulla richiesta</button>
           </div>
         )}
