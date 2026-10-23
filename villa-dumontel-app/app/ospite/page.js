@@ -53,6 +53,12 @@ export default function OspiteHome() {
     carica();
   }, []);
 
+  const oggi = new Date().toISOString().slice(0, 10);
+  const fra2 = new Date(Date.now() + 2 * 86400000).toISOString().slice(0, 10);
+  const pulizieDaPreparare = inCorso.filter(
+    (r) => r.tipo === "pulizie" && r.data && r.data >= oggi && r.data <= fra2 && !r.descrizione
+  );
+
   const inviate = inCorso.filter((r) => r.stato === "nuova" || r.stato === "in gestione").length;
   const prenotate = inCorso.filter((r) => r.stato === "confermata").length;
 
@@ -83,6 +89,16 @@ export default function OspiteHome() {
       <p className="muted" style={{ marginBottom: "1.5rem" }}>
         Cosa desiderate fare?
       </p>
+
+      {pulizieDaPreparare.map((r) => (
+        <div key={r.id} className="card" style={{ marginBottom: "1rem", background: "#fff6e0" }}>
+          <p style={{ margin: 0 }}>
+            <strong>Pulizie il {r.data}{r.ora ? " alle " + String(r.ora).slice(0, 5) : ""}.</strong>{" "}
+            Non hai ancora indicato cosa fare.{" "}
+            <a href="/ospite/richieste">Indicalo ora &rarr;</a>
+          </p>
+        </div>
+      ))}
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <h2>Richieste</h2>
