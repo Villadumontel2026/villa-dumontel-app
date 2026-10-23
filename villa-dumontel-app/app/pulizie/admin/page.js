@@ -107,22 +107,16 @@ export default function PaginaAdminPulizie() {
             Saldo e versamenti verso chi fa le pulizie
           </p>
         </a>
-        <a href="/pulizie/admin/famiglie" className="card" style={{ display: "block" }}>
-          <h2 style={{ marginBottom: "0.25rem" }}>Famiglie</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            Quanto addebitare e quanto e' stato incassato
-          </p>
-        </a>
         <a href="/pulizie/admin/storico" className="card" style={{ display: "block" }}>
           <h2 style={{ marginBottom: "0.25rem" }}>Storico turni</h2>
           <p className="muted" style={{ margin: 0 }}>
-            Tutti i turni approvati e rifiutati
+            Tutti i turni, compresi quelli storici
           </p>
         </a>
       </div>
 
       <h2>
-        Turni da approvare{" "}
+        Turni da validare{" "}
         <span className="muted" style={{ fontWeight: 400 }}>
           ({turniDaApprovare.length})
         </span>
@@ -134,13 +128,13 @@ export default function PaginaAdminPulizie() {
         <div className="card">
           {turniDaApprovare.map((t) => (
             <div key={t.id} className="richiesta-item">
-              <span className="badge badge-nuova">da approvare</span>{" "}
+              <span className="badge badge-nuova">da validare</span>{" "}
               <strong>{t.collaboratori?.nome}</strong> &mdash; {t.alloggi?.nome}{" "}
               &mdash; {t.data} &mdash; {t.ore} ore
               {t.note && <p className="descrizione">{t.note}</p>}
               <div className="stato-actions">
                 <button className="btn" onClick={() => approvaTurno(t.id)}>
-                  Approva
+                  Valida
                 </button>{" "}
                 <button className="btn" onClick={() => rifiutaTurno(t.id)}>
                   Rifiuta
