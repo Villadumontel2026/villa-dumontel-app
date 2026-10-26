@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { applicaVista } from "../../lib/vista";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import { fmtData, traduciVoci, traduciSotto } from "../../lib/i18n";
@@ -67,11 +68,12 @@ export default function OspiteHome() {
         return;
       }
 
-      const { data: profilo } = await supabase
+      const { data: profiloRaw } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
+      const profilo = applicaVista(profiloRaw);
 
       if (!profilo || profilo.ruolo !== "ospite" || !profilo.famiglia_id) {
         setErroreAccesso("ospiti");
@@ -119,6 +121,7 @@ export default function OspiteHome() {
     (r) => r.tipo === "pulizie" && r.data && r.data >= oggi && r.data <= fra2 && !r.descrizione
   );
 
+  const conProposta = inCorso.filter((r) => r.proposta_data);
   const inviate = inCorso.filter((r) => r.stato === "nuova" || r.stato === "in gestione").length;
   const prenotate = inCorso.filter((r) => r.stato === "confermata").length;
 
@@ -145,7 +148,9 @@ export default function OspiteHome() {
         <div className="card">
           <p>{erroreAccesso === "login" ? t("c.loginRichiesto") : t("c.soloOspiti")}</p>
           <p>
-            <a href="/login">{t("c.vaiLogin")}</a>
+            <a href="/login" className="btn">
+              {t("c.vaiLogin")}
+            </a>
           </p>
         </div>
       </main>
@@ -180,6 +185,17 @@ export default function OspiteHome() {
         </p>
       )}
 
+      {conProposta.length > 0 && (
+        <div className="card" style={{ marginBottom: "1rem", background: "#fff6e0" }}>
+          <p style={{ margin: 0 }}>
+            <strong>{t("pm.home")}</strong>{" "}
+            <a href="/ospite/richieste" className="btn btn-light">
+              {t("pm.vedi")}
+            </a>
+          </p>
+        </div>
+      )}
+
       {pulizieDaPreparare.map((r) => (
         <div key={r.id} className="card" style={{ marginBottom: "1rem", background: "#fff6e0" }}>
           <p style={{ margin: 0 }}>
@@ -187,7 +203,9 @@ export default function OspiteHome() {
               {t("oh.reminder1", { data: fmtData(lang, r.data, false) })}
               {r.ora ? " · " + String(r.ora).slice(0, 5) : ""}.
             </strong>{" "}
-            {t("oh.reminder2")} <a href="/ospite/richieste">{t("oh.reminder3")}</a>
+            {t("oh.reminder2")} <a href="/ospite/richieste" className="btn btn-light">
+              {t("oh.reminder3")}
+            </a>
           </p>
         </div>
       ))}
@@ -215,7 +233,9 @@ export default function OspiteHome() {
               <strong>{(lang === "en" && n.titolo_en) || n.titolo_it}</strong>
             </p>
           ))}
-          <p style={{ margin: "0.5rem 0 0", color: "var(--color-primary)" }}>{t("nov.vedi")}</p>
+          <p style={{ margin: "0.6rem 0 0" }}>
+            <span className="btn btn-light">{t("nov.vedi")}</span>
+          </p>
         </a>
       )}
 
@@ -256,7 +276,9 @@ export default function OspiteHome() {
           </a>
         ))}
         <p style={{ margin: "0.75rem 0 0" }}>
-          <a href="/ospite/richieste">{t("oh.tutte")}</a>
+          <a href="/ospite/richieste" className="btn btn-light">
+            {t("oh.tutte")}
+          </a>
         </p>
       </div>
 

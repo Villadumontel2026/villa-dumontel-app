@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { LINGUE, tradurre } from "../../lib/i18n";
+import { leggiVista } from "../../lib/vista";
 
 const Ctx = createContext({
   lang: "it",
@@ -59,7 +60,8 @@ export function AppProvider({ children }) {
         .single();
       if (attivo) {
         setEmail(session.user.email);
-        setRuolo(profilo?.ruolo || null);
+        const vista = profilo?.ruolo === "admin" ? leggiVista() : null;
+        setRuolo(vista ? "ospite" : profilo?.ruolo || null);
         setPronto(true);
       }
     }

@@ -41,6 +41,7 @@ export default function FormRichiesta({
   posti = [],
   collaboratori = null,
   tipoIniziale = "ristorante",
+  soloTipo = false,
   nomeIniziale = "",
   onSubmit,
   etichettaBottone = "Invia richiesta",
@@ -162,6 +163,7 @@ export default function FormRichiesta({
     <form onSubmit={invia} key={formKey}>
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
 
+      {!soloTipo && (
       <label>
         {t("f.cosa")}
         <select value={tipo} onChange={(e) => cambiaTipo(e.target.value)}>
@@ -171,6 +173,7 @@ export default function FormRichiesta({
           <option value="pulizie">{t("tipo.pulizie")}</option>
         </select>
       </label>
+      )}
 
       <label>
         {t("f.alloggio")}

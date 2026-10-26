@@ -72,7 +72,7 @@ export default function FamigliePulizieAdminPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -95,7 +95,7 @@ export default function FamigliePulizieAdminPage() {
   return (
     <main>
       <p>
-        <a href="/pulizie/admin">&larr; Pulizie</a>
+        <a href="/pulizie/admin" className="btn btn-light">&larr; Pulizie</a>
       </p>
       <h1>Famiglie</h1>
 

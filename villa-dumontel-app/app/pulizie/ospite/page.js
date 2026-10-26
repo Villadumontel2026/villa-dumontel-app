@@ -74,7 +74,7 @@ export default function PaginaOspitePulizie() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>

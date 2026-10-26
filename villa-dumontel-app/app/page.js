@@ -35,7 +35,9 @@ export default function Home() {
           </p>
         )}
         <p style={{ marginTop: "1rem" }}>
-          <a href="/info">{t("pub.info")} &rarr;</a>
+          <a href="/info" className="btn btn-light">
+            {t("pub.info")}
+          </a>
         </p>
       </div>
     </main>

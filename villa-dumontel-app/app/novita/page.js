@@ -36,7 +36,9 @@ export default function NovitaPage() {
             {testo(n) && <p style={{ whiteSpace: "pre-line", margin: "0.25rem 0" }}>{testo(n)}</p>}
             {n.link && (
               <p style={{ margin: "0.5rem 0 0" }}>
-                <a href={n.link}>{t("nov.apri")}</a>
+                <a href={n.link} className="btn btn-light">
+                  {t("nov.apri")}
+                </a>
               </p>
             )}
           </div>

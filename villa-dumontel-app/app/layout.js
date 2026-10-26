@@ -1,6 +1,7 @@
 import "./globals.css";
 import NavBar from "./components/NavBar";
 import HomeBar from "./components/HomeBar";
+import VistaBanner from "./components/VistaBanner";
 import { AppProvider } from "./components/AppProvider";
 
 export const metadata = {
@@ -33,6 +34,7 @@ export default function RootLayout({ children }) {
             <NavBar />
           </div>
         </header>
+        <VistaBanner />
         <div className="container">
           <HomeBar />
           {children}

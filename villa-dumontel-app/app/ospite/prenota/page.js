@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import FormRichiesta from "../../components/FormRichiesta";
 import { useApp } from "../../components/AppProvider";
@@ -37,11 +38,12 @@ export default function PrenotaOspitePage() {
         return;
       }
 
-      const { data: p } = await supabase
+      const { data: pRaw } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
+      const p = applicaVista(pRaw);
 
       if (!p || p.ruolo !== "ospite" || !p.famiglia_id) {
         setErroreAccesso("ospiti");
@@ -96,7 +98,9 @@ export default function PrenotaOspitePage() {
         <div className="card">
           <p>{erroreAccesso === "login" ? t("c.loginRichiesto") : t("c.soloOspiti")}</p>
           <p>
-            <a href="/login">{t("c.vaiLogin")}</a>
+            <a href="/login" className="btn">
+              {t("c.vaiLogin")}
+            </a>
           </p>
         </div>
       </main>
@@ -110,7 +114,9 @@ export default function PrenotaOspitePage() {
       {inviata && (
         <div className="card" style={{ marginBottom: "1rem" }}>
           <p>
-            {t("pr.inviata")} <a href="/ospite/richieste">{t("pr.vedi")}</a>
+            {t("pr.inviata")} <a href="/ospite/richieste" className="btn btn-light">
+              {t("pr.vedi")}
+            </a>
           </p>
         </div>
       )}

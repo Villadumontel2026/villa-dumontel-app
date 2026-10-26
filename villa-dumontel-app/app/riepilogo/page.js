@@ -97,7 +97,7 @@ export default function RiepilogoPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -132,7 +132,7 @@ export default function RiepilogoPage() {
   return (
     <main>
       <p>
-        <a href="/richieste">&larr; Richieste</a>
+        <a href="/richieste" className="btn btn-light">&larr; Richieste</a>
       </p>
       <h1>Riepilogo</h1>
       <p className="muted" style={{ marginBottom: "1rem" }}>

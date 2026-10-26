@@ -55,6 +55,13 @@ const it = {
   "voce.Pulizia terrazzo/balcone": "Pulizia terrazzo/balcone",
   "voce.Riordino generale": "Riordino generale",
 
+  "pm.titolo": "Proposta di modifica",
+  "pm.da": "Da",
+  "pm.a": "a",
+  "pm.accetta": "Accetta",
+  "pm.rifiuta": "Rifiuta",
+  "pm.home": "Hai una proposta di modifica da valutare.",
+  "pm.vedi": "Valuta",
   "nov.titolo": "Novità",
   "nov.vuoto": "Nessuna novità per ora.",
   "nov.vedi": "Vedi tutte le novità →",
@@ -219,6 +226,7 @@ const it = {
   "i.rete": "Rete",
   "i.pass": "Password",
   "i.indirizzo": "Indirizzo",
+  "i.sito": "Sito web",
 };
 
 const en = {
@@ -268,6 +276,13 @@ const en = {
   "voce.Pulizia terrazzo/balcone": "Clean terrace/balcony",
   "voce.Riordino generale": "General tidying",
 
+  "pm.titolo": "Proposed change",
+  "pm.da": "From",
+  "pm.a": "to",
+  "pm.accetta": "Accept",
+  "pm.rifiuta": "Decline",
+  "pm.home": "You have a proposed change to review.",
+  "pm.vedi": "Review",
   "nov.titolo": "What's new",
   "nov.vuoto": "Nothing new for now.",
   "nov.vedi": "See all news →",
@@ -421,6 +436,7 @@ const en = {
   "i.rete": "Network",
   "i.pass": "Password",
   "i.indirizzo": "Address",
+  "i.sito": "Website",
 };
 
 export const DIZ = { it, en };

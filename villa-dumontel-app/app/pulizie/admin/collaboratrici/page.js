@@ -13,6 +13,9 @@ export default function CollaboratriciPage() {
   const [alloggiList, setAlloggiList] = useState([]);
   const [famiglie, setFamiglie] = useState([]);
   const [escluse, setEscluse] = useState([]);
+  const [annoChiusura, setAnnoChiusura] = useState(String(new Date().getFullYear() - 1));
+  const [esitoChiusura, setEsitoChiusura] = useState(null);
+  const [erroreChiusura, setErroreChiusura] = useState(null);
 
   useEffect(() => {
     async function carica() {
@@ -68,6 +71,29 @@ export default function CollaboratriciPage() {
     carica();
   }, []);
 
+  async function chiudiAnno() {
+    if (
+      !window.confirm(
+        `Chiudere l'anno ${annoChiusura}? Turni e versamenti fino al 31/12/${annoChiusura} diventano storico e il saldo residuo di ogni collaboratrice passa all'anno dopo come "Riporto". L'operazione non si annulla da qui.`
+      )
+    )
+      return;
+    setErroreChiusura(null);
+    setEsitoChiusura(null);
+    const { data, error } = await supabase.rpc("chiudi_anno_collaboratrici", {
+      p_anno: parseInt(annoChiusura, 10),
+    });
+    if (error) {
+      setErroreChiusura("Errore: " + error.message);
+      return;
+    }
+    setEsitoChiusura(data || []);
+    const { data: t } = await supabase.from("turni_pulizia").select("*").eq("stato", "approvato").eq("storico", false);
+    setTurni(t || []);
+    const { data: p } = await supabase.from("pagamenti_collaboratori").select("*").eq("storico", false);
+    setPagamentiCollab(p || []);
+  }
+
   async function eliminaVersamento(id) {
     if (!window.confirm("Eliminare questo versamento? Verra' tolta anche la spesa collegata.")) return;
     const { error } = await supabase.from("pagamenti_collaboratori").delete().eq("id", id);
@@ -92,7 +118,7 @@ export default function CollaboratriciPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -197,7 +223,7 @@ export default function CollaboratriciPage() {
   return (
     <main>
       <p>
-        <a href="/pulizie/admin">&larr; Pulizie</a>
+        <a href="/pulizie/admin" className="btn btn-light">&larr; Pulizie</a>
       </p>
       <h1>Collaboratrici</h1>
 
@@ -274,6 +300,45 @@ export default function CollaboratriciPage() {
             );
           })}
       </div>
+
+      <details className="card" style={{ marginTop: "2rem" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600 }}>Chiusura annuale</summary>
+        <p className="muted" style={{ marginTop: "0.75rem" }}>
+          A fine anno archivia turni e versamenti fino al 31 dicembre e porta il saldo residuo di ogni
+          collaboratrice (per alloggio) nell&apos;anno dopo come &quot;Riporto&quot;. Lo storico resta
+          consultabile.
+        </p>
+        <label style={{ maxWidth: 200 }}>
+          Anno da chiudere
+          <select value={annoChiusura} onChange={(e) => setAnnoChiusura(e.target.value)}>
+            {[0, 1, 2].map((d) => {
+              const a = new Date().getFullYear() - d;
+              return (
+                <option key={a} value={a}>
+                  {a}
+                </option>
+              );
+            })}
+          </select>
+        </label>
+        <p>
+          <button type="button" className="btn" onClick={chiudiAnno}>
+            Chiudi l&apos;anno {annoChiusura}
+          </button>
+        </p>
+        {erroreChiusura && <p style={{ color: "#a32d2d" }}>{erroreChiusura}</p>}
+        {esitoChiusura && (
+          <div>
+            <p style={{ color: "#1f5c2e" }}>Anno chiuso. Saldi riportati:</p>
+            {esitoChiusura.length === 0 && <p className="muted">Nessun saldo da riportare.</p>}
+            {esitoChiusura.map((x, i) => (
+              <p key={i} style={{ margin: "0.2rem 0" }}>
+                {x.collaboratrice} &mdash; {x.alloggio}: {Number(x.saldo_riportato).toFixed(2)} &euro;
+              </p>
+            ))}
+          </div>
+        )}
+      </details>
     </main>
   );
 }

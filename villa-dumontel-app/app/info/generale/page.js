@@ -4,7 +4,7 @@ export default function InfoGeneralePage() {
   return (
     <main>
       <p>
-        <a href="/info">
+        <a href="/info" className="btn btn-light">
           <T k="i.back" />
         </a>
       </p>

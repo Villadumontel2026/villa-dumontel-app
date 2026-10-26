@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import { useApp } from "../../components/AppProvider";
 import { fmtData, fmtEuro } from "../../../lib/i18n";
@@ -33,11 +34,12 @@ export default function CostiOspitePage() {
         return;
       }
 
-      const { data: profilo } = await supabase
+      const { data: profiloRaw } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
+      const profilo = applicaVista(profiloRaw);
 
       if (!profilo || profilo.ruolo !== "ospite" || !profilo.famiglia_id) {
         setErroreAccesso("ospiti");
@@ -88,7 +90,9 @@ export default function CostiOspitePage() {
         <div className="card">
           <p>{erroreAccesso === "login" ? t("c.loginRichiesto") : t("c.soloOspiti")}</p>
           <p>
-            <a href="/login">{t("c.vaiLogin")}</a>
+            <a href="/login" className="btn">
+              {t("c.vaiLogin")}
+            </a>
           </p>
         </div>
       </main>

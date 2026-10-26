@@ -81,7 +81,7 @@ export default function NuovoIncassoPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -91,7 +91,7 @@ export default function NuovoIncassoPage() {
   return (
     <main>
       <p>
-        <a href="/pulizie/admin/famiglie">&larr; Famiglie</a>
+        <a href="/pulizie/admin/famiglie" className="btn btn-light">&larr; Famiglie</a>
       </p>
       <h1>Registra un incasso</h1>
 

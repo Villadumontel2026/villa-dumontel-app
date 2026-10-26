@@ -61,7 +61,9 @@ export default function CalendarioPage() {
         <div className="card">
           <p>{t("c.loginRichiesto")}</p>
           <p>
-            <a href="/login">{t("c.vaiLogin")}</a>
+            <a href="/login" className="btn">
+              {t("c.vaiLogin")}
+            </a>
           </p>
         </div>
       </main>

@@ -16,7 +16,7 @@ export default async function AttivitaPage() {
   return (
     <main>
       <p>
-        <a href="/info">
+        <a href="/info" className="btn btn-light">
           <T k="i.back" />
         </a>
       </p>
@@ -28,15 +28,16 @@ export default async function AttivitaPage() {
         {(posti || []).map((p) => (
           <div key={p.id} className="card">
             <h3 style={{ marginBottom: "0.25rem" }}>
-              {p.sito_web ? (
-                <a href={p.sito_web} target="_blank" rel="noreferrer">
-                  {p.nome}
-                </a>
-              ) : (
-                p.nome
-              )}
+              {p.nome}
               <NuovoBadge dal={p.nuovo_dal} />
             </h3>
+            {p.sito_web && (
+              <p style={{ margin: "0.25rem 0 0.5rem" }}>
+                <a href={p.sito_web} target="_blank" rel="noreferrer" className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }}>
+                  <T k="i.sito" />
+                </a>
+              </p>
+            )}
             {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
             <PrenotaButton tipo="attivita" nome={p.nome} />
           </div>

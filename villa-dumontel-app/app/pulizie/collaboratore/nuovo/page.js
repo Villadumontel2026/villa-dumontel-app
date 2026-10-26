@@ -91,7 +91,7 @@ export default function NuovoTurnoPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -101,7 +101,7 @@ export default function NuovoTurnoPage() {
   return (
     <main>
       <p>
-        <a href="/pulizie/collaboratore">&larr; Il tuo saldo e i tuoi turni</a>
+        <a href="/pulizie/collaboratore" className="btn btn-light">&larr; Il tuo saldo e i tuoi turni</a>
       </p>
       <h1>Segnala un turno</h1>
 

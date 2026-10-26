@@ -4,6 +4,16 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import FormRichiesta from "../components/FormRichiesta";
 import CalendarButton from "../components/CalendarButton";
+import { impostaVista } from "../../lib/vista";
+
+const CHECKLIST_PULIZIE = [
+  "Cambio lenzuola",
+  "Cambio asciugamani",
+  "Pulizia bagni",
+  "Pulizia cucina",
+  "Pulizia terrazzo/balcone",
+  "Riordino generale",
+];
 
 const STATI = ["nuova", "in gestione", "confermata", "completata", "annullata"];
 
@@ -160,6 +170,12 @@ export default function RichiestePage() {
     setErrore(null);
     const f = e.target;
     const v = (n) => (f[n] && f[n].value !== "" ? f[n].value : null);
+    let descrizione = v("descrizione");
+    if (r.tipo === "pulizie") {
+      const voci = Array.from(f.querySelectorAll('input[name="voci"]:checked')).map((c) => c.value);
+      const altro = v("altro_task");
+      descrizione = [...voci, ...(altro ? [altro] : [])].join(", ") || null;
+    }
     const { error } = await supabase
       .from("richieste")
       .update({
@@ -168,9 +184,44 @@ export default function RichiestePage() {
         durata_ore: v("durata_ore") ? parseFloat(v("durata_ore")) : null,
         pax: v("pax") ? parseInt(v("pax"), 10) : null,
         sotto_tipo: v("sotto_tipo"),
-        descrizione: v("descrizione"),
+        descrizione,
         note: v("note"),
       })
+      .eq("id", r.id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaRichieste();
+  }
+
+  async function inviaProposta(e, r) {
+    e.preventDefault();
+    setErrore(null);
+    const f = e.target;
+    if (!f.proposta_data.value) return;
+    const { error } = await supabase
+      .from("richieste")
+      .update({
+        proposta_data: f.proposta_data.value,
+        proposta_ora: f.proposta_ora.value || null,
+        proposta_note: f.proposta_note.value || null,
+        proposta_il: new Date().toISOString(),
+        proposta_esito: null,
+        stato: "in gestione",
+      })
+      .eq("id", r.id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaRichieste();
+  }
+
+  async function ritiraProposta(r) {
+    const { error } = await supabase
+      .from("richieste")
+      .update({ proposta_data: null, proposta_ora: null, proposta_note: null, proposta_il: null })
       .eq("id", r.id);
     if (error) {
       setErrore("Errore: " + error.message);
@@ -206,7 +257,7 @@ export default function RichiestePage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -291,6 +342,40 @@ export default function RichiestePage() {
             </span>
           </div>
         )}
+        {r.proposta_data && (
+          <p className="descrizione" style={{ background: "#fff6e0", padding: "0.4rem 0.6rem", borderRadius: 8 }}>
+            Proposta inviata all&apos;ospite: {r.proposta_data}
+            {r.proposta_ora ? " " + String(r.proposta_ora).slice(0, 5) : ""} &mdash; in attesa di risposta{" "}
+            <button type="button" onClick={() => ritiraProposta(r)}>
+              Ritira
+            </button>
+          </p>
+        )}
+        {!r.proposta_data && r.proposta_esito && (
+          <p className="descrizione">
+            Ultima proposta: <strong>{r.proposta_esito}</strong> dall&apos;ospite
+          </p>
+        )}
+        <details style={{ margin: "0.5rem 0" }}>
+          <summary style={{ cursor: "pointer" }}>Proponi una modifica all&apos;ospite</summary>
+          <form onSubmit={(e) => inviaProposta(e, r)} style={{ marginTop: "0.5rem" }}>
+            <label>
+              Nuova data
+              <input type="date" name="proposta_data" required />
+            </label>
+            <label>
+              Nuova ora
+              <input type="time" name="proposta_ora" />
+            </label>
+            <label>
+              Messaggio per l&apos;ospite (facoltativo)
+              <input type="text" name="proposta_note" />
+            </label>
+            <button type="submit" className="btn">
+              Invia proposta
+            </button>
+          </form>
+        </details>
         <details style={{ margin: "0.5rem 0" }}>
           <summary style={{ cursor: "pointer" }}>Modifica</summary>
           <form onSubmit={(e) => salvaModifica(e, r)} style={{ marginTop: "0.5rem" }}>
@@ -316,10 +401,44 @@ export default function RichiestePage() {
               Dettaglio (tipo)
               <input type="text" name="sotto_tipo" defaultValue={r.sotto_tipo || ""} />
             </label>
-            <label>
-              {r.tipo === "pulizie" ? "Cosa fare" : "Posto / dettagli"}
-              <input type="text" name="descrizione" defaultValue={r.descrizione || ""} />
-            </label>
+            {r.tipo === "pulizie" ? (
+              <>
+                <label>Cosa fare</label>
+                {CHECKLIST_PULIZIE.map((voce) => (
+                  <label
+                    key={voce}
+                    style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                  >
+                    <input
+                      type="checkbox"
+                      name="voci"
+                      value={voce}
+                      defaultChecked={String(r.descrizione || "")
+                        .split(", ")
+                        .includes(voce)}
+                      style={{ width: "auto", marginBottom: 0 }}
+                    />
+                    {voce}
+                  </label>
+                ))}
+                <label>
+                  Altre cose da fare (testo libero)
+                  <input
+                    type="text"
+                    name="altro_task"
+                    defaultValue={String(r.descrizione || "")
+                      .split(", ")
+                      .filter((x) => x && !CHECKLIST_PULIZIE.includes(x))
+                      .join(", ")}
+                  />
+                </label>
+              </>
+            ) : (
+              <label>
+                Posto / dettagli
+                <input type="text" name="descrizione" defaultValue={r.descrizione || ""} />
+              </label>
+            )}
             <label>
               Note
               <textarea name="note" defaultValue={r.note || ""}></textarea>
@@ -352,6 +471,29 @@ export default function RichiestePage() {
           <p style={{ color: "#a32d2d" }}>{errore}</p>
         </div>
       )}
+
+      <details className="card" style={{ marginBottom: "1rem" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "1.1em" }}>Vedi l&apos;app come ospite</summary>
+        <p className="muted" style={{ marginTop: "0.75rem" }}>
+          Apri l&apos;app come la vede una famiglia, per controllare lingua e pagine. Attenzione: le azioni
+          (prenotare, annullare) sono reali.
+        </p>
+        <p style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          {famiglie.map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              className="btn"
+              onClick={() => {
+                impostaVista(f);
+                window.location.href = "/ospite";
+              }}
+            >
+              {f.nome}
+            </button>
+          ))}
+        </p>
+      </details>
 
       {(() => {
         const oggiStr = new Date().toISOString().slice(0, 10);

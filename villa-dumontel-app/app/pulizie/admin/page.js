@@ -86,7 +86,7 @@ export default function PaginaAdminPulizie() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -95,10 +95,13 @@ export default function PaginaAdminPulizie() {
 
   return (
     <main>
-      <p>
-        <a href="/richieste">&larr; Richieste</a>
-      </p>
       <h1>Pulizie</h1>
+
+      <p style={{ marginBottom: "1.5rem" }}>
+        <a href="/pulizie/admin/nuova" className="btn">
+          + Nuova prenotazione pulizie
+        </a>
+      </p>
 
       <div style={{ display: "grid", gap: "0.75rem", marginBottom: "2rem" }}>
         <a href="/pulizie/admin/collaboratrici" className="card" style={{ display: "block" }}>

@@ -112,7 +112,7 @@ export default function NuovoVersamentoPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -122,7 +122,7 @@ export default function NuovoVersamentoPage() {
   return (
     <main>
       <p>
-        <a href="/pulizie/admin/collaboratrici">&larr; Collaboratrici</a>
+        <a href="/pulizie/admin/collaboratrici" className="btn btn-light">&larr; Collaboratrici</a>
       </p>
       <h1>Registra un versamento</h1>
 

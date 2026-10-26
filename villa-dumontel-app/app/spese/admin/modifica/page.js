@@ -105,7 +105,7 @@ export default function ModificaSpesaPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -115,7 +115,7 @@ export default function ModificaSpesaPage() {
   return (
     <main>
       <p>
-        <a href="/spese/admin">&larr; Spese</a>
+        <a href="/spese/admin" className="btn btn-light">&larr; Spese</a>
       </p>
       <h1>Modifica spesa</h1>
 

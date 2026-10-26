@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
 import { useApp } from "../../components/AppProvider";
@@ -54,11 +55,12 @@ export default function RichiesteOspitePage() {
         return;
       }
 
-      const { data: p } = await supabase
+      const { data: pRaw } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
+      const p = applicaVista(pRaw);
 
       if (!p || p.ruolo !== "ospite" || !p.famiglia_id) {
         setErroreAccesso("ospiti");
@@ -82,6 +84,16 @@ export default function RichiesteOspitePage() {
       .from("richieste")
       .update({ descrizione: voci.length ? voci.join(", ") : null, note: f.note.value || null })
       .eq("id", r.id);
+    if (error) {
+      setErrore(t("c.errore") + error.message);
+      return;
+    }
+    await carica(famigliaId);
+  }
+
+  async function rispondi(id, accetta) {
+    setErrore(null);
+    const { error } = await supabase.rpc("rispondi_proposta", { p_id: id, p_accetta: accetta });
     if (error) {
       setErrore(t("c.errore") + error.message);
       return;
@@ -117,7 +129,9 @@ export default function RichiesteOspitePage() {
         <div className="card">
           <p>{erroreAccesso === "login" ? t("c.loginRichiesto") : t("c.soloOspiti")}</p>
           <p>
-            <a href="/login">{t("c.vaiLogin")}</a>
+            <a href="/login" className="btn">
+              {t("c.vaiLogin")}
+            </a>
           </p>
         </div>
       </main>
@@ -156,6 +170,30 @@ export default function RichiesteOspitePage() {
           {r.tipo === "pulizie" && r.note ? ` — ${r.note}` : ""}
           {r.tipo === "pulizie" && r.accettata_il ? ` — ${t("ro.accettata")}` : ""}
         </p>
+        {r.proposta_data && (
+          <div
+            style={{ background: "#fff6e0", padding: "0.7rem 0.9rem", borderRadius: 10, margin: "0.5rem 0" }}
+          >
+            <strong>{t("pm.titolo")}</strong>
+            <p style={{ margin: "0.3rem 0" }}>
+              {t("pm.da")} {fmtData(lang, r.data, false)}
+              {r.ora ? " " + String(r.ora).slice(0, 5) : ""} &rarr; {t("pm.a")}{" "}
+              <strong>
+                {fmtData(lang, r.proposta_data, false)}
+                {r.proposta_ora ? " " + String(r.proposta_ora).slice(0, 5) : ""}
+              </strong>
+            </p>
+            {r.proposta_note && <p style={{ margin: "0.3rem 0" }}>{r.proposta_note}</p>}
+            <p style={{ margin: "0.5rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button type="button" className="btn" onClick={() => rispondi(r.id, true)}>
+                {t("pm.accetta")}
+              </button>
+              <button type="button" className="btn btn-light" onClick={() => rispondi(r.id, false)}>
+                {t("pm.rifiuta")}
+              </button>
+            </p>
+          </div>
+        )}
         {r.tipo === "pulizie" && ANNULLABILI.includes(r.stato) && (
           <details style={{ margin: "0.5rem 0" }}>
             <summary style={{ cursor: "pointer" }}>{t("ro.indica")}</summary>

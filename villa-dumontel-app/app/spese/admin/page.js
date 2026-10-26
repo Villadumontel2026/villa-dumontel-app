@@ -14,6 +14,7 @@ export default function SpeseAdminPage() {
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [famiglie, setFamiglie] = useState([]);
   const [spese, setSpese] = useState([]);
+  const [versamenti, setVersamenti] = useState([]);
   const [filtroFamiglia, setFiltroFamiglia] = useState("tutte");
   const [filtroAnno, setFiltroAnno] = useState(String(ANNO_CORRENTE));
 
@@ -50,6 +51,12 @@ export default function SpeseAdminPage() {
         .order("data", { ascending: false });
       setSpese(speseData || []);
 
+      const { data: versData } = await supabase
+        .from("pagamenti_famiglie")
+        .select("*, famiglie(nome)")
+        .order("data", { ascending: false });
+      setVersamenti(versData || []);
+
       setCaricamento(false);
     }
 
@@ -64,6 +71,16 @@ export default function SpeseAdminPage() {
       return;
     }
     setSpese((prev) => prev.filter((x) => x.id !== id));
+  }
+
+  async function eliminaVersamento(id) {
+    if (!window.confirm("Eliminare definitivamente questo versamento?")) return;
+    const { error } = await supabase.from("pagamenti_famiglie").delete().eq("id", id);
+    if (error) {
+      alert("Errore: " + error.message);
+      return;
+    }
+    setVersamenti((prev) => prev.filter((x) => x.id !== id));
   }
 
   const anni = useMemo(() => {
@@ -86,7 +103,7 @@ export default function SpeseAdminPage() {
         <div className="card">
           <p>{erroreAccesso}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login" className="btn">Vai al login</a>
           </p>
         </div>
       </main>
@@ -108,15 +125,24 @@ export default function SpeseAdminPage() {
       .filter((x) => x.famiglia_id === f.id)
       .reduce((t, r) => t + (r.importo || 0), 0),
   }));
+  const versFiltrati = versamenti.filter(
+    (x) =>
+      (filtroFamiglia === "tutte" || String(x.famiglia_id) === filtroFamiglia) &&
+      (filtroAnno === "tutti" || parseInt(String(x.data || "").slice(0, 4), 10) === parseInt(filtroAnno, 10))
+  );
+  const totaleVersamenti = versFiltrati.reduce((t, r) => t + (r.importo || 0), 0);
   const totaleGenerale = filtrate.reduce((t, r) => t + (r.importo || 0), 0);
 
   return (
     <main>
       <h1>Spese</h1>
 
-      <p style={{ marginBottom: "1.5rem" }}>
+      <p style={{ marginBottom: "1.5rem", display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
         <a href="/spese/admin/nuova" className="btn">
           Aggiungi una spesa
+        </a>
+        <a href="/spese/admin/versamento" className="btn">
+          Registra un versamento
         </a>
       </p>
 
@@ -196,6 +222,31 @@ export default function SpeseAdminPage() {
                 </button>
               </div>
             )}
+          </div>
+        ))}
+      </div>
+
+      <h2 style={{ marginTop: "2rem" }}>
+        Versamenti degli ospiti{" "}
+        <span className="muted" style={{ fontWeight: 400 }}>
+          ({versFiltrati.length} &mdash; {totaleVersamenti.toFixed(2)} &euro;)
+        </span>
+      </h2>
+      <div className="card">
+        {versFiltrati.length === 0 && <p className="muted">Nessun versamento per questa selezione.</p>}
+        {versFiltrati.map((v) => (
+          <div key={v.id} className="richiesta-item">
+            <strong>{Number(v.importo).toFixed(2)} &euro;</strong> &mdash; {v.famiglie?.nome}
+            <p className="descrizione">
+              {v.data}
+              {v.metodo ? ` — ${v.metodo}` : ""}
+              {v.note ? ` (${v.note})` : ""}
+            </p>
+            <div className="stato-actions">
+              <button type="button" onClick={() => eliminaVersamento(v.id)}>
+                Elimina
+              </button>
+            </div>
           </div>
         ))}
       </div>

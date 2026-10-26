@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { applicaVista } from "../../lib/vista";
 import { useApp } from "./AppProvider";
 
 // Mostra il pulsante "Prenota" solo agli ospiti (non all'admin e non ai visitatori).
@@ -21,7 +22,7 @@ export default function PrenotaButton({ tipo, nome }) {
         .select("ruolo")
         .eq("id", session.user.id)
         .single();
-      if (attivo && profilo?.ruolo === "ospite") setVisibile(true);
+      if (attivo && applicaVista(profilo)?.ruolo === "ospite") setVisibile(true);
     }
     controlla();
     return () => {
