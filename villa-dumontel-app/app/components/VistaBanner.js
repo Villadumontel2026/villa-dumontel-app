@@ -31,7 +31,7 @@ export default function VistaBanner() {
         type="button"
         onClick={() => {
           esciDallaVista();
-          window.location.href = "/richieste";
+          window.location.href = "/admin";
         }}
         style={{ cursor: "pointer", borderRadius: 999, border: "1px solid white", background: "transparent", color: "white", padding: "0.2rem 0.8rem" }}
       >

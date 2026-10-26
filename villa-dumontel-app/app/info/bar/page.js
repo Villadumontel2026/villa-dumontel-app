@@ -2,6 +2,7 @@ import { supabase } from "../../../lib/supabaseClient";
 
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
+import { AdminPostoRiga, AdminNuovoPosto } from "../../components/AdminPosto";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ export default async function BarPage() {
         <T k="i.bar" />
       </h1>
 
+      <AdminNuovoPosto categoria="bar" gruppi={[]} conGruppo={false} etichetta="Aggiungi un nuovo bar" />
+
       <div style={{ display: "grid", gap: "1rem" }}>
         {(posti || []).map((p) => (
           <div key={p.id} className="card">
@@ -42,6 +45,7 @@ export default async function BarPage() {
                 {p.indirizzo}
               </p>
             )}
+            <AdminPostoRiga posto={p} />
           </div>
         ))}
       </div>

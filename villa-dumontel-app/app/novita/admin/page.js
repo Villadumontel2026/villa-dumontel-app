@@ -228,45 +228,18 @@ export default function NovitaAdminPage() {
         ))}
       </div>
 
-      <h2>Etichetta &quot;Nuovo&quot; sui posti</h2>
-      <p className="muted">
-        Il badge Nuovo/New compare per 3 mesi dalla data in cui lo segni e poi sparisce da solo.
-      </p>
-      <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h3>Attualmente nuovi</h3>
-        {nuovi.length === 0 && <p className="muted">Nessuno.</p>}
-        {nuovi.map((p) => (
-          <div key={p.id} className="richiesta-item">
-            <strong>{p.nome}</strong>{" "}
-            <span className="muted">
-              ({CAT[p.categoria] || p.categoria}, dal {p.nuovo_dal})
-            </span>{" "}
-            <button type="button" onClick={() => segnaNuovo(p.id, null)}>
-              Togli
-            </button>
-          </div>
-        ))}
-      </div>
-
+      <h2>Etichetta &quot;Nuovo&quot; e nuovi posti</h2>
       <div className="card">
-        <h3>Segna un posto come nuovo</h3>
-        <label>
-          Scegli il posto
-          <select
-            defaultValue=""
-            onChange={(e) => {
-              if (e.target.value) segnaNuovo(e.target.value, oggi);
-              e.target.value = "";
-            }}
-          >
-            <option value="">— scegli —</option>
-            {altri.map((p) => (
-              <option key={p.id} value={p.id}>
-                {(CAT[p.categoria] || p.categoria) + " · " + p.nome}
-              </option>
-            ))}
-          </select>
-        </label>
+        <p style={{ margin: 0 }}>
+          L&apos;etichetta Nuovo/New e l&apos;aggiunta di ristoranti, attivit&agrave;, bar e posti
+          Food &amp; Drink si gestiscono direttamente dalle pagine Info (con le funzioni &quot;solo
+          admin&quot; su ogni scheda).
+        </p>
+        <p style={{ margin: "0.75rem 0 0" }}>
+          <a href="/info" className="btn">
+            Vai alle pagine Info
+          </a>
+        </p>
       </div>
     </main>
   );

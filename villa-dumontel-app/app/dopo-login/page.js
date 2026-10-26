@@ -24,7 +24,7 @@ export default function DopoLogin() {
       }
 
       if (profilo.ruolo === "admin") {
-        router.replace("/richieste");
+        router.replace("/admin");
       } else if (profilo.ruolo === "collaboratore") {
         router.replace("/pulizie/collaboratore");
       } else {

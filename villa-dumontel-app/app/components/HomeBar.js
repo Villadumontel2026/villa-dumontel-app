@@ -5,7 +5,7 @@ import { useApp } from "./AppProvider";
 
 const HOME_PER_RUOLO = {
   ospite: "/ospite",
-  admin: "/richieste",
+  admin: "/admin",
   collaboratore: "/pulizie/collaboratore",
 };
 

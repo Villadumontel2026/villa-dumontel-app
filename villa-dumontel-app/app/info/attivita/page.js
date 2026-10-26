@@ -3,6 +3,7 @@ import PrenotaButton from "../../components/PrenotaButton";
 
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
+import { AdminPostoRiga, AdminNuovoPosto } from "../../components/AdminPosto";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,8 @@ export default async function AttivitaPage() {
         <T k="i.att" />
       </h1>
 
+      <AdminNuovoPosto categoria="attivita" gruppi={[]} conGruppo={false} etichetta="Aggiungi una nuova attività" />
+
       <div style={{ display: "grid", gap: "1rem" }}>
         {(posti || []).map((p) => (
           <div key={p.id} className="card">
@@ -40,6 +43,7 @@ export default async function AttivitaPage() {
             )}
             {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
             <PrenotaButton tipo="attivita" nome={p.nome} />
+            <AdminPostoRiga posto={p} />
           </div>
         ))}
       </div>

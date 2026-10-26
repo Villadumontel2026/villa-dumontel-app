@@ -6,6 +6,7 @@ import { useApp } from "./AppProvider";
 
 const LINK_PER_RUOLO = {
   admin: [
+    { href: "/admin", label: "nav.home" },
     { href: "/richieste", label: "nav.richieste" },
     { href: "/pulizie/admin", label: "nav.pulizie" },
     { href: "/spese/admin", label: "nav.spese" },
