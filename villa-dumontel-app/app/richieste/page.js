@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import FormRichiesta from "../components/FormRichiesta";
 import CalendarButton from "../components/CalendarButton";
-import { impostaVista } from "../../lib/vista";
 
 const CHECKLIST_PULIZIE = [
   "Cambio lenzuola",
@@ -471,29 +470,6 @@ export default function RichiestePage() {
           <p style={{ color: "#a32d2d" }}>{errore}</p>
         </div>
       )}
-
-      <details className="card" style={{ marginBottom: "1rem" }}>
-        <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "1.1em" }}>Vedi l&apos;app come ospite</summary>
-        <p className="muted" style={{ marginTop: "0.75rem" }}>
-          Apri l&apos;app come la vede una famiglia, per controllare lingua e pagine. Attenzione: le azioni
-          (prenotare, annullare) sono reali.
-        </p>
-        <p style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          {famiglie.map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              className="btn"
-              onClick={() => {
-                impostaVista(f);
-                window.location.href = "/ospite";
-              }}
-            >
-              {f.nome}
-            </button>
-          ))}
-        </p>
-      </details>
 
       {(() => {
         const oggiStr = new Date().toISOString().slice(0, 10);

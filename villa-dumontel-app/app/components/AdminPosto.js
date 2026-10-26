@@ -30,12 +30,20 @@ function Campi({ posto = {}, gruppi = [], conGruppo, nuovoDefault }) {
         <input type="text" name="sito_web" defaultValue={posto.sito_web || ""} />
       </label>
       <label>
-        Descrizione (in inglese, la leggono gli ospiti)
+        Descrizione — inglese
         <textarea name="perche" defaultValue={posto.perche || ""}></textarea>
       </label>
       <label>
-        Quando andarci / consiglio (facoltativo)
+        Descrizione — italiano
+        <textarea name="perche_it" defaultValue={posto.perche_it || ""}></textarea>
+      </label>
+      <label>
+        Quando andarci / consiglio — inglese (facoltativo)
         <input type="text" name="quando" defaultValue={posto.quando || ""} />
+      </label>
+      <label>
+        Quando andarci / consiglio — italiano (facoltativo)
+        <input type="text" name="quando_it" defaultValue={posto.quando_it || ""} />
       </label>
       <label>
         Indirizzo (facoltativo)
@@ -58,7 +66,9 @@ function leggi(f, conGruppo) {
     sotto_categoria: conGruppo ? v("sotto_categoria") : null,
     sito_web: v("sito_web"),
     perche: v("perche"),
+    perche_it: v("perche_it"),
     quando: v("quando"),
+    quando_it: v("quando_it"),
     indirizzo: v("indirizzo"),
   };
 }

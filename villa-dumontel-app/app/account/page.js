@@ -3,9 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
+import { impostaVista, leggiVista } from "../../lib/vista";
 
 export default function AccountPage() {
-  const { t, lang, setLang } = useApp();
+  const { t, lang, setLang, ruoloReale } = useApp();
+  const [famiglie, setFamiglie] = useState([]);
+  const [collaboratori, setCollaboratori] = useState([]);
   const [caricamento, setCaricamento] = useState(true);
   const [email, setEmail] = useState(null);
   const [messaggio, setMessaggio] = useState(null);
@@ -17,6 +20,12 @@ export default function AccountPage() {
       setCaricamento(false);
     });
   }, []);
+
+  useEffect(() => {
+    if (ruoloReale !== "admin") return;
+    supabase.from("famiglie").select("id, nome").order("id").then(({ data }) => setFamiglie(data || []));
+    supabase.from("collaboratori").select("id, nome").order("id").then(({ data }) => setCollaboratori(data || []));
+  }, [ruoloReale]);
 
   async function salva(e) {
     e.preventDefault();
@@ -100,6 +109,53 @@ export default function AccountPage() {
           </button>
         </p>
       </div>
+
+      {ruoloReale === "admin" && (
+        <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
+          <h2>Vedi l&apos;app come...</h2>
+          <p className="muted">
+            Apri l&apos;app come la vede un ospite o una collaboratrice, per controllare pagine e lingua.
+            Attenzione: le azioni (prenotare, annullare, confermare) sono reali. Per tornare admin usa il
+            banner arancione in alto.
+          </p>
+          <p className="muted" style={{ marginBottom: "0.25rem" }}>
+            Ospite
+          </p>
+          <p style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: 0 }}>
+            {famiglie.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className="btn"
+                onClick={() => {
+                  impostaVista("ospite", f);
+                  window.location.href = "/ospite";
+                }}
+              >
+                {f.nome}
+              </button>
+            ))}
+          </p>
+          <p className="muted" style={{ marginBottom: "0.25rem" }}>
+            Collaboratrice
+          </p>
+          <p style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: 0 }}>
+            {collaboratori.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className="btn"
+                onClick={() => {
+                  impostaVista("collaboratore", c);
+                  window.location.href = "/pulizie/collaboratore";
+                }}
+              >
+                {c.nome}
+              </button>
+            ))}
+          </p>
+        </div>
+      )}
     </main>
   );
 }

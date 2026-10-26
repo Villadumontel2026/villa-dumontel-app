@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
+import CalendarioVista from "../components/CalendarioVista";
+import { applicaVista } from "../../lib/vista";
 
 export default function CalendarioPage() {
   const { t, lang } = useApp();
@@ -11,6 +13,18 @@ export default function CalendarioPage() {
   const [token, setToken] = useState(null);
   const [errore, setErrore] = useState(null);
   const [copiato, setCopiato] = useState(false);
+  const [famigliaId, setFamigliaId] = useState(null);
+  const [mie, setMie] = useState([]);
+
+  async function caricaMie(fid) {
+    const { data } = await supabase
+      .from("richieste")
+      .select("*")
+      .eq("famiglia_id", fid)
+      .neq("stato", "annullata")
+      .order("data", { ascending: true });
+    setMie(data || []);
+  }
 
   async function caricaToken() {
     const { data, error } = await supabase.rpc("mio_token_calendario");
@@ -31,6 +45,16 @@ export default function CalendarioPage() {
         return;
       }
       setAcceduto(true);
+      const { data: pRaw } = await supabase
+        .from("profili")
+        .select("*")
+        .eq("id", session.user.id)
+        .single();
+      const p = applicaVista(pRaw);
+      if (p && p.ruolo === "ospite" && p.famiglia_id) {
+        setFamigliaId(p.famiglia_id);
+        await caricaMie(p.famiglia_id);
+      }
       await caricaToken();
       setCaricamento(false);
     }
@@ -88,6 +112,19 @@ export default function CalendarioPage() {
   return (
     <main>
       <h1>{t("cal.titolo")}</h1>
+
+      {famigliaId && (
+        <div className="card" style={{ marginBottom: "1.5rem" }}>
+          <h2 style={{ marginTop: 0 }}>{t("cal.mioTitolo")}</h2>
+          <CalendarioVista
+            eventi={mie}
+            colore={() => "#2f4739"}
+            onCambiato={() => caricaMie(famigliaId)}
+          />
+        </div>
+      )}
+
+      <h2>{t("cal.abbonamento")}</h2>
       <p className="muted" style={{ marginBottom: "1.5rem" }}>
         {t("cal.intro")}
       </p>

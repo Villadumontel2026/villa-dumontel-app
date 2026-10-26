@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import AvvisiBox from "../../components/AvvisiBox";
+import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
 
@@ -39,11 +41,12 @@ export default function PaginaCollaboratrice() {
         return;
       }
 
-      const { data: profilo } = await supabase
+      const { data: profiloRaw } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
+      const profilo = applicaVista(profiloRaw);
 
       if (!profilo || profilo.ruolo !== "collaboratore" || !profilo.collaboratore_id) {
         setErroreAccesso("Questa pagina e' riservata alle collaboratrici.");
@@ -182,6 +185,8 @@ export default function PaginaCollaboratrice() {
   return (
     <main>
       <h1>Ciao {collaboratore?.nome}</h1>
+
+      <AvvisiBox tipo="collaboratore" id={collabId} />
 
       <p style={{ marginBottom: "1.5rem" }}>
         <a href="/pulizie/collaboratore/nuovo" className="btn">

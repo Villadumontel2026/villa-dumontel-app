@@ -25,7 +25,8 @@ export default function VistaBanner() {
       }}
     >
       <span>
-        Stai vedendo l&apos;app come <strong>{vista.nome}</strong> (le azioni sono reali)
+        Stai vedendo l&apos;app come {vista.tipo === "collaboratore" ? "collaboratrice" : "ospite"}{" "}
+        <strong>{vista.nome}</strong> (le azioni sono reali)
       </span>
       <button
         type="button"

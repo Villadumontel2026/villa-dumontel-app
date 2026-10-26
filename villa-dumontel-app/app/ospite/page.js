@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { applicaVista } from "../../lib/vista";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
+import AvvisiBox from "../components/AvvisiBox";
 import { fmtData, traduciVoci, traduciSotto } from "../../lib/i18n";
 
 const ICONE = {
@@ -184,6 +185,8 @@ export default function OspiteHome() {
           {alloggi.map((a) => a.nome).join(" · ")}
         </p>
       )}
+
+      {famiglia && <AvvisiBox tipo="famiglia" id={famiglia.id} />}
 
       {conProposta.length > 0 && (
         <div className="card" style={{ marginBottom: "1rem", background: "#fff6e0" }}>

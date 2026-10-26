@@ -17,6 +17,7 @@ export default function SpeseAdminPage() {
   const [versamenti, setVersamenti] = useState([]);
   const [filtroFamiglia, setFiltroFamiglia] = useState("tutte");
   const [filtroAnno, setFiltroAnno] = useState(String(ANNO_CORRENTE));
+  const [annoRiep, setAnnoRiep] = useState(String(ANNO_CORRENTE));
 
   useEffect(() => {
     async function carica() {
@@ -86,8 +87,9 @@ export default function SpeseAdminPage() {
   const anni = useMemo(() => {
     const set = new Set([ANNO_CORRENTE]);
     spese.forEach((x) => set.add(annoSpesa(x)));
+    versamenti.forEach((v) => set.add(parseInt(String(v.data || "").slice(0, 4), 10)));
     return Array.from(set).filter(Boolean).sort((a, b) => b - a);
-  }, [spese]);
+  }, [spese, versamenti]);
 
   if (caricamento) {
     return (
@@ -125,6 +127,21 @@ export default function SpeseAdminPage() {
       .filter((x) => x.famiglia_id === f.id)
       .reduce((t, r) => t + (r.importo || 0), 0),
   }));
+  const annoDi = (d) => parseInt(String(d || "").slice(0, 4), 10);
+  const sommaImp = (arr) => arr.reduce((t, r) => t + (r.importo || 0), 0);
+  const tuttiAnni = annoRiep === "tutti";
+  const YR = parseInt(annoRiep, 10);
+  const riepiloghi = famiglie.map((f) => {
+    const sp = spese.filter((x) => x.famiglia_id === f.id);
+    const inc = versamenti.filter((x) => x.famiglia_id === f.id);
+    const riporto = tuttiAnni
+      ? 0
+      : sommaImp(sp.filter((x) => annoSpesa(x) < YR)) - sommaImp(inc.filter((x) => annoDi(x.data) < YR));
+    const speseAnno = sommaImp(sp.filter((x) => tuttiAnni || annoSpesa(x) === YR));
+    const incassiAnno = sommaImp(inc.filter((x) => tuttiAnni || annoDi(x.data) === YR));
+    return { ...f, riporto, spese: speseAnno, incassi: incassiAnno, saldo: riporto + speseAnno - incassiAnno };
+  });
+
   const versFiltrati = versamenti.filter(
     (x) =>
       (filtroFamiglia === "tutte" || String(x.famiglia_id) === filtroFamiglia) &&
@@ -146,6 +163,56 @@ export default function SpeseAdminPage() {
         </a>
       </p>
 
+      <h2>Riepilogo</h2>
+      <p className="muted" style={{ marginBottom: "0.75rem" }}>
+        Spese per anno di competenza, versamenti per data. Il saldo include il riporto degli anni precedenti.
+      </p>
+      <label style={{ maxWidth: "220px", marginBottom: "1rem" }}>
+        Anno del riepilogo
+        <select value={annoRiep} onChange={(e) => setAnnoRiep(e.target.value)}>
+          {anni.map((a) => (
+            <option key={a} value={String(a)}>
+              {a}
+            </option>
+          ))}
+          <option value="tutti">Tutti gli anni (verifica)</option>
+        </select>
+      </label>
+
+      <div style={{ display: "grid", gap: "1rem", marginBottom: "2.5rem" }}>
+        {riepiloghi.map((f) => (
+          <div key={f.id} className="card">
+            <h3 style={{ marginBottom: "0.5rem" }}>{f.nome}</h3>
+            <p className="muted" style={{ margin: "0.25rem 0" }}>
+              Riporto anni precedenti: {f.riporto.toFixed(2)} &euro;
+            </p>
+            <p className="muted" style={{ margin: "0.25rem 0" }}>
+              Spese dell&apos;anno (pulizie e gasolio incluse): {f.spese.toFixed(2)} &euro;
+            </p>
+            <p className="muted" style={{ margin: "0.25rem 0" }}>
+              Gi&agrave; incassato: {f.incassi.toFixed(2)} &euro;
+            </p>
+            <div
+              style={{
+                marginTop: "0.75rem",
+                padding: "0.75rem 1rem",
+                borderRadius: "10px",
+                fontWeight: 600,
+                background: f.saldo > 0 ? "#fde2e2" : "#dff3e3",
+                color: f.saldo > 0 ? "#8a1f1f" : "#1f5c2e",
+              }}
+            >
+              {f.saldo > 0
+                ? `Da incassare: ${f.saldo.toFixed(2)} €`
+                : f.saldo < 0
+                ? `Credito della famiglia: ${(-f.saldo).toFixed(2)} €`
+                : "Saldo in pari: 0.00 €"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <h2>Elenco spese e versamenti</h2>
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
         <label style={{ minWidth: "200px" }}>
           Famiglia
@@ -169,24 +236,6 @@ export default function SpeseAdminPage() {
             <option value="tutti">Tutti gli anni</option>
           </select>
         </label>
-      </div>
-
-      <div style={{ display: "grid", gap: "1rem", marginBottom: "2rem" }}>
-        {totali.map((f) => (
-          <div key={f.id} className="card">
-            <h3 style={{ marginBottom: "0.25rem" }}>{f.nome}</h3>
-            <p style={{ margin: "0.25rem 0" }}>
-              <strong>Totale spese: {f.totale.toFixed(2)} &euro;</strong>
-            </p>
-          </div>
-        ))}
-        {totali.length > 1 && (
-          <div className="card">
-            <p style={{ margin: 0 }}>
-              <strong>Totale complessivo: {totaleGenerale.toFixed(2)} &euro;</strong>
-            </p>
-          </div>
-        )}
       </div>
 
       <h2>

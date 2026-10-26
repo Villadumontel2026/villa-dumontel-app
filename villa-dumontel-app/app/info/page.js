@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { T } from "../components/AppProvider";
+import NovitaAdminBox from "../components/NovitaAdminBox";
 
 const SEZIONI = [
   { href: "/info/generale", titolo: "i.gen", descrizione: "i.genSub" },
@@ -19,7 +20,11 @@ export default function InfoPage() {
         <T k="i.intro" />
       </p>
 
-      <div style={{ display: "grid", gap: "1rem", marginTop: "1.5rem" }}>
+      <div style={{ marginTop: "1.5rem" }}>
+        <NovitaAdminBox />
+      </div>
+
+      <div style={{ display: "grid", gap: "1rem" }}>
         {SEZIONI.map((s) => (
           <Link key={s.href} href={s.href} className="card" style={{ display: "block" }}>
             <h2 style={{ marginBottom: "0.25rem" }}>

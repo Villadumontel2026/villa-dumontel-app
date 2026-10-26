@@ -3,6 +3,7 @@ import PrenotaButton from "../../components/PrenotaButton";
 
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
+import Testo from "../../components/Testo";
 import { AdminPostoRiga, AdminNuovoPosto } from "../../components/AdminPosto";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function AttivitaPage() {
                 </a>
               </p>
             )}
-            {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
+            <Testo en={p.perche} it={p.perche_it} style={{ margin: "0.25rem 0" }} />
             <PrenotaButton tipo="attivita" nome={p.nome} />
             <AdminPostoRiga posto={p} />
           </div>

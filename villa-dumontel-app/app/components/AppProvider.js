@@ -25,6 +25,7 @@ export function AppProvider({ children }) {
   const [pronto, setPronto] = useState(false);
   const [email, setEmail] = useState(null);
   const [ruolo, setRuolo] = useState(null);
+  const [ruoloReale, setRuoloReale] = useState(null);
 
   // lingua salvata o del browser
   useEffect(() => {
@@ -61,7 +62,8 @@ export function AppProvider({ children }) {
       if (attivo) {
         setEmail(session.user.email);
         const vista = profilo?.ruolo === "admin" ? leggiVista() : null;
-        setRuolo(vista ? "ospite" : profilo?.ruolo || null);
+        setRuolo(vista ? vista.tipo : profilo?.ruolo || null);
+        setRuoloReale(profilo?.ruolo || null);
         setPronto(true);
       }
     }
@@ -103,8 +105,9 @@ export function AppProvider({ children }) {
       pronto,
       email,
       ruolo,
+      ruoloReale,
     }),
-    [lang, setLang, pronto, email, ruolo]
+    [lang, setLang, pronto, email, ruolo, ruoloReale]
   );
 
   return <Ctx.Provider value={valore}>{children}</Ctx.Provider>;

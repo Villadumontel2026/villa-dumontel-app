@@ -3,6 +3,7 @@ import PrenotaButton from "../../components/PrenotaButton";
 
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
+import Testo from "../../components/Testo";
 import { AdminPostoRiga, AdminNuovoPosto } from "../../components/AdminPosto";
 
 export const dynamic = "force-dynamic";
@@ -58,12 +59,8 @@ export default async function RistorantiPage() {
                     </a>
                   </p>
                 )}
-                {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
-                {p.quando && (
-                  <p className="muted" style={{ margin: "0.25rem 0" }}>
-                    {p.quando}
-                  </p>
-                )}
+                <Testo en={p.perche} it={p.perche_it} style={{ margin: "0.25rem 0" }} />
+                <Testo en={p.quando} it={p.quando_it} className="muted" style={{ margin: "0.25rem 0" }} />
                 {p.indirizzo && (
                   <p className="muted" style={{ margin: "0.25rem 0", fontSize: "0.9em" }}>
                     {p.indirizzo}

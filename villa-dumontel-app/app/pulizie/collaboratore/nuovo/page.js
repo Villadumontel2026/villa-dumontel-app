@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { applicaVista } from "../../../../lib/vista";
 import { supabase } from "../../../../lib/supabaseClient";
 
 export default function NuovoTurnoPage() {
@@ -23,11 +24,12 @@ export default function NuovoTurnoPage() {
         return;
       }
 
-      const { data: profilo } = await supabase
+      const { data: profiloRaw } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
+      const profilo = applicaVista(profiloRaw);
 
       if (!profilo || profilo.ruolo !== "collaboratore" || !profilo.collaboratore_id) {
         setErroreAccesso("Questa pagina e' riservata alle collaboratrici.");

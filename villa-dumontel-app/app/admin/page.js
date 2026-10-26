@@ -1,14 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import { fmtData } from "../../lib/i18n";
+import CalendarioVista from "../components/CalendarioVista";
+import AvvisiBox from "../components/AvvisiBox";
 
 const COLORI = ["#2f4739", "#2b6a9e", "#a2562c", "#7a4b94"];
-const GIORNI_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
-const GIORNI_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
 const iso = (d) =>
   d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 
@@ -19,12 +18,16 @@ export default function AdminHome() {
   const [famiglie, setFamiglie] = useState([]);
   const [richieste, setRichieste] = useState([]);
   const [generiche, setGeneriche] = useState([]);
-  const [mese, setMese] = useState(() => {
-    const d = new Date();
-    return new Date(d.getFullYear(), d.getMonth(), 1);
-  });
-  const [giornoSel, setGiornoSel] = useState(null);
   const [filtro, setFiltro] = useState("tutte");
+
+  async function ricarica() {
+    const { data: ric } = await supabase
+      .from("richieste")
+      .select("*, alloggi(nome), famiglie(nome)")
+      .neq("stato", "annullata")
+      .order("data", { ascending: true });
+    setRichieste(ric || []);
+  }
 
   useEffect(() => {
     async function carica() {
@@ -84,27 +87,6 @@ export default function AdminHome() {
     )
     .slice(0, 10);
 
-  const perGiorno = useMemo(() => {
-    const m = {};
-    visibili.forEach((r) => {
-      (m[r.data] = m[r.data] || []).push(r);
-    });
-    Object.values(m).forEach((arr) => arr.sort((a, b) => String(a.ora || "").localeCompare(String(b.ora || ""))));
-    return m;
-  }, [visibili]);
-
-  // griglia del mese (lunedi' come primo giorno)
-  const celle = useMemo(() => {
-    const primo = new Date(mese.getFullYear(), mese.getMonth(), 1);
-    const offset = (primo.getDay() + 6) % 7;
-    const giorniMese = new Date(mese.getFullYear(), mese.getMonth() + 1, 0).getDate();
-    const out = [];
-    for (let i = 0; i < offset; i++) out.push(null);
-    for (let d = 1; d <= giorniMese; d++) out.push(new Date(mese.getFullYear(), mese.getMonth(), d));
-    while (out.length % 7 !== 0) out.push(null);
-    return out;
-  }, [mese]);
-
   if (caricamento) {
     return (
       <main>
@@ -137,12 +119,7 @@ export default function AdminHome() {
     (r) => r.tipo === "pulizie" && !r.collaboratore_id && ["nuova", "in gestione", "confermata"].includes(r.stato)
   );
   const proposte = richieste.filter((r) => r.proposta_data);
-  const giorniSett = lang === "en" ? GIORNI_EN : GIORNI_IT;
-  const titoloMese = mese.toLocaleDateString(lang === "en" ? "en-GB" : "it-IT", { month: "long", year: "numeric" });
   const inAttesa = (r) => r.stato === "nuova" || r.stato === "in gestione";
-
-  const etichettaEv = (r) =>
-    (r.ora ? String(r.ora).slice(0, 5) + " " : "") + t("tipo." + r.tipo);
 
   const dettaglio = (r) => (
     <div key={r.id} className="richiesta-item">
@@ -172,6 +149,8 @@ export default function AdminHome() {
   return (
     <main>
       <h1>Home</h1>
+
+      <AvvisiBox tipo="admin" />
 
       {/* Da fare */}
       <div style={{ display: "grid", gap: "0.75rem", marginBottom: "1.5rem" }}>
@@ -274,98 +253,17 @@ export default function AdminHome() {
         {prossimi.map(dettaglio)}
       </div>
 
-      {/* Calendario mensile */}
+      {/* Calendario */}
       <h2>Calendario</h2>
       <div className="card" style={{ marginBottom: "2rem" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-          <button
-            type="button"
-            className="btn btn-light"
-            style={{ padding: "0.35rem 0.8rem" }}
-            onClick={() => setMese(new Date(mese.getFullYear(), mese.getMonth() - 1, 1))}
-            aria-label="Mese precedente"
-          >
-            &larr;
-          </button>
-          <strong style={{ textTransform: "capitalize" }}>{titoloMese}</strong>
-          <button
-            type="button"
-            className="btn btn-light"
-            style={{ padding: "0.35rem 0.8rem" }}
-            onClick={() => setMese(new Date(mese.getFullYear(), mese.getMonth() + 1, 1))}
-            aria-label="Mese successivo"
-          >
-            &rarr;
-          </button>
-        </div>
-
-        <div className="cal-grid">
-          {giorniSett.map((g) => (
-            <div key={g} className="cal-head">
-              {g}
-            </div>
-          ))}
-          {celle.map((d, i) => {
-            if (!d) return <div key={i} className="cal-cell vuota" />;
-            const k = iso(d);
-            const ev = perGiorno[k] || [];
-            const selezionato = giornoSel === k;
-            return (
-              <div
-                key={i}
-                className={"cal-cell" + (k === oggi ? " oggi" : "") + (selezionato ? " sel" : "")}
-                onClick={() => setGiornoSel(selezionato ? null : k)}
-              >
-                <span className="cal-num">{d.getDate()}</span>
-                {ev.slice(0, 3).map((r) => (
-                  <span
-                    key={r.id}
-                    className="cal-ev"
-                    style={
-                      inAttesa(r)
-                        ? { border: "1px solid " + colore(r.famiglia_id), color: colore(r.famiglia_id), background: "white" }
-                        : { background: colore(r.famiglia_id), color: "white" }
-                    }
-                    title={(r.famiglie?.nome || "") + " — " + t("tipo." + r.tipo)}
-                  >
-                    {etichettaEv(r)}
-                  </span>
-                ))}
-                {ev.length > 3 && <span className="cal-piu">+{ev.length - 3}</span>}
-              </div>
-            );
-          })}
-        </div>
-
-        <p className="muted" style={{ fontSize: "0.8rem", margin: "0.75rem 0 0" }}>
-          Pieno = confermato &middot; contorno = da confermare. Tocca un giorno per i dettagli.
-        </p>
-
-        {giornoSel && (
-          <div style={{ marginTop: "1rem", borderTop: "1px solid var(--color-border)", paddingTop: "0.75rem" }}>
-            <strong>{fmtData(lang, giornoSel)}</strong>
-            {(perGiorno[giornoSel] || []).length === 0 && <p className="muted">Nessun evento.</p>}
-            {(perGiorno[giornoSel] || []).map(dettaglio)}
-          </div>
-        )}
+        <CalendarioVista
+          eventi={visibili}
+          colore={(r) => colore(r.famiglia_id)}
+          amministratore
+          onCambiato={ricarica}
+        />
       </div>
 
-      <style
-        dangerouslySetInnerHTML={{
-          __html: `
-            .cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; }
-            .cal-head { text-align: center; font-size: 0.72rem; color: var(--color-muted); padding-bottom: 2px; }
-            .cal-cell { min-height: 76px; background: #fbfaf7; border: 1px solid var(--color-border); border-radius: 6px; padding: 3px; display: flex; flex-direction: column; gap: 2px; cursor: pointer; overflow: hidden; }
-            .cal-cell.vuota { background: transparent; border: none; cursor: default; }
-            .cal-cell.oggi { border-color: var(--color-accent); box-shadow: inset 0 0 0 1px var(--color-accent); }
-            .cal-cell.sel { background: var(--color-primary-light); }
-            .cal-num { font-size: 0.72rem; color: var(--color-muted); }
-            .cal-ev { font-size: 0.62rem; line-height: 1.2; border-radius: 4px; padding: 1px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-            .cal-piu { font-size: 0.62rem; color: var(--color-muted); }
-            @media (max-width: 520px) { .cal-cell { min-height: 58px; } .cal-ev { font-size: 0.55rem; } }
-          `,
-        }}
-      />
     </main>
   );
 }
