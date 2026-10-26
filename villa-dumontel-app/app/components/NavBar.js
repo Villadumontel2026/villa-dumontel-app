@@ -14,6 +14,7 @@ const LINK_PER_RUOLO = {
     { href: "/info", label: "nav.info" },
   ],
   collaboratore: [
+    { href: "/collaboratore", label: "nav.home" },
     { href: "/pulizie/collaboratore", label: "nav.pulizie" },
     { href: "/calendario", label: "nav.calendario" },
     { href: "/info", label: "nav.info" },

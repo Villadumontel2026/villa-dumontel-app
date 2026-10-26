@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
+import { applicaVista } from "../../lib/vista";
 
 export default function DopoLogin() {
   const { t } = useApp();
@@ -12,12 +13,13 @@ export default function DopoLogin() {
 
   useEffect(() => {
     async function verifica(session) {
-      const { data: profilo, error } = await supabase
+      const { data: profiloRaw, error } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
 
+      const profilo = applicaVista(profiloRaw);
       if (error || !profilo) {
         setStato("noProfilo");
         return;
@@ -26,7 +28,7 @@ export default function DopoLogin() {
       if (profilo.ruolo === "admin") {
         router.replace("/admin");
       } else if (profilo.ruolo === "collaboratore") {
-        router.replace("/pulizie/collaboratore");
+        router.replace("/collaboratore");
       } else {
         router.replace("/ospite");
       }

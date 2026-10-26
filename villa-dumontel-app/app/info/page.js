@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { T } from "../components/AppProvider";
 import NovitaAdminBox from "../components/NovitaAdminBox";
+import InfoCards from "../components/InfoCards";
 
 const SEZIONI = [
   { href: "/info/generale", titolo: "i.gen", descrizione: "i.genSub" },
@@ -24,18 +24,7 @@ export default function InfoPage() {
         <NovitaAdminBox />
       </div>
 
-      <div style={{ display: "grid", gap: "1rem" }}>
-        {SEZIONI.map((s) => (
-          <Link key={s.href} href={s.href} className="card" style={{ display: "block" }}>
-            <h2 style={{ marginBottom: "0.25rem" }}>
-              <T k={s.titolo} />
-            </h2>
-            <p className="muted" style={{ margin: 0 }}>
-              <T k={s.descrizione} />
-            </p>
-          </Link>
-        ))}
-      </div>
+      <InfoCards sezioni={SEZIONI} />
     </main>
   );
 }

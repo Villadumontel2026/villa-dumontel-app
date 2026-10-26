@@ -6,7 +6,7 @@ import { useApp } from "./AppProvider";
 const HOME_PER_RUOLO = {
   ospite: "/ospite",
   admin: "/admin",
-  collaboratore: "/pulizie/collaboratore",
+  collaboratore: "/collaboratore",
 };
 
 // Pulsante "Home" colorato in cima a tutte le pagine (tranne le home stesse e il login).

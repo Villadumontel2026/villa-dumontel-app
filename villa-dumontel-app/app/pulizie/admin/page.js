@@ -133,8 +133,14 @@ export default function PaginaAdminPulizie() {
             <div key={t.id} className="richiesta-item">
               <span className="badge badge-nuova">da validare</span>{" "}
               <strong>{t.collaboratori?.nome}</strong> &mdash; {t.alloggi?.nome}{" "}
-              &mdash; {t.data} &mdash; {t.ore} ore
-              {t.note && <p className="descrizione">{t.note}</p>}
+              &mdash; {t.data}{t.ora_inizio ? " alle " + String(t.ora_inizio).slice(0, 5) : ""} &mdash; {t.ore} ore
+              {(t.attivita || t.note) && (
+                <p className="descrizione">
+                  {t.attivita}
+                  {t.attivita && t.note ? " — " : ""}
+                  {t.note}
+                </p>
+              )}
               <div className="stato-actions">
                 <button className="btn" onClick={() => approvaTurno(t.id)}>
                   Valida

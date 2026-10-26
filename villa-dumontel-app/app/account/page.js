@@ -6,7 +6,7 @@ import { useApp } from "../components/AppProvider";
 import { impostaVista, leggiVista } from "../../lib/vista";
 
 export default function AccountPage() {
-  const { t, lang, setLang, ruoloReale } = useApp();
+  const { t, lang, setLang, ruoloReale, ruolo } = useApp();
   const [famiglie, setFamiglie] = useState([]);
   const [collaboratori, setCollaboratori] = useState([]);
   const [caricamento, setCaricamento] = useState(true);
@@ -110,7 +110,7 @@ export default function AccountPage() {
         </p>
       </div>
 
-      {ruoloReale === "admin" && (
+      {ruoloReale === "admin" && ruolo === "admin" && (
         <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
           <h2>Vedi l&apos;app come...</h2>
           <p className="muted">
@@ -147,7 +147,7 @@ export default function AccountPage() {
                 className="btn"
                 onClick={() => {
                   impostaVista("collaboratore", c);
-                  window.location.href = "/pulizie/collaboratore";
+                  window.location.href = "/collaboratore";
                 }}
               >
                 {c.nome}

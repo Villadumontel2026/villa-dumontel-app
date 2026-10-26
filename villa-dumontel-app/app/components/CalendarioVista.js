@@ -31,7 +31,15 @@ const aggiungiGiorni = (d, n) => {
 //  eventi: richieste (con data)   colore(ev): colore dell'evento
 //  amministratore: true per admin (modifica diretta), false per ospite
 //  onCambiato(): da chiamare dopo una modifica/annullamento per ricaricare i dati
-export default function CalendarioVista({ eventi, colore, amministratore = false, onCambiato }) {
+export default function CalendarioVista({
+  eventi,
+  colore,
+  amministratore = false,
+  soloLettura = false,
+  testoAttesa = null,
+  mostraAlloggio = false,
+  onCambiato,
+}) {
   const { t, lang } = useApp();
   const [vista, setVista] = useState("mese");
   const [cursore, setCursore] = useState(() => new Date());
@@ -157,14 +165,15 @@ export default function CalendarioVista({ eventi, colore, amministratore = false
           &mdash; {t("tipo." + r.tipo)}
           <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>
             {amministratore ? (r.famiglie?.nome || "") + " · " + (r.alloggi?.nome || "") : ""}
+            {!amministratore && mostraAlloggio ? r.alloggi?.nome || "" : ""}
             {r.sotto_tipo ? ` ${r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo)}` : ""}
             {r.descrizione ? ` — ${r.tipo === "pulizie" ? traduciVoci(lang, r.descrizione) : r.descrizione}` : ""}
             {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
-            {inAttesa(r) ? ` — ${t("oh.inAttesa")}` : ""}
+            {inAttesa(r) ? ` — ${testoAttesa || t("oh.inAttesa")}` : ""}
             {r.stato === "annullata" ? ` — ${t("stato.annullata")}` : ""}
           </p>
         </div>
-        {aperto && (
+        {aperto && !soloLettura && (
           <p style={{ margin: "0.4rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <button type="button" className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }} onClick={() => setEvSel(selezionato ? null : r.id)}>
               {t("cv.modifica")}
@@ -174,7 +183,7 @@ export default function CalendarioVista({ eventi, colore, amministratore = false
             </button>
           </p>
         )}
-        {aperto && selezionato && (
+        {aperto && !soloLettura && selezionato && (
           <form onSubmit={(e) => salvaEvento(e, r)} style={{ marginTop: "0.6rem" }}>
             <label>
               {t("f.data")}

@@ -5,6 +5,15 @@ import { useRouter } from "next/navigation";
 import { applicaVista } from "../../../../lib/vista";
 import { supabase } from "../../../../lib/supabaseClient";
 
+const CHECKLIST = [
+  "Cambio lenzuola",
+  "Cambio asciugamani",
+  "Pulizia bagni",
+  "Pulizia cucina",
+  "Pulizia terrazzo/balcone",
+  "Riordino generale",
+];
+
 export default function NuovoTurnoPage() {
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
@@ -59,6 +68,9 @@ export default function NuovoTurnoPage() {
     const alloggio_id = form.alloggio_id.value;
     const data = form.data.value;
     const ore = parseFloat(form.ore.value);
+    const ora_inizio = form.ora_inizio.value || null;
+    const voci = Array.from(form.querySelectorAll('input[name="voci"]:checked')).map((c) => c.value);
+    const attivita = voci.length ? voci.join(", ") : null;
     const note = form.note.value;
     const importo_dovuto = collaboratore ? ore * collaboratore.tariffa_oraria : null;
 
@@ -66,7 +78,9 @@ export default function NuovoTurnoPage() {
       collaboratore_id: collaboratore.id,
       alloggio_id,
       data,
+      ora_inizio,
       ore,
+      attivita,
       note,
       importo_dovuto,
       stato: "da approvare",
@@ -124,11 +138,25 @@ export default function NuovoTurnoPage() {
             <input type="date" name="data" required />
           </label>
           <label>
+            Ora di inizio
+            <input type="time" name="ora_inizio" required />
+          </label>
+          <label>
             Ore lavorate
             <input type="number" step="0.5" name="ore" required />
           </label>
+          <label>Attivit&agrave; svolte</label>
+          {CHECKLIST.map((voce) => (
+            <label
+              key={voce}
+              style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
+            >
+              <input type="checkbox" name="voci" value={voce} style={{ width: "auto", marginBottom: 0 }} />
+              {voce}
+            </label>
+          ))}
           <label>
-            Cosa hai fatto
+            Altre note
             <textarea name="note"></textarea>
           </label>
           <button type="submit" className="btn">

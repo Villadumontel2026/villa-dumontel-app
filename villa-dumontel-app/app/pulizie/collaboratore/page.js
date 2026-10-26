@@ -184,7 +184,7 @@ export default function PaginaCollaboratrice() {
 
   return (
     <main>
-      <h1>Ciao {collaboratore?.nome}</h1>
+      <h1>Pulizie</h1>
 
       <AvvisiBox tipo="collaboratore" id={collabId} />
 
