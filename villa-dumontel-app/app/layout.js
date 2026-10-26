@@ -1,5 +1,7 @@
 import "./globals.css";
 import NavBar from "./components/NavBar";
+import HomeBar from "./components/HomeBar";
+import { AppProvider } from "./components/AppProvider";
 
 export const metadata = {
   title: "Villa Dumontel",
@@ -21,6 +23,7 @@ export default function RootLayout({ children }) {
   return (
     <html lang="it">
       <body>
+        <AppProvider>
         <header className="site-header">
           <div className="header-inner">
             <a href="/" className="site-brand">
@@ -30,7 +33,11 @@ export default function RootLayout({ children }) {
             <NavBar />
           </div>
         </header>
-        <div className="container">{children}</div>
+        <div className="container">
+          <HomeBar />
+          {children}
+        </div>
+        </AppProvider>
       </body>
     </html>
   );

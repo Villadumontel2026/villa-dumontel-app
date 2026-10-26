@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
+import { useApp } from "../../components/AppProvider";
+import { fmtData, fmtEuro } from "../../../lib/i18n";
 
 const ANNO_CORRENTE = new Date().getFullYear();
 
@@ -10,14 +12,9 @@ function anno(dataStr) {
   return parseInt(String(dataStr).slice(0, 4), 10);
 }
 
-function euro(n) {
-  return Number(n || 0).toLocaleString("it-IT", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
-}
-
 export default function CostiOspitePage() {
+  const { t, lang } = useApp();
+  const euro = (n) => fmtEuro(lang, n);
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [spese, setSpese] = useState([]);
@@ -31,7 +28,7 @@ export default function CostiOspitePage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        setErroreAccesso("Devi accedere per vedere questa pagina.");
+        setErroreAccesso("login");
         setCaricamento(false);
         return;
       }
@@ -43,7 +40,7 @@ export default function CostiOspitePage() {
         .single();
 
       if (!profilo || profilo.ruolo !== "ospite" || !profilo.famiglia_id) {
-        setErroreAccesso("Questa pagina e' riservata agli ospiti.");
+        setErroreAccesso("ospiti");
         setCaricamento(false);
         return;
       }
@@ -80,7 +77,7 @@ export default function CostiOspitePage() {
   if (caricamento) {
     return (
       <main>
-        <p>Caricamento...</p>
+        <p>{t("c.caricamento")}</p>
       </main>
     );
   }
@@ -89,9 +86,9 @@ export default function CostiOspitePage() {
     return (
       <main>
         <div className="card">
-          <p>{erroreAccesso}</p>
+          <p>{erroreAccesso === "login" ? t("c.loginRichiesto") : t("c.soloOspiti")}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login">{t("c.vaiLogin")}</a>
           </p>
         </div>
       </main>
@@ -112,13 +109,10 @@ export default function CostiOspitePage() {
 
   return (
     <main>
-      <p>
-        <a href="/ospite">&larr; Home</a>
-      </p>
-      <h1>I miei costi</h1>
+      <h1>{t("co.titolo")}</h1>
 
       <label style={{ maxWidth: "200px", marginBottom: "1.5rem" }}>
-        Anno
+        {t("co.anno")}
         <select value={annoSel} onChange={(e) => setAnnoSel(e.target.value)}>
           {anni.map((a) => (
             <option key={a} value={a}>
@@ -130,13 +124,13 @@ export default function CostiOspitePage() {
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>
         <p className="muted" style={{ margin: "0.25rem 0" }}>
-          Riporto anni precedenti: {euro(riporto)} &euro;
+          {t("co.riporto")}: {euro(riporto)} &euro;
         </p>
         <p className="muted" style={{ margin: "0.25rem 0" }}>
-          Spese {Y}: {euro(totSpese)} &euro;
+          {t("co.spese")} {Y}: {euro(totSpese)} &euro;
         </p>
         <p className="muted" style={{ margin: "0.25rem 0" }}>
-          Versamenti {Y}: {euro(totIncassi)} &euro;
+          {t("co.versamenti")} {Y}: {euro(totIncassi)} &euro;
         </p>
         <div
           style={{
@@ -149,35 +143,35 @@ export default function CostiOspitePage() {
           }}
         >
           {saldo > 0
-            ? `Da versare: ${euro(saldo)} €`
+            ? `${t("co.daVersare")}: ${euro(saldo)} €`
             : saldo < 0
-            ? `Credito: ${euro(-saldo)} €`
-            : "Saldo in pari: 0,00 €"}
+            ? `${t("co.credito")}: ${euro(-saldo)} €`
+            : `${t("co.pari")}: ${euro(0)} €`}
         </div>
       </div>
 
-      <h2>Spese {Y}</h2>
+      <h2>{t("co.spese")} {Y}</h2>
       <div className="card" style={{ marginBottom: "1.5rem" }}>
-        {speseAnno.length === 0 && <p className="muted">Nessuna spesa.</p>}
+        {speseAnno.length === 0 && <p className="muted">{t("co.nessunaSpesa")}</p>}
         {speseAnno.map((s) => (
           <div key={s.id} className="richiesta-item">
             <strong>{s.oggetto}</strong>
             <p className="descrizione">
-              {s.data} &mdash; {euro(s.importo)} &euro;
+              {fmtData(lang, s.data)} &mdash; {euro(s.importo)} &euro;
               {s.note ? ` (${s.note})` : ""}
             </p>
           </div>
         ))}
       </div>
 
-      <h2>Versamenti {Y}</h2>
+      <h2>{t("co.versamenti")} {Y}</h2>
       <div className="card">
-        {incassiAnno.length === 0 && <p className="muted">Nessun versamento.</p>}
+        {incassiAnno.length === 0 && <p className="muted">{t("co.nessunVersamento")}</p>}
         {incassiAnno.map((p) => (
           <div key={p.id} className="richiesta-item">
             <strong>{euro(p.importo)} &euro;</strong>
             <p className="descrizione">
-              {p.data}
+              {fmtData(lang, p.data)}
               {p.metodo ? ` — ${p.metodo}` : ""}
               {p.note ? ` (${p.note})` : ""}
             </p>

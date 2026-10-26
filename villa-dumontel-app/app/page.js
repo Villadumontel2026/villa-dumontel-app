@@ -1,39 +1,43 @@
-import { supabase } from "../lib/supabaseClient";
+"use client";
 
-export default async function Home() {
-  const { data: alloggi, error } = await supabase.from("alloggi").select("*");
+import { useEffect } from "react";
+import { supabase } from "../lib/supabaseClient";
+import { useApp } from "./components/AppProvider";
+
+export default function Home() {
+  const { t, pronto, email } = useApp();
+
+  // Chi e' gia' entrato va direttamente alla sua home
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) window.location.replace("/dopo-login");
+    });
+  }, []);
 
   return (
     <main>
-      <h1>Benvenuti a Villa Dumontel</h1>
-      <p className="muted">
-        Qui in futuro trover&agrave; le informazioni per gli ospiti. Per ora,
-        questa &egrave; la pagina di test collegata al database.
-      </p>
-
-      <div className="card" style={{ marginTop: "1.5rem" }}>
-        <h2>Alloggi</h2>
-
-        {error && (
-          <p style={{ color: "#a32d2d" }}>
-            Errore nel leggere gli alloggi: {error.message}
+      <div className="card" style={{ textAlign: "center", padding: "2.5rem 1.5rem" }}>
+        <p
+          className="muted"
+          style={{ letterSpacing: "0.12em", textTransform: "uppercase", fontSize: "0.75rem", margin: 0 }}
+        >
+          Entrèves &middot; Courmayeur
+        </p>
+        <h1 style={{ margin: "0.5rem 0 1rem" }}>{t("pub.titolo")}</h1>
+        <p className="muted" style={{ maxWidth: 480, margin: "0 auto 1.75rem" }}>
+          {t("pub.testo")}
+        </p>
+        {pronto && !email && (
+          <p>
+            <a className="btn" href="/login">
+              {t("pub.accedi")}
+            </a>
           </p>
         )}
-
-        {alloggi && alloggi.length > 0 && (
-          <ul className="alloggi-list">
-            {alloggi.map((a) => (
-              <li key={a.id}>{a.nome}</li>
-            ))}
-          </ul>
-        )}
+        <p style={{ marginTop: "1rem" }}>
+          <a href="/info">{t("pub.info")} &rarr;</a>
+        </p>
       </div>
-
-      <p style={{ marginTop: "1.5rem" }}>
-        <a className="btn" href="/richieste">
-          Vai alle richieste &rarr;
-        </a>
-      </p>
     </main>
   );
 }

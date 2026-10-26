@@ -1,6 +1,9 @@
 import { supabase } from "../../../lib/supabaseClient";
 import PrenotaButton from "../../components/PrenotaButton";
 
+import { T } from "../../components/AppProvider";
+import NuovoBadge from "../../components/NuovoBadge";
+
 export const dynamic = "force-dynamic";
 
 const ORDINE_GRUPPI = ["Entrèves", "Courmayeur", "Aosta Valley", "Michelin", "Abroad"];
@@ -27,9 +30,13 @@ export default async function RistorantiPage() {
   return (
     <main>
       <p>
-        <a href="/info">&larr; Informazioni</a>
+        <a href="/info">
+          <T k="i.back" />
+        </a>
       </p>
-      <h1>Ristoranti</h1>
+      <h1>
+        <T k="i.rist" />
+      </h1>
 
       {ordineFinale.map((gruppo) => (
         <section key={gruppo} style={{ marginBottom: "1.75rem" }}>
@@ -45,6 +52,7 @@ export default async function RistorantiPage() {
                   ) : (
                     p.nome
                   )}
+                  <NuovoBadge dal={p.nuovo_dal} />
                 </h3>
                 {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
                 {p.quando && (

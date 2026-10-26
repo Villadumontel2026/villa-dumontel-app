@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { useApp } from "./AppProvider";
 
 // Mostra il pulsante "Prenota" solo agli ospiti (non all'admin e non ai visitatori).
 export default function PrenotaButton({ tipo, nome }) {
+  const { t } = useApp();
   const [visibile, setVisibile] = useState(false);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export default function PrenotaButton({ tipo, nome }) {
         className="btn"
         href={"/ospite/prenota?tipo=" + tipo + "&nome=" + encodeURIComponent(nome)}
       >
-        Prenota
+        {t("pb.prenota")}
       </a>
     </p>
   );

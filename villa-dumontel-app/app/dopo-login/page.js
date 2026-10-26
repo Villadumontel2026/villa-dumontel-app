@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../lib/supabaseClient";
+import { useApp } from "../components/AppProvider";
 
 export default function DopoLogin() {
-  const [stato, setStato] = useState("Verifica in corso...");
+  const { t } = useApp();
+  const [stato, setStato] = useState(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -17,9 +19,7 @@ export default function DopoLogin() {
         .single();
 
       if (error || !profilo) {
-        setStato(
-          "Accesso riuscito, ma non hai ancora un profilo associato. Contatta l'amministratore."
-        );
+        setStato("noProfilo");
         return;
       }
 
@@ -47,9 +47,9 @@ export default function DopoLogin() {
 
   return (
     <main>
-      <h1>Accesso</h1>
+      <h1>{t("dl.titolo")}</h1>
       <div className="card">
-        <p>{stato}</p>
+        <p>{stato === "noProfilo" ? t("dl.noProfilo") : t("dl.verifica")}</p>
       </div>
     </main>
   );

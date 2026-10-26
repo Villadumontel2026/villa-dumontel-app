@@ -1,5 +1,8 @@
 import { supabase } from "../../../lib/supabaseClient";
 
+import { T } from "../../components/AppProvider";
+import NuovoBadge from "../../components/NuovoBadge";
+
 export const dynamic = "force-dynamic";
 
 export default async function FoodDrinkPage() {
@@ -12,9 +15,13 @@ export default async function FoodDrinkPage() {
   return (
     <main>
       <p>
-        <a href="/info">&larr; Informazioni</a>
+        <a href="/info">
+          <T k="i.back" />
+        </a>
       </p>
-      <h1>Food &amp; Drink</h1>
+      <h1>
+        <T k="i.food" />
+      </h1>
 
       <div style={{ display: "grid", gap: "1rem" }}>
         {(posti || []).map((p) => (
@@ -27,6 +34,7 @@ export default async function FoodDrinkPage() {
               ) : (
                 p.nome
               )}
+              <NuovoBadge dal={p.nuovo_dal} />
             </h3>
             {p.perche && <p style={{ margin: "0.25rem 0" }}>{p.perche}</p>}
             {p.indirizzo && (

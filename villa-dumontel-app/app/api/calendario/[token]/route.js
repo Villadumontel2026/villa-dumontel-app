@@ -27,7 +27,8 @@ export async function GET(request, { params }) {
 
   const appUrl = new URL(request.url).origin;
   const ruolo = data[0].ruolo;
-  const eventi = data.map((r) => costruisciEvento(r, { ruolo, appUrl }));
+  const lang = new URL(request.url).searchParams.get("lang") === "en" ? "en" : "it";
+  const eventi = data.map((r) => costruisciEvento(r, { ruolo, appUrl, lang }));
 
   return new Response(calendarioIcs(eventi, "Villa Dumontel"), {
     headers: {

@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
+import { useApp } from "../../components/AppProvider";
+import { fmtData, traduciSotto, traduciVoci } from "../../../lib/i18n";
 
 const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
@@ -15,22 +17,16 @@ const CHECKLIST_PULIZIE = [
   "Riordino generale",
 ];
 
-const ETICHETTE_TIPO = {
-  trasporto: "Trasporto",
-  ristorante: "Ristorante",
-  attivita: "Attività",
-  pulizie: "Pulizie",
-};
-
-function etichettaStato(stato) {
-  if (stato === "nuova" || stato === "in gestione") return "Inviata";
-  if (stato === "confermata") return "Prenotata";
-  if (stato === "completata") return "Completata";
-  if (stato === "annullata") return "Annullata";
-  return stato;
+function chiaveStato(stato) {
+  if (stato === "nuova" || stato === "in gestione") return "stato.inviata";
+  if (stato === "confermata") return "stato.prenotata";
+  if (stato === "completata") return "stato.completata";
+  if (stato === "annullata") return "stato.annullata";
+  return null;
 }
 
 export default function RichiesteOspitePage() {
+  const { t, lang } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [famigliaId, setFamigliaId] = useState(null);
@@ -53,7 +49,7 @@ export default function RichiesteOspitePage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        setErroreAccesso("Devi accedere per vedere questa pagina.");
+        setErroreAccesso("login");
         setCaricamento(false);
         return;
       }
@@ -65,7 +61,7 @@ export default function RichiesteOspitePage() {
         .single();
 
       if (!p || p.ruolo !== "ospite" || !p.famiglia_id) {
-        setErroreAccesso("Questa pagina e' riservata agli ospiti.");
+        setErroreAccesso("ospiti");
         setCaricamento(false);
         return;
       }
@@ -87,21 +83,21 @@ export default function RichiesteOspitePage() {
       .update({ descrizione: voci.length ? voci.join(", ") : null, note: f.note.value || null })
       .eq("id", r.id);
     if (error) {
-      setErrore("Errore: " + error.message);
+      setErrore(t("c.errore") + error.message);
       return;
     }
     await carica(famigliaId);
   }
 
   async function annulla(id) {
-    if (!window.confirm("Vuoi annullare questa richiesta?")) return;
+    if (!window.confirm(t("ro.confermaAnnulla"))) return;
     setErrore(null);
     const { error } = await supabase
       .from("richieste")
       .update({ stato: "annullata" })
       .eq("id", id);
     if (error) {
-      setErrore("Errore: " + error.message);
+      setErrore(t("c.errore") + error.message);
       return;
     }
     await carica(famigliaId);
@@ -110,7 +106,7 @@ export default function RichiesteOspitePage() {
   if (caricamento) {
     return (
       <main>
-        <p>Caricamento...</p>
+        <p>{t("c.caricamento")}</p>
       </main>
     );
   }
@@ -119,9 +115,9 @@ export default function RichiesteOspitePage() {
     return (
       <main>
         <div className="card">
-          <p>{erroreAccesso}</p>
+          <p>{erroreAccesso === "login" ? t("c.loginRichiesto") : t("c.soloOspiti")}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login">{t("c.vaiLogin")}</a>
           </p>
         </div>
       </main>
@@ -146,21 +142,23 @@ export default function RichiesteOspitePage() {
               : "badge-nuova")
           }
         >
-          {etichettaStato(r.stato)}
+          {chiaveStato(r.stato) ? t(chiaveStato(r.stato)) : r.stato}
         </span>{" "}
-        <strong>{ETICHETTE_TIPO[r.tipo] || r.tipo}</strong>
+        <strong>{t("tipo." + r.tipo)}</strong>
         <p className="descrizione">
-          {r.data || ""} {r.ora ? String(r.ora).slice(0, 5) : ""}
-          {r.sotto_tipo ? ` — ${r.sotto_tipo}` : ""}
-          {r.descrizione ? ` — ${r.descrizione}` : ""}
-          {r.pax ? ` (${r.pax} pers.)` : ""}
-          {r.durata_ore ? ` — durata ${r.durata_ore} ore` : ""}
+          {fmtData(lang, r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""}
+          {r.sotto_tipo ? ` — ${traduciSotto(lang, r.sotto_tipo)}` : ""}
+          {r.descrizione
+            ? ` — ${r.tipo === "pulizie" ? traduciVoci(lang, r.descrizione) : r.descrizione}`
+            : ""}
+          {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
+          {r.durata_ore ? ` — ${t("c.durata")} ${r.durata_ore} ${t("c.ore")}` : ""}
           {r.tipo === "pulizie" && r.note ? ` — ${r.note}` : ""}
-          {r.tipo === "pulizie" && r.accettata_il ? " — accettata dalla collaboratrice" : ""}
+          {r.tipo === "pulizie" && r.accettata_il ? ` — ${t("ro.accettata")}` : ""}
         </p>
         {r.tipo === "pulizie" && ANNULLABILI.includes(r.stato) && (
           <details style={{ margin: "0.5rem 0" }}>
-            <summary style={{ cursor: "pointer" }}>Indica cosa fare</summary>
+            <summary style={{ cursor: "pointer" }}>{t("ro.indica")}</summary>
             <form onSubmit={(e) => salvaCosaFare(e, r)} style={{ marginTop: "0.5rem" }}>
               {CHECKLIST_PULIZIE.map((voce) => (
                 <label
@@ -174,15 +172,15 @@ export default function RichiesteOspitePage() {
                     defaultChecked={String(r.descrizione || "").includes(voce)}
                     style={{ width: "auto", marginBottom: 0 }}
                   />
-                  {voce}
+                  {t("voce." + voce)}
                 </label>
               ))}
               <label>
-                Note per chi fa le pulizie
+                {t("ro.noteChi")}
                 <textarea name="note" defaultValue={r.note || ""}></textarea>
               </label>
               <button type="submit" className="btn">
-                Salva
+                {t("c.salva")}
               </button>
             </form>
           </details>
@@ -190,7 +188,7 @@ export default function RichiesteOspitePage() {
         {ANNULLABILI.includes(r.stato) && (
           <div className="stato-actions">
             {(r.stato === "confermata" || r.tipo === "pulizie") && <CalendarButton richiesta={r} />}{" "}
-            <button onClick={() => annulla(r.id)}>Annulla richiesta</button>
+            <button onClick={() => annulla(r.id)}>{t("ro.annulla")}</button>
           </div>
         )}
       </div>
@@ -199,11 +197,11 @@ export default function RichiesteOspitePage() {
 
   return (
     <main>
-      <h1>Le mie richieste</h1>
+      <h1>{t("ro.titolo")}</h1>
 
       <p style={{ marginBottom: "1.5rem" }}>
         <a href="/ospite/prenota" className="btn">
-          Prenota
+          {t("nav.prenota")}
         </a>
       </p>
 
@@ -213,16 +211,16 @@ export default function RichiesteOspitePage() {
         </div>
       )}
 
-      <h2>In corso</h2>
+      <h2>{t("ro.inCorso")}</h2>
       <div className="card" style={{ marginBottom: "1.5rem" }}>
-        {inCorso.length === 0 && <p className="muted">Nessuna richiesta in corso.</p>}
+        {inCorso.length === 0 && <p className="muted">{t("ro.nessuna")}</p>}
         {inCorso.map(riga)}
       </div>
 
       {chiuse.length > 0 && (
         <details className="card">
           <summary className="muted" style={{ cursor: "pointer" }}>
-            Completate e annullate ({chiuse.length})
+            {t("ro.chiuse")} ({chiuse.length})
           </summary>
           <div style={{ marginTop: "0.75rem" }}>{chiuse.map(riga)}</div>
         </details>

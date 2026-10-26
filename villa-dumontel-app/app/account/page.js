@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { useApp } from "../components/AppProvider";
 
 export default function AccountPage() {
+  const { t, lang, setLang } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [email, setEmail] = useState(null);
   const [messaggio, setMessaggio] = useState(null);
@@ -24,18 +26,18 @@ export default function AccountPage() {
     const p1 = f.password.value;
     const p2 = f.conferma.value;
     if (p1.length < 8) {
-      setErrore("La password deve avere almeno 8 caratteri.");
+      setErrore(t("acc.corta"));
       return;
     }
     if (p1 !== p2) {
-      setErrore("Le due password non coincidono.");
+      setErrore(t("acc.diverse"));
       return;
     }
     const { error } = await supabase.auth.updateUser({ password: p1 });
     if (error) {
       setErrore(error.message);
     } else {
-      setMessaggio("Password salvata. Da ora puoi accedere anche con email e password.");
+      setMessaggio(t("acc.ok"));
       f.reset();
     }
   }
@@ -43,7 +45,7 @@ export default function AccountPage() {
   if (caricamento) {
     return (
       <main>
-        <p>Caricamento...</p>
+        <p>{t("c.caricamento")}</p>
       </main>
     );
   }
@@ -52,9 +54,9 @@ export default function AccountPage() {
     return (
       <main>
         <div className="card">
-          <p>Devi accedere per vedere questa pagina.</p>
+          <p>{t("c.loginRichiesto")}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login">{t("c.vaiLogin")}</a>
           </p>
         </div>
       </main>
@@ -63,28 +65,38 @@ export default function AccountPage() {
 
   return (
     <main>
-      <h1>Il mio account</h1>
+      <h1>{t("acc.titolo")}</h1>
       <div className="card" style={{ maxWidth: 420 }}>
-        <p className="muted">Collegato come {email}</p>
-        <h2>Imposta una password</h2>
-        <p className="muted">
-          Cos&igrave; puoi entrare senza aspettare il link per email.
-        </p>
+        <p className="muted">{t("acc.collegato")} {email}</p>
+        <h2>{t("acc.imposta")}</h2>
+        <p className="muted">{t("acc.perche")}</p>
         <form onSubmit={salva}>
           <label>
-            Nuova password
+            {t("acc.nuova")}
             <input type="password" name="password" autoComplete="new-password" required />
           </label>
           <label>
-            Ripeti la password
+            {t("acc.ripeti")}
             <input type="password" name="conferma" autoComplete="new-password" required />
           </label>
           <button type="submit" className="btn">
-            Salva password
+            {t("acc.salva")}
           </button>
           {messaggio && <p style={{ color: "#1f5c2e" }}>{messaggio}</p>}
           {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
         </form>
+      </div>
+
+      <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
+        <h2>{t("acc.lingua")}</h2>
+        <p style={{ display: "flex", gap: "0.5rem" }}>
+          <button type="button" className={lang === "it" ? "btn" : ""} onClick={() => setLang("it")}>
+            Italiano
+          </button>
+          <button type="button" className={lang === "en" ? "btn" : ""} onClick={() => setLang("en")}>
+            English
+          </button>
+        </p>
       </div>
     </main>
   );

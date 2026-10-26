@@ -19,6 +19,8 @@ export default function RichiestePage() {
   const [posti, setPosti] = useState([]);
   const [collaboratori, setCollaboratori] = useState([]);
   const [errore, setErrore] = useState(null);
+  const [generiche, setGeneriche] = useState([]);
+  const [famiglie, setFamiglie] = useState([]);
 
   async function caricaRichieste() {
     const { data } = await supabase
@@ -26,6 +28,53 @@ export default function RichiestePage() {
       .select("*, alloggi(nome), famiglie(nome)")
       .order("data", { ascending: true });
     setRichieste(data || []);
+  }
+
+  async function caricaGeneriche() {
+    const { data } = await supabase
+      .from("richieste_generiche")
+      .select("*, famiglie(nome)")
+      .order("scadenza", { ascending: true, nullsFirst: false });
+    setGeneriche(data || []);
+  }
+
+  async function aggiungiGenerica(e) {
+    e.preventDefault();
+    setErrore(null);
+    const f = e.target;
+    const { error } = await supabase.from("richieste_generiche").insert({
+      testo: f.testo.value,
+      famiglia_id: f.famiglia_id.value || null,
+      scadenza: f.scadenza.value || null,
+    });
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    f.reset();
+    await caricaGeneriche();
+  }
+
+  async function segnaGenerica(id, fatta) {
+    const { error } = await supabase
+      .from("richieste_generiche")
+      .update({ stato: fatta ? "fatta" : "da fare", completata_il: fatta ? new Date().toISOString() : null })
+      .eq("id", id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaGeneriche();
+  }
+
+  async function eliminaGenerica(id) {
+    if (!window.confirm("Eliminare questo promemoria?")) return;
+    const { error } = await supabase.from("richieste_generiche").delete().eq("id", id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaGeneriche();
   }
 
   useEffect(() => {
@@ -64,6 +113,9 @@ export default function RichiestePage() {
       const { data: collData } = await supabase.from("collaboratori").select("*");
       setCollaboratori(collData || []);
       await caricaRichieste();
+      const { data: famData } = await supabase.from("famiglie").select("id, nome").order("id");
+      setFamiglie(famData || []);
+      await caricaGeneriche();
       setCaricamento(false);
     }
 
@@ -293,9 +345,6 @@ export default function RichiestePage() {
 
   return (
     <main>
-      <p>
-        <a href="/">&larr; Home</a>
-      </p>
       <h1>Richieste</h1>
 
       {errore && (
@@ -303,6 +352,88 @@ export default function RichiestePage() {
           <p style={{ color: "#a32d2d" }}>{errore}</p>
         </div>
       )}
+
+      {(() => {
+        const oggiStr = new Date().toISOString().slice(0, 10);
+        const aperte = generiche.filter((g) => g.stato !== "fatta");
+        const fatte = generiche.filter((g) => g.stato === "fatta");
+        const colore = (g) => {
+          if (!g.scadenza) return "transparent";
+          const giorni = Math.round((new Date(g.scadenza) - new Date(oggiStr)) / 86400000);
+          if (giorni < 0) return "#fde2e2";
+          if (giorni <= 14) return "#fff6e0";
+          return "transparent";
+        };
+        const rigaG = (g) => (
+          <div key={g.id} className="richiesta-item" style={{ background: g.stato === "fatta" ? "transparent" : colore(g), borderRadius: 8, padding: "0.5rem" }}>
+            <strong>{g.testo}</strong>
+            <p className="descrizione" style={{ margin: "0.15rem 0" }}>
+              {g.famiglie?.nome ? g.famiglie.nome : "Generale"}
+              {g.scadenza ? ` — entro il ${g.scadenza}` : ""}
+            </p>
+            <div className="stato-actions">
+              {g.stato === "fatta" ? (
+                <button type="button" onClick={() => segnaGenerica(g.id, false)}>
+                  Riapri
+                </button>
+              ) : (
+                <button type="button" onClick={() => segnaGenerica(g.id, true)}>
+                  Fatta
+                </button>
+              )}{" "}
+              <button type="button" onClick={() => eliminaGenerica(g.id)}>
+                Elimina
+              </button>
+            </div>
+          </div>
+        );
+        return (
+          <details open={aperte.length > 0} className="card" style={{ marginBottom: "1rem" }}>
+            <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "1.1em" }}>
+              Richieste generiche{" "}
+              <span className="muted" style={{ fontWeight: 400 }}>
+                ({aperte.length} da fare)
+              </span>
+            </summary>
+            <div style={{ marginTop: "0.75rem" }}>
+              <form onSubmit={aggiungiGenerica} style={{ marginBottom: "1rem" }}>
+                <label>
+                  Cosa devo ricordare
+                  <input type="text" name="testo" placeholder="es. Aggiungere un freezer" required />
+                </label>
+                <label>
+                  Famiglia (facoltativa)
+                  <select name="famiglia_id" defaultValue="">
+                    <option value="">— generale —</option>
+                    {famiglie.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.nome}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Entro il (facoltativo)
+                  <input type="date" name="scadenza" />
+                </label>
+                <button type="submit" className="btn">
+                  Aggiungi promemoria
+                </button>
+              </form>
+              {aperte.length === 0 && <p className="muted">Nessun promemoria aperto.</p>}
+              {aperte.map(rigaG)}
+              {fatte.length > 0 && (
+                <details style={{ marginTop: "1rem" }}>
+                  <summary className="muted" style={{ cursor: "pointer" }}>
+                    Fatte ({fatte.length})
+                  </summary>
+                  <div style={{ marginTop: "0.5rem" }}>{fatte.map(rigaG)}</div>
+                </details>
+              )}
+            </div>
+          </details>
+        );
+      })()}
 
       <details className="card" style={{ marginBottom: "2rem" }}>
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>+ Nuova richiesta</summary>

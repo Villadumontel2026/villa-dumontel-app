@@ -1,78 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { useApp } from "./AppProvider";
 
 const LINK_PER_RUOLO = {
   admin: [
-    { href: "/richieste", label: "Richieste" },
-    { href: "/pulizie/admin", label: "Pulizie" },
-    { href: "/spese/admin", label: "Spese" },
-    { href: "/riepilogo", label: "Riepilogo" },
-    { href: "/calendario", label: "Calendario" },
-    { href: "/info", label: "Info" },
+    { href: "/richieste", label: "nav.richieste" },
+    { href: "/pulizie/admin", label: "nav.pulizie" },
+    { href: "/spese/admin", label: "nav.spese" },
+    { href: "/riepilogo", label: "nav.riepilogo" },
+    { href: "/novita/admin", label: "nav.novita" },
+    { href: "/calendario", label: "nav.calendario" },
+    { href: "/info", label: "nav.info" },
   ],
   collaboratore: [
-    { href: "/pulizie/collaboratore", label: "Pulizie" },
-    { href: "/calendario", label: "Calendario" },
-    { href: "/info", label: "Info" },
+    { href: "/pulizie/collaboratore", label: "nav.pulizie" },
+    { href: "/calendario", label: "nav.calendario" },
+    { href: "/info", label: "nav.info" },
   ],
   ospite: [
-    { href: "/ospite", label: "Home" },
-    { href: "/ospite/prenota", label: "Prenota" },
-    { href: "/ospite/richieste", label: "Richieste" },
-    { href: "/calendario", label: "Calendario" },
-    { href: "/info", label: "Info" },
+    { href: "/ospite", label: "nav.home" },
+    { href: "/ospite/prenota", label: "nav.prenota" },
+    { href: "/ospite/richieste", label: "nav.mieRichieste" },
+    { href: "/calendario", label: "nav.calendario" },
+    { href: "/info", label: "nav.info" },
   ],
 };
 
 export default function NavBar() {
-  const [pronto, setPronto] = useState(false);
-  const [email, setEmail] = useState(null);
-  const [ruolo, setRuolo] = useState(null);
+  const { pronto, email, ruolo, lang, setLang, t } = useApp();
   const [aperto, setAperto] = useState(false);
-
-  useEffect(() => {
-    let attivo = true;
-
-    async function aggiorna(session) {
-      if (!session) {
-        if (attivo) {
-          setEmail(null);
-          setRuolo(null);
-          setPronto(true);
-        }
-        return;
-      }
-      const { data: profilo } = await supabase
-        .from("profili")
-        .select("ruolo")
-        .eq("id", session.user.id)
-        .single();
-      if (attivo) {
-        setEmail(session.user.email);
-        setRuolo(profilo?.ruolo || null);
-        setPronto(true);
-      }
-    }
-
-    supabase.auth.getSession().then(({ data: { session } }) => aggiorna(session));
-    const { data: listener } = supabase.auth.onAuthStateChange((_e, session) => {
-      aggiorna(session);
-    });
-
-    return () => {
-      attivo = false;
-      listener.subscription.unsubscribe();
-    };
-  }, []);
 
   async function esci() {
     await supabase.auth.signOut();
     window.location.href = "/";
   }
 
-  const links = ruolo && LINK_PER_RUOLO[ruolo] ? LINK_PER_RUOLO[ruolo] : [{ href: "/info", label: "Info" }];
+  const links = ruolo && LINK_PER_RUOLO[ruolo] ? LINK_PER_RUOLO[ruolo] : [{ href: "/info", label: "nav.info" }];
 
   return (
     <>
@@ -81,6 +46,12 @@ export default function NavBar() {
           __html: `
             .site-header { position: relative; }
             .nav-toggle { display: none; }
+            .lang-switch { display: inline-flex; gap: 2px; margin-left: 0.4rem; }
+            .lang-switch button {
+              background: transparent; color: white; border: 1px solid rgba(255,255,255,0.35);
+              border-radius: 6px; padding: 0.15rem 0.45rem; font-size: 0.75rem; cursor: pointer; opacity: 0.8;
+            }
+            .lang-switch button.attiva { background: rgba(255,255,255,0.22); opacity: 1; font-weight: 600; }
             @media (max-width: 720px) {
               .nav-toggle {
                 display: inline-flex;
@@ -123,23 +94,23 @@ export default function NavBar() {
         type="button"
         className="nav-toggle"
         aria-expanded={aperto}
-        aria-label="Menu"
+        aria-label={t("nav.menuLabel")}
         onClick={() => setAperto((v) => !v)}
       >
-        {aperto ? "Chiudi ✕" : "Menu ☰"}
+        {aperto ? t("nav.chiudi") : t("nav.menu")}
       </button>
       <nav className={"menu-links" + (aperto ? " aperto" : "")} onClick={() => setAperto(false)}>
         {pronto &&
           links.map((l) => (
             <a key={l.href} href={l.href}>
-              {l.label}
+              {t(l.label)}
             </a>
           ))}
-        {pronto && !email && <a href="/login">Accedi</a>}
+        {pronto && !email && <a href="/login">{t("nav.accedi")}</a>}
         {pronto && email && (
           <>
             <a href="/account" title={email}>
-              Account
+              {t("nav.account")}
             </a>
             <a
               href="#"
@@ -148,9 +119,24 @@ export default function NavBar() {
                 esci();
               }}
             >
-              Esci
+              {t("nav.esci")}
             </a>
           </>
+        )}
+        {pronto && (
+          <span className="lang-switch" onClick={(e) => e.stopPropagation()}>
+            {["it", "en"].map((l) => (
+              <button
+                key={l}
+                type="button"
+                className={lang === l ? "attiva" : ""}
+                onClick={() => setLang(l)}
+                aria-label={l === "it" ? "Italiano" : "English"}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
+          </span>
         )}
       </nav>
     </>

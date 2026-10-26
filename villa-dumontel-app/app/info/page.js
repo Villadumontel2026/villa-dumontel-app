@@ -1,51 +1,32 @@
 import Link from "next/link";
+import { T } from "../components/AppProvider";
 
 const SEZIONI = [
-  {
-    href: "/info/generale",
-    titolo: "Informazioni generali",
-    descrizione: "Contatti, wifi e indirizzo",
-  },
-  {
-    href: "/info/ristoranti",
-    titolo: "Ristoranti",
-    descrizione: "Entrèves, Courmayeur, Valle d'Aosta, stellati, estero",
-  },
-  {
-    href: "/info/bar",
-    titolo: "Bar",
-    descrizione: "Dove prendere un caffè o un aperitivo",
-  },
-  {
-    href: "/info/food-drink",
-    titolo: "Food & Drink",
-    descrizione: "Catering, gastronomie, macellerie",
-  },
-  {
-    href: "/info/attivita",
-    titolo: "Attività",
-    descrizione: "Sport, benessere e tempo libero",
-  },
+  { href: "/info/generale", titolo: "i.gen", descrizione: "i.genSub" },
+  { href: "/info/ristoranti", titolo: "i.rist", descrizione: "i.ristSub" },
+  { href: "/info/bar", titolo: "i.bar", descrizione: "i.barSub" },
+  { href: "/info/food-drink", titolo: "i.food", descrizione: "i.foodSub" },
+  { href: "/info/attivita", titolo: "i.att", descrizione: "i.attSub" },
 ];
 
 export default function InfoPage() {
   return (
     <main>
-      <p>
-        <a href="/">&larr; Home</a>
-      </p>
-      <h1>Informazioni</h1>
+      <h1>
+        <T k="i.titolo" />
+      </h1>
       <p className="muted">
-        Tutto quello che serve per organizzare il soggiorno: contatti, ristoranti,
-        bar e attività consigliate nei dintorni.
+        <T k="i.intro" />
       </p>
 
       <div style={{ display: "grid", gap: "1rem", marginTop: "1.5rem" }}>
         {SEZIONI.map((s) => (
           <Link key={s.href} href={s.href} className="card" style={{ display: "block" }}>
-            <h2 style={{ marginBottom: "0.25rem" }}>{s.titolo}</h2>
+            <h2 style={{ marginBottom: "0.25rem" }}>
+              <T k={s.titolo} />
+            </h2>
             <p className="muted" style={{ margin: 0 }}>
-              {s.descrizione}
+              <T k={s.descrizione} />
             </p>
           </Link>
         ))}

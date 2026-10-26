@@ -1,5 +1,8 @@
 import { supabase } from "../../../lib/supabaseClient";
 
+import { T } from "../../components/AppProvider";
+import NuovoBadge from "../../components/NuovoBadge";
+
 export const dynamic = "force-dynamic";
 
 export default async function BarPage() {
@@ -12,9 +15,13 @@ export default async function BarPage() {
   return (
     <main>
       <p>
-        <a href="/info">&larr; Informazioni</a>
+        <a href="/info">
+          <T k="i.back" />
+        </a>
       </p>
-      <h1>Bar</h1>
+      <h1>
+        <T k="i.bar" />
+      </h1>
 
       <div style={{ display: "grid", gap: "1rem" }}>
         {(posti || []).map((p) => (
@@ -27,6 +34,7 @@ export default async function BarPage() {
               ) : (
                 p.nome
               )}
+              <NuovoBadge dal={p.nuovo_dal} />
             </h3>
             {p.indirizzo && (
               <p className="muted" style={{ margin: "0.25rem 0", fontSize: "0.9em" }}>

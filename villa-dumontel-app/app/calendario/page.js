@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
+import { useApp } from "../components/AppProvider";
 
 export default function CalendarioPage() {
+  const { t, lang } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [acceduto, setAcceduto] = useState(false);
   const [token, setToken] = useState(null);
@@ -36,7 +38,7 @@ export default function CalendarioPage() {
   }, []);
 
   async function rigenera() {
-    if (!window.confirm("Il vecchio link smettera' di funzionare e dovrai rifare l'abbonamento. Continuare?")) return;
+    if (!window.confirm(t("cal.confermaRigenera"))) return;
     const { data, error } = await supabase.rpc("rigenera_token_calendario");
     if (error) {
       setErrore("Errore: " + error.message);
@@ -48,7 +50,7 @@ export default function CalendarioPage() {
   if (caricamento) {
     return (
       <main>
-        <p>Caricamento...</p>
+        <p>{t("c.caricamento")}</p>
       </main>
     );
   }
@@ -57,9 +59,9 @@ export default function CalendarioPage() {
     return (
       <main>
         <div className="card">
-          <p>Devi accedere per vedere questa pagina.</p>
+          <p>{t("c.loginRichiesto")}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login">{t("c.vaiLogin")}</a>
           </p>
         </div>
       </main>
@@ -67,8 +69,9 @@ export default function CalendarioPage() {
   }
 
   const host = typeof window !== "undefined" ? window.location.host : "";
-  const link = token ? `https://${host}/api/calendario/${token}.ics` : "";
-  const linkWebcal = token ? `webcal://${host}/api/calendario/${token}.ics` : "";
+  const q = lang === "en" ? "?lang=en" : "";
+  const link = token ? `https://${host}/api/calendario/${token}.ics${q}` : "";
+  const linkWebcal = token ? `webcal://${host}/api/calendario/${token}.ics${q}` : "";
 
   async function copia() {
     try {
@@ -76,16 +79,15 @@ export default function CalendarioPage() {
       setCopiato(true);
       setTimeout(() => setCopiato(false), 2000);
     } catch (e) {
-      window.prompt("Copia il link:", link);
+      window.prompt(t("cal.copia"), link);
     }
   }
 
   return (
     <main>
-      <h1>Calendario</h1>
+      <h1>{t("cal.titolo")}</h1>
       <p className="muted" style={{ marginBottom: "1.5rem" }}>
-        Abbonati una volta sola: prenotazioni, pulizie e modifiche compaiono e si aggiornano da
-        sole nel calendario del tuo telefono o del tuo computer.
+        {t("cal.intro")}
       </p>
 
       {errore && (
@@ -97,47 +99,43 @@ export default function CalendarioPage() {
       {token && (
         <>
           <div className="card" style={{ marginBottom: "1.5rem" }}>
-            <h2>iPhone, iPad e Mac</h2>
+            <h2>{t("cal.apple")}</h2>
             <p>
               <a href={linkWebcal} className="btn">
-                Abbonati con Apple Calendar
+                {t("cal.appleBtn")}
               </a>
             </p>
           </div>
 
           <div className="card" style={{ marginBottom: "1.5rem" }}>
-            <h2>Google Calendar e Outlook</h2>
-            <p>Copia il link e aggiungilo come calendario da URL:</p>
+            <h2>{t("cal.google")}</h2>
+            <p>{t("cal.googleTesto")}</p>
             <p>
               <button type="button" className="btn" onClick={copia}>
-                {copiato ? "Copiato!" : "Copia il link"}
+                {copiato ? t("cal.copiato") : t("cal.copia")}
               </button>
             </p>
             <ul className="muted" style={{ paddingLeft: "1.2rem" }}>
               <li>
-                <strong>Google Calendar</strong> (da computer): Altri calendari, poi &quot;+&quot;, poi
-                &quot;Da URL&quot;, incolla il link.
+                <strong>Google Calendar</strong> {t("cal.googleHow")}
               </li>
               <li>
-                <strong>Outlook</strong>: Aggiungi calendario, poi &quot;Sottoscrivi da Web&quot;, incolla il
-                link.
+                <strong>Outlook</strong>{t("cal.outlookHow")}
               </li>
             </ul>
             <p className="muted" style={{ fontSize: "0.9em" }}>
-              Google aggiorna i calendari in abbonamento ogni qualche ora, Apple pi&ugrave; spesso. Per
-              avere un promemoria prima di un evento, imposta le notifiche del calendario.
+              {t("cal.refresh")}
             </p>
           </div>
 
           <div className="card">
-            <h2>Link personale</h2>
+            <h2>{t("cal.personale")}</h2>
             <p className="muted" style={{ fontSize: "0.9em" }}>
-              Non condividerlo: chi lo ha pu&ograve; vedere i tuoi appuntamenti. Se pensi che sia
-              finito in mani sbagliate, genera un nuovo link.
+              {t("cal.personaleTesto")}
             </p>
             <p>
               <button type="button" onClick={rigenera}>
-                Genera un nuovo link
+                {t("cal.rigenera")}
               </button>
             </p>
           </div>

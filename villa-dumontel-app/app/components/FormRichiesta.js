@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useApp } from "./AppProvider";
 
 const CHECKLIST_PULIZIE = [
   "Cambio lenzuola",
@@ -44,12 +45,13 @@ export default function FormRichiesta({
   onSubmit,
   etichettaBottone = "Invia richiesta",
 }) {
+  const { t } = useApp();
   const [tipo, setTipo] = useState(tipoIniziale);
-  const postiTipo = (t) => posti.filter((p) => p.categoria === t);
+  const postiTipo = (tp) => posti.filter((p) => p.categoria === tp);
 
-  const trovaIniziale = (t) => {
-    if (!nomeIniziale || t !== tipoIniziale) return "";
-    const p = postiTipo(t).find((x) => x.nome === nomeIniziale);
+  const trovaIniziale = (tp) => {
+    if (!nomeIniziale || tp !== tipoIniziale) return "";
+    const p = postiTipo(tp).find((x) => x.nome === nomeIniziale);
     if (p) return String(p.id);
     return nomeIniziale ? ALTRO : "";
   };
@@ -59,9 +61,9 @@ export default function FormRichiesta({
   const [errore, setErrore] = useState(null);
   const [formKey, setFormKey] = useState(0);
 
-  function cambiaTipo(t) {
-    setTipo(t);
-    setPosto(trovaIniziale(t));
+  function cambiaTipo(tp) {
+    setTipo(tp);
+    setPosto(trovaIniziale(tp));
     setErrore(null);
   }
 
@@ -121,14 +123,14 @@ export default function FormRichiesta({
     }
   }
 
-  function selezionePosto(t, etichetta) {
-    const gruppi = raggruppa(postiTipo(t));
+  function selezionePosto(tp, etichetta) {
+    const gruppi = raggruppa(postiTipo(tp));
     return (
       <>
         <label>
           {etichetta}
           <select value={posto} onChange={(e) => setPosto(e.target.value)}>
-            <option value="">— scegli dalla lista —</option>
+            <option value="">{t("f.scegli")}</option>
             {Object.keys(gruppi).map((g) => (
               <optgroup key={g} label={g}>
                 {gruppi[g].map((p) => (
@@ -138,12 +140,12 @@ export default function FormRichiesta({
                 ))}
               </optgroup>
             ))}
-            <option value={ALTRO}>Altro (scrivo a mano)</option>
+            <option value={ALTRO}>{t("f.altroScrivo")}</option>
           </select>
         </label>
         {posto === ALTRO && (
           <label>
-            Indica quale
+            {t("f.indicaQuale")}
             <input
               type="text"
               name="altro_testo"
@@ -161,17 +163,17 @@ export default function FormRichiesta({
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
 
       <label>
-        Cosa desideri prenotare
+        {t("f.cosa")}
         <select value={tipo} onChange={(e) => cambiaTipo(e.target.value)}>
-          <option value="ristorante">Ristorante</option>
-          <option value="attivita">Attivit&agrave;</option>
-          <option value="trasporto">Trasporto</option>
-          <option value="pulizie">Pulizie</option>
+          <option value="ristorante">{t("tipo.ristorante")}</option>
+          <option value="attivita">{t("tipo.attivita")}</option>
+          <option value="trasporto">{t("tipo.trasporto")}</option>
+          <option value="pulizie">{t("tipo.pulizie")}</option>
         </select>
       </label>
 
       <label>
-        Alloggio
+        {t("f.alloggio")}
         <select name="alloggio_id" required>
           {alloggi.map((a) => (
             <option key={a.id} value={a.id}>
@@ -184,7 +186,7 @@ export default function FormRichiesta({
       {tipo === "trasporto" && (
         <>
           <label>
-            Direzione
+            {t("f.direzione")}
             <select
               value={direzione}
               onChange={(e) => setDirezione(e.target.value)}
@@ -194,25 +196,25 @@ export default function FormRichiesta({
                   {d}
                 </option>
               ))}
-              <option value={ALTRO}>Altro</option>
+              <option value={ALTRO}>{t("c.altro")}</option>
             </select>
           </label>
           {direzione === ALTRO && (
             <label>
-              Indica la tratta
+              {t("f.tratta")}
               <input type="text" name="altro_testo" required />
             </label>
           )}
           <label>
-            Data
+            {t("f.data")}
             <input type="date" name="data" />
           </label>
           <label>
-            Orario volo
+            {t("f.orarioVolo")}
             <input type="time" name="ora" />
           </label>
           <label>
-            Numero passeggeri
+            {t("f.passeggeri")}
             <input type="number" name="pax" min="1" />
           </label>
         </>
@@ -220,24 +222,24 @@ export default function FormRichiesta({
 
       {tipo === "ristorante" && (
         <>
-          {selezionePosto("ristorante", "Ristorante")}
+          {selezionePosto("ristorante", t("f.ristorante"))}
           <label>
-            Pasto
+            {t("f.pasto")}
             <select name="sotto_tipo">
-              <option value="pranzo">Pranzo</option>
-              <option value="cena">Cena</option>
+              <option value="pranzo">{t("sotto.pranzo")}</option>
+              <option value="cena">{t("sotto.cena")}</option>
             </select>
           </label>
           <label>
-            Data
+            {t("f.data")}
             <input type="date" name="data" />
           </label>
           <label>
-            Ora
+            {t("f.ora")}
             <input type="time" name="ora" />
           </label>
           <label>
-            Numero persone
+            {t("f.persone")}
             <input type="number" name="pax" min="1" />
           </label>
         </>
@@ -245,17 +247,17 @@ export default function FormRichiesta({
 
       {tipo === "attivita" && (
         <>
-          {selezionePosto("attivita", "Attività")}
+          {selezionePosto("attivita", t("f.attivita"))}
           <label>
-            Data
+            {t("f.data")}
             <input type="date" name="data" />
           </label>
           <label>
-            Ora
+            {t("f.ora")}
             <input type="time" name="ora" />
           </label>
           <label>
-            Numero partecipanti
+            {t("f.partecipanti")}
             <input type="number" name="pax" min="1" />
           </label>
         </>
@@ -264,18 +266,18 @@ export default function FormRichiesta({
       {tipo === "pulizie" && (
         <>
           <label>
-            Data desiderata
+            {t("f.dataDesiderata")}
             <input type="date" name="data" required />
           </label>
           <label>
-            Ora di inizio
+            {t("f.oraInizio")}
             <input type="time" name="ora" required />
           </label>
           {collaboratori && (
             <label>
-              Collaboratrice (facoltativa)
+              {t("f.collab")}
               <select name="collaboratore_id" defaultValue="">
-                <option value="">— da assegnare —</option>
+                <option value="">{t("f.daAssegnare")}</option>
                 {collaboratori.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nome}
@@ -285,10 +287,10 @@ export default function FormRichiesta({
             </label>
           )}
           <label>
-            Durata prevista (ore)
+            {t("f.durata")}
             <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue="3" required />
           </label>
-          <label>Cosa serve</label>
+          <label>{t("f.cosaServe")}</label>
           {CHECKLIST_PULIZIE.map((voce) => (
             <label
               key={voce}
@@ -305,14 +307,14 @@ export default function FormRichiesta({
                 value={voce}
                 style={{ width: "auto", marginBottom: 0 }}
               />
-              {voce}
+              {t("voce." + voce)}
             </label>
           ))}
         </>
       )}
 
       <label>
-        Note
+        {t("f.note")}
         <textarea name="note"></textarea>
       </label>
 

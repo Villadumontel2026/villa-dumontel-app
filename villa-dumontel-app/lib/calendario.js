@@ -2,11 +2,31 @@
 // Gli orari sono interpretati come ora di Roma e scritti in UTC, cosi' sono
 // corretti in qualsiasi fuso orario in cui si trovi chi guarda il calendario.
 
-const ETICHETTE = {
-  trasporto: "Trasporto",
-  ristorante: "Ristorante",
-  attivita: "Attività",
-  pulizie: "Pulizie",
+import { DIZ, traduciVoci, traduciSotto } from "./i18n";
+
+const TESTI = {
+  it: {
+    pulizie: "Pulizie",
+    prenotazione: "Prenotazione",
+    daAccettare: "DA ACCETTARE",
+    daConfermare: "DA CONFERMARE",
+    daFare: "Da fare: ",
+    persone: " persone",
+    note: "Note: ",
+    indica: "Indica o modifica cosa fare: ",
+    allarme: "Pulizie tra un'ora",
+  },
+  en: {
+    pulizie: "Cleaning",
+    prenotazione: "Booking",
+    daAccettare: "TO ACCEPT",
+    daConfermare: "TO BE CONFIRMED",
+    daFare: "To do: ",
+    persone: " people",
+    note: "Notes: ",
+    indica: "Add or edit the cleaning tasks: ",
+    allarme: "Cleaning in one hour",
+  },
 };
 
 const DURATA_DEFAULT_ORE = { trasporto: 1, ristorante: 2, attivita: 2, pulizie: 3 };
@@ -59,6 +79,9 @@ function fmtData(y, m, d) {
 // opzioni: { ruolo, appUrl }
 export function costruisciEvento(r, opzioni = {}) {
   const { ruolo, appUrl } = opzioni;
+  const lang = opzioni.lang === "en" ? "en" : "it";
+  const X = TESTI[lang];
+  const etichetta = (tipo) => DIZ[lang]["tipo." + tipo];
   const [y, m, d] = String(r.data).slice(0, 10).split("-").map(Number);
 
   let hh = null;
@@ -74,25 +97,25 @@ export function costruisciEvento(r, opzioni = {}) {
 
   let titolo;
   if (r.tipo === "pulizie") {
-    titolo = "Pulizie" + (r.alloggio ? " · " + r.alloggio : "");
+    titolo = X.pulizie + (r.alloggio ? " · " + r.alloggio : "");
   } else {
     titolo =
-      (ETICHETTE[r.tipo] || "Prenotazione") +
-      (r.descrizione ? ": " + r.descrizione : r.sotto_tipo ? ": " + r.sotto_tipo : "");
+      (etichetta(r.tipo) || X.prenotazione) +
+      (r.descrizione ? ": " + r.descrizione : r.sotto_tipo ? ": " + traduciSotto(lang, r.sotto_tipo) : "");
   }
-  if (daAccettare) titolo = "DA ACCETTARE · " + titolo;
-  else if (daConfermare) titolo = "DA CONFERMARE · " + titolo;
+  if (daAccettare) titolo = X.daAccettare + " · " + titolo;
+  else if (daConfermare) titolo = X.daConfermare + " · " + titolo;
 
   const righe = [];
   if (r.tipo === "pulizie") {
-    if (r.descrizione) righe.push("Da fare: " + r.descrizione);
+    if (r.descrizione) righe.push(X.daFare + traduciVoci(lang, r.descrizione));
   } else if (r.sotto_tipo && r.descrizione) {
-    righe.push(r.sotto_tipo);
+    righe.push(traduciSotto(lang, r.sotto_tipo));
   }
-  if (r.pax) righe.push(r.pax + " persone");
-  if (r.note) righe.push("Note: " + r.note);
+  if (r.pax) righe.push(r.pax + X.persone);
+  if (r.note) righe.push(X.note + r.note);
   if (r.tipo === "pulizie" && ruolo === "ospite" && appUrl) {
-    righe.push("Indica o modifica cosa fare: " + appUrl + "/ospite/richieste");
+    righe.push(X.indica + appUrl + "/ospite/richieste");
   }
   righe.push("Villa Dumontel");
 
@@ -104,6 +127,7 @@ export function costruisciEvento(r, opzioni = {}) {
     tentativo: daConfermare || daAccettare,
     modificata: r.aggiornata_il ? new Date(r.aggiornata_il) : new Date(),
     promemoria: r.tipo === "pulizie",
+    testoPromemoria: X.allarme,
   };
 
   if (hh === null) {
@@ -160,7 +184,7 @@ export function veventDa(ev) {
     r.push(
       "BEGIN:VALARM",
       "ACTION:DISPLAY",
-      "DESCRIPTION:" + esc("Pulizie tra un'ora"),
+      "DESCRIPTION:" + esc(ev.testoPromemoria || "Pulizie tra un'ora"),
       "TRIGGER:-PT1H",
       "END:VALARM"
     );

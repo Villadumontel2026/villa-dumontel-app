@@ -3,10 +3,12 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import FormRichiesta from "../../components/FormRichiesta";
+import { useApp } from "../../components/AppProvider";
 
 const TIPI_VALIDI = ["trasporto", "ristorante", "attivita", "pulizie"];
 
 export default function PrenotaOspitePage() {
+  const { t } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [profilo, setProfilo] = useState(null);
@@ -30,7 +32,7 @@ export default function PrenotaOspitePage() {
       } = await supabase.auth.getSession();
 
       if (!session) {
-        setErroreAccesso("Devi accedere per vedere questa pagina.");
+        setErroreAccesso("login");
         setCaricamento(false);
         return;
       }
@@ -42,7 +44,7 @@ export default function PrenotaOspitePage() {
         .single();
 
       if (!p || p.ruolo !== "ospite" || !p.famiglia_id) {
-        setErroreAccesso("Questa pagina e' riservata agli ospiti.");
+        setErroreAccesso("ospiti");
         setCaricamento(false);
         return;
       }
@@ -75,7 +77,7 @@ export default function PrenotaOspitePage() {
       famiglia_id: profilo.famiglia_id,
       stato: "nuova",
     });
-    if (error) return "Errore: " + error.message;
+    if (error) return t("c.errore") + error.message;
     setInviata(true);
     return null;
   }
@@ -83,7 +85,7 @@ export default function PrenotaOspitePage() {
   if (caricamento) {
     return (
       <main>
-        <p>Caricamento...</p>
+        <p>{t("c.caricamento")}</p>
       </main>
     );
   }
@@ -92,9 +94,9 @@ export default function PrenotaOspitePage() {
     return (
       <main>
         <div className="card">
-          <p>{erroreAccesso}</p>
+          <p>{erroreAccesso === "login" ? t("c.loginRichiesto") : t("c.soloOspiti")}</p>
           <p>
-            <a href="/login">Vai al login &rarr;</a>
+            <a href="/login">{t("c.vaiLogin")}</a>
           </p>
         </div>
       </main>
@@ -103,16 +105,12 @@ export default function PrenotaOspitePage() {
 
   return (
     <main>
-      <p>
-        <a href="/ospite">&larr; Home</a>
-      </p>
-      <h1>Prenota</h1>
+      <h1>{t("pr.titolo")}</h1>
 
       {inviata && (
         <div className="card" style={{ marginBottom: "1rem" }}>
           <p>
-            Richiesta inviata. Ti risponderemo al pi&ugrave; presto.{" "}
-            <a href="/ospite/richieste">Vedi le tue richieste &rarr;</a>
+            {t("pr.inviata")} <a href="/ospite/richieste">{t("pr.vedi")}</a>
           </p>
         </div>
       )}
@@ -130,7 +128,7 @@ export default function PrenotaOspitePage() {
           tipoIniziale={iniziale.tipo}
           nomeIniziale={iniziale.nome}
           onSubmit={invia}
-          etichettaBottone="Invia richiesta"
+          etichettaBottone={t("pr.invia")}
         />
       </div>
 

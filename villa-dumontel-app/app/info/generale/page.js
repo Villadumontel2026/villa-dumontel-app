@@ -1,13 +1,21 @@
+import { T } from "../../components/AppProvider";
+
 export default function InfoGeneralePage() {
   return (
     <main>
       <p>
-        <a href="/info">&larr; Informazioni</a>
+        <a href="/info">
+          <T k="i.back" />
+        </a>
       </p>
-      <h1>Informazioni generali</h1>
+      <h1>
+        <T k="i.gen" />
+      </h1>
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2>Contatti</h2>
+        <h2>
+          <T k="i.contatti" />
+        </h2>
         <p>
           Joël Désayeux
           <br />
@@ -22,16 +30,20 @@ export default function InfoGeneralePage() {
       </div>
 
       <div className="card" style={{ marginBottom: "1.5rem" }}>
-        <h2>Wi-fi</h2>
+        <h2>
+          <T k="i.wifi" />
+        </h2>
         <p>
-          Rete: <strong>Villadumontel</strong>
+          <T k="i.rete" />: <strong>Villadumontel</strong>
           <br />
-          Password: <strong>Entreves2023!</strong>
+          <T k="i.pass" />: <strong>Entreves2023!</strong>
         </p>
       </div>
 
       <div className="card">
-        <h2>Indirizzo</h2>
+        <h2>
+          <T k="i.indirizzo" />
+        </h2>
         <p>Via Passerin D&apos;Entrèves, 3, 11013 Courmayeur (AO), Italia</p>
       </div>
     </main>
