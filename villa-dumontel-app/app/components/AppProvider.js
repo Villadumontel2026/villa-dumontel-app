@@ -2,13 +2,15 @@
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
-import { LINGUE, tradurre } from "../../lib/i18n";
+import { LINGUE, tradurre, traduciVoci, DIZ } from "../../lib/i18n";
 import { leggiVista } from "../../lib/vista";
 
 const Ctx = createContext({
   lang: "it",
   setLang: () => {},
   t: (k) => k,
+  task: [],
+  voci: (x) => x,
   pronto: false,
   email: null,
   ruolo: null,
@@ -26,6 +28,7 @@ export function AppProvider({ children }) {
   const [email, setEmail] = useState(null);
   const [ruolo, setRuolo] = useState(null);
   const [ruoloReale, setRuoloReale] = useState(null);
+  const [taskTutte, setTaskTutte] = useState([]);
 
   // lingua salvata o del browser
   useEffect(() => {
@@ -84,6 +87,15 @@ export function AppProvider({ children }) {
     else if (ruolo === "admin" || ruolo === "collaboratore") setLangState("it");
   }, [pronto, ruolo, scelta]);
 
+  // Elenco dei task di pulizia (modificabile dall'admin)
+  useEffect(() => {
+    supabase
+      .from("task_pulizie")
+      .select("*")
+      .order("ordine", { ascending: true })
+      .then(({ data }) => setTaskTutte(data || []));
+  }, [email]);
+
   useEffect(() => {
     if (typeof document !== "undefined") document.documentElement.lang = lang;
   }, [lang]);
@@ -106,8 +118,19 @@ export function AppProvider({ children }) {
       email,
       ruolo,
       ruoloReale,
+      task: taskTutte.length
+        ? taskTutte.filter((x) => x.attivo)
+        : ["Cambio lenzuola", "Cambio asciugamani", "Pulizia bagni", "Pulizia cucina", "Pulizia terrazzo/balcone", "Riordino generale"].map(
+            (n, i) => ({ id: "d" + i, nome_it: n, nome_en: DIZ.en["voce." + n] })
+          ),
+      voci: (testo) =>
+        traduciVoci(
+          lang,
+          testo,
+          Object.fromEntries(taskTutte.filter((x) => x.nome_en).map((x) => [x.nome_it, x.nome_en]))
+        ),
     }),
-    [lang, setLang, pronto, email, ruolo, ruoloReale]
+    [lang, setLang, pronto, email, ruolo, ruoloReale, taskTutte]
   );
 
   return <Ctx.Provider value={valore}>{children}</Ctx.Provider>;

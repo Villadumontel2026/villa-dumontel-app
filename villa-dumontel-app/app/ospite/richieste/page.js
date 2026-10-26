@@ -5,7 +5,7 @@ import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
 import { useApp } from "../../components/AppProvider";
-import { fmtData, traduciSotto, traduciVoci } from "../../../lib/i18n";
+import { fmtData, traduciSotto } from "../../../lib/i18n";
 
 const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
@@ -27,7 +27,7 @@ function chiaveStato(stato) {
 }
 
 export default function RichiesteOspitePage() {
-  const { t, lang } = useApp();
+  const { t, lang, task, voci } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [famigliaId, setFamigliaId] = useState(null);
@@ -163,7 +163,7 @@ export default function RichiesteOspitePage() {
           {fmtData(lang, r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""}
           {r.sotto_tipo ? ` — ${traduciSotto(lang, r.sotto_tipo)}` : ""}
           {r.descrizione
-            ? ` — ${r.tipo === "pulizie" ? traduciVoci(lang, r.descrizione) : r.descrizione}`
+            ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}`
             : ""}
           {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
           {r.durata_ore ? ` — ${t("c.durata")} ${r.durata_ore} ${t("c.ore")}` : ""}
@@ -198,7 +198,7 @@ export default function RichiesteOspitePage() {
           <details style={{ margin: "0.5rem 0" }}>
             <summary style={{ cursor: "pointer" }}>{t("ro.indica")}</summary>
             <form onSubmit={(e) => salvaCosaFare(e, r)} style={{ marginTop: "0.5rem" }}>
-              {CHECKLIST_PULIZIE.map((voce) => (
+              {task.map((tk) => tk.nome_it).map((voce) => (
                 <label
                   key={voce}
                   style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
@@ -210,7 +210,7 @@ export default function RichiesteOspitePage() {
                     defaultChecked={String(r.descrizione || "").includes(voce)}
                     style={{ width: "auto", marginBottom: 0 }}
                   />
-                  {t("voce." + voce)}
+                  {lang === "en" ? (task.find((x) => x.nome_it === voce)?.nome_en || voce) : voce}
                 </label>
               ))}
               <label>

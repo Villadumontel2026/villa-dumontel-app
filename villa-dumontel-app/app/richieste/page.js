@@ -4,15 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import FormRichiesta from "../components/FormRichiesta";
 import CalendarButton from "../components/CalendarButton";
-
-const CHECKLIST_PULIZIE = [
-  "Cambio lenzuola",
-  "Cambio asciugamani",
-  "Pulizia bagni",
-  "Pulizia cucina",
-  "Pulizia terrazzo/balcone",
-  "Riordino generale",
-];
+import { useApp } from "../components/AppProvider";
 
 const STATI = ["nuova", "in gestione", "confermata", "completata", "annullata"];
 
@@ -21,6 +13,7 @@ function classeBadge(stato) {
 }
 
 export default function RichiestePage() {
+  const { task } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [richieste, setRichieste] = useState([]);
@@ -403,7 +396,7 @@ export default function RichiestePage() {
             {r.tipo === "pulizie" ? (
               <>
                 <label>Cosa fare</label>
-                {CHECKLIST_PULIZIE.map((voce) => (
+                {task.map((tk) => tk.nome_it).map((voce) => (
                   <label
                     key={voce}
                     style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
@@ -427,7 +420,7 @@ export default function RichiestePage() {
                     name="altro_task"
                     defaultValue={String(r.descrizione || "")
                       .split(", ")
-                      .filter((x) => x && !CHECKLIST_PULIZIE.includes(x))
+                      .filter((x) => x && !task.some((tk) => tk.nome_it === x))
                       .join(", ")}
                   />
                 </label>

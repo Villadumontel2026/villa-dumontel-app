@@ -46,7 +46,7 @@ export default function FormRichiesta({
   onSubmit,
   etichettaBottone = "Invia richiesta",
 }) {
-  const { t } = useApp();
+  const { t, task, lang } = useApp();
   const [tipo, setTipo] = useState(tipoIniziale);
   const postiTipo = (tp) => posti.filter((p) => p.categoria === tp);
 
@@ -294,7 +294,7 @@ export default function FormRichiesta({
             <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue="3" required />
           </label>
           <label>{t("f.cosaServe")}</label>
-          {CHECKLIST_PULIZIE.map((voce) => (
+          {task.map((tk) => tk.nome_it).map((voce) => (
             <label
               key={voce}
               style={{
@@ -310,7 +310,7 @@ export default function FormRichiesta({
                 value={voce}
                 style={{ width: "auto", marginBottom: 0 }}
               />
-              {t("voce." + voce)}
+              {lang === "en" ? (task.find((x) => x.nome_it === voce)?.nome_en || voce) : voce}
             </label>
           ))}
         </>

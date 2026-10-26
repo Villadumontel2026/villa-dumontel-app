@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
-import { fmtData, traduciVoci, traduciSotto } from "../../lib/i18n";
+import { fmtData, traduciSotto } from "../../lib/i18n";
 
 const GIORNI_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const GIORNI_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -40,7 +40,7 @@ export default function CalendarioVista({
   mostraAlloggio = false,
   onCambiato,
 }) {
-  const { t, lang } = useApp();
+  const { t, lang, voci } = useApp();
   const [vista, setVista] = useState("mese");
   const [cursore, setCursore] = useState(() => new Date());
   const [giornoSel, setGiornoSel] = useState(null);
@@ -167,7 +167,7 @@ export default function CalendarioVista({
             {amministratore ? (r.famiglie?.nome || "") + " · " + (r.alloggi?.nome || "") : ""}
             {!amministratore && mostraAlloggio ? r.alloggi?.nome || "" : ""}
             {r.sotto_tipo ? ` ${r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo)}` : ""}
-            {r.descrizione ? ` — ${r.tipo === "pulizie" ? traduciVoci(lang, r.descrizione) : r.descrizione}` : ""}
+            {r.descrizione ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}` : ""}
             {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
             {inAttesa(r) ? ` — ${testoAttesa || t("oh.inAttesa")}` : ""}
             {r.stato === "annullata" ? ` — ${t("stato.annullata")}` : ""}

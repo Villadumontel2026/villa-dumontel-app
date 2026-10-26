@@ -6,9 +6,10 @@ import { costruisciEvento, calendarioIcs, linkGoogle } from "../../lib/calendari
 // Aggiunge una singola richiesta al calendario (file .ics o link Google).
 // Per avere aggiornamenti automatici vedi la pagina "Calendario" (abbonamento).
 export default function CalendarButton({ richiesta }) {
-  const { t, lang } = useApp();
+  const { t, lang, task } = useApp();
   if (!richiesta || !richiesta.data) return null;
-  const ev = costruisciEvento(richiesta, { lang });
+  const taskMap = Object.fromEntries(task.filter((x) => x.nome_en).map((x) => [x.nome_it, x.nome_en]));
+  const ev = costruisciEvento(richiesta, { lang, taskMap });
 
   function scarica() {
     const blob = new Blob([calendarioIcs([ev])], { type: "text/calendar;charset=utf-8" });

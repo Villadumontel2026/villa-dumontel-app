@@ -108,7 +108,7 @@ export function costruisciEvento(r, opzioni = {}) {
 
   const righe = [];
   if (r.tipo === "pulizie") {
-    if (r.descrizione) righe.push(X.daFare + traduciVoci(lang, r.descrizione));
+    if (r.descrizione) righe.push(X.daFare + traduciVoci(lang, r.descrizione, opzioni.taskMap));
   } else if (r.sotto_tipo && r.descrizione) {
     righe.push(traduciSotto(lang, r.sotto_tipo));
   }

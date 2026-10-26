@@ -5,7 +5,7 @@ import { applicaVista } from "../../lib/vista";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import AvvisiBox from "../components/AvvisiBox";
-import { fmtData, traduciVoci, traduciSotto } from "../../lib/i18n";
+import { fmtData, traduciSotto } from "../../lib/i18n";
 
 const ICONE = {
   prenota: (
@@ -49,7 +49,7 @@ function Icona({ nome }) {
 }
 
 export default function OspiteHome() {
-  const { t, lang } = useApp();
+  const { t, lang, voci } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [famiglia, setFamiglia] = useState(null);
@@ -272,7 +272,7 @@ export default function OspiteHome() {
               {r.sotto_tipo && r.tipo !== "trasporto" ? ` — ${traduciSotto(lang, r.sotto_tipo)}` : ""}
               {r.sotto_tipo && r.tipo === "trasporto" ? ` — ${r.sotto_tipo}` : ""}
               {r.descrizione
-                ? ` — ${r.tipo === "pulizie" ? traduciVoci(lang, r.descrizione) : r.descrizione}`
+                ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}`
                 : ""}
               {r.stato !== "confermata" ? ` (${t("oh.inAttesa")})` : ""}
             </p>

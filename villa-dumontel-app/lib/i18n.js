@@ -517,13 +517,14 @@ export function traduciSotto(lang, s) {
 }
 
 // "Cambio lenzuola, Pulizia bagni" -> "Change bed linen, Clean bathrooms"
-export function traduciVoci(lang, testo) {
+// extra: mappa { nomeItaliano: nomeInglese } letta dalla tabella task_pulizie
+export function traduciVoci(lang, testo, extra) {
   if (!testo) return testo;
   return String(testo)
     .split(", ")
     .map((v) => {
-      const k = "voce." + v;
-      return (DIZ[lang] && DIZ[lang][k]) || v;
+      if (lang === "it") return v;
+      return (extra && extra[v]) || (DIZ[lang] && DIZ[lang]["voce." + v]) || v;
     })
     .join(", ");
 }

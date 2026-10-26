@@ -5,16 +5,11 @@ import { useRouter } from "next/navigation";
 import { applicaVista } from "../../../../lib/vista";
 import { supabase } from "../../../../lib/supabaseClient";
 
-const CHECKLIST = [
-  "Cambio lenzuola",
-  "Cambio asciugamani",
-  "Pulizia bagni",
-  "Pulizia cucina",
-  "Pulizia terrazzo/balcone",
-  "Riordino generale",
-];
+
+import { useApp } from "../../../components/AppProvider";
 
 export default function NuovoTurnoPage() {
+  const { task } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [collaboratore, setCollaboratore] = useState(null);
@@ -146,7 +141,7 @@ export default function NuovoTurnoPage() {
             <input type="number" step="0.5" name="ore" required />
           </label>
           <label>Attivit&agrave; svolte</label>
-          {CHECKLIST.map((voce) => (
+          {task.map((tk) => tk.nome_it).map((voce) => (
             <label
               key={voce}
               style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}

@@ -28,7 +28,9 @@ export async function GET(request, { params }) {
   const appUrl = new URL(request.url).origin;
   const ruolo = data[0].ruolo;
   const lang = new URL(request.url).searchParams.get("lang") === "en" ? "en" : "it";
-  const eventi = data.map((r) => costruisciEvento(r, { ruolo, appUrl, lang }));
+  const { data: tk } = await supabase.from("task_pulizie").select("nome_it, nome_en");
+  const taskMap = Object.fromEntries((tk || []).filter((x) => x.nome_en).map((x) => [x.nome_it, x.nome_en]));
+  const eventi = data.map((r) => costruisciEvento(r, { ruolo, appUrl, lang, taskMap }));
 
   return new Response(calendarioIcs(eventi, "Villa Dumontel"), {
     headers: {

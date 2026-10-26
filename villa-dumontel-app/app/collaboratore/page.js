@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { applicaVista } from "../../lib/vista";
 import { useApp } from "../components/AppProvider";
-import { fmtData, traduciVoci } from "../../lib/i18n";
+import { fmtData } from "../../lib/i18n";
 import CalendarioVista from "../components/CalendarioVista";
 import AvvisiBox from "../components/AvvisiBox";
 
@@ -12,7 +12,7 @@ const iso = (d) =>
   d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 
 export default function CollaboratoreHome() {
-  const { t, lang } = useApp();
+  const { t, lang, voci } = useApp();
   const [caricamento, setCaricamento] = useState(true);
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [collab, setCollab] = useState(null);
@@ -129,7 +129,7 @@ export default function CollaboratoreHome() {
             &mdash; {r.alloggi?.nome}
             <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>
               {r.durata_ore ? `${r.durata_ore} ore` : ""}
-              {r.descrizione ? ` — ${traduciVoci("it", r.descrizione)}` : ""}
+              {r.descrizione ? ` — ${voci(r.descrizione)}` : ""}
               {r.note ? ` (${r.note})` : ""}
               {!r.accettata_il ? " — da accettare" : ""}
             </p>
