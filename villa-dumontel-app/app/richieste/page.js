@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 import FormRichiesta from "../components/FormRichiesta";
 import CalendarButton from "../components/CalendarButton";
 import { useApp } from "../components/AppProvider";
+import { dmy, fmtCreata } from "../../lib/i18n";
 
 const STATI = ["nuova", "in gestione", "confermata", "completata", "annullata"];
 
@@ -264,14 +265,14 @@ export default function RichiestePage() {
   ];
   const ORDINE_STATO = { nuova: 0, "in gestione": 1, confermata: 2 };
   const CHIUSE = ["completata", "annullata"];
-  const perData = (x, y) => String(x.data || "9999").localeCompare(String(y.data || "9999"));
+  const perData = (x, y) => String(y.creato_il || "").localeCompare(String(x.creato_il || "")); // piu' recenti prima
 
   const categorie = CATEGORIE.map((c) => {
     const tutte = richieste.filter((r) => r.tipo === c.tipo);
     const aperte = tutte
       .filter((r) => !CHIUSE.includes(r.stato))
-      .sort((x, y) => (ORDINE_STATO[x.stato] ?? 0) - (ORDINE_STATO[y.stato] ?? 0) || perData(x, y));
-    const chiuse = tutte.filter((r) => CHIUSE.includes(r.stato)).sort((x, y) => perData(y, x));
+      .sort(perData);
+    const chiuse = tutte.filter((r) => CHIUSE.includes(r.stato)).sort(perData);
     const nuove = tutte.filter((r) => r.stato === "nuova").length;
     return { ...c, aperte, chiuse, nuove };
   });
@@ -282,12 +283,13 @@ export default function RichiestePage() {
         <span className={classeBadge(r.stato)}>{r.stato}</span>{" "}
         <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
         <p className="descrizione">
-          {r.data} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash;{" "}
+          {dmy(r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash;{" "}
           {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
           {r.descrizione}
           {r.pax ? ` (${r.pax} pers.)` : ""}
           {r.note ? ` (${r.note})` : ""}
         </p>
+        {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
         {r.tipo === "pulizie" && (
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", margin: "0.5rem 0" }}>
             <label style={{ margin: 0, fontWeight: 400 }}>
@@ -319,6 +321,20 @@ export default function RichiestePage() {
                 style={{ width: "5rem", marginBottom: 0 }}
               />
             </label>
+            {r.convalidata_il && (
+              <strong>
+                Fatta in {r.durata_ore} ore
+                {r.durata_prevista_ore && Number(r.durata_prevista_ore) !== Number(r.durata_ore)
+                  ? ` (previste ${r.durata_prevista_ore})`
+                  : ""}
+                {r.stato !== "completata" && (
+                  <>
+                    {" "}
+                    &mdash; <a href="/pulizie/admin">vai a validare</a>
+                  </>
+                )}
+              </strong>
+            )}
             <span
               className={
                 "badge " + (r.accettata_il ? "badge-confermata" : "badge-nuova")
@@ -327,7 +343,9 @@ export default function RichiestePage() {
               {!r.collaboratore_id
                 ? "da assegnare"
                 : r.stato === "completata"
-                ? "pulizia fatta"
+                ? "pulizia conclusa"
+                : r.convalidata_il
+                ? "pulizia fatta: da validare"
                 : r.accettata_il
                 ? "accettata dalla collaboratrice"
                 : "in attesa di accettazione"}
@@ -336,7 +354,7 @@ export default function RichiestePage() {
         )}
         {r.proposta_data && (
           <p className="descrizione" style={{ background: "#fff6e0", padding: "0.4rem 0.6rem", borderRadius: 8 }}>
-            Proposta inviata all&apos;ospite: {r.proposta_data}
+            Proposta inviata all&apos;ospite: {dmy(r.proposta_data)}
             {r.proposta_ora ? " " + String(r.proposta_ora).slice(0, 5) : ""} &mdash; in attesa di risposta{" "}
             <button type="button" onClick={() => ritiraProposta(r)}>
               Ritira

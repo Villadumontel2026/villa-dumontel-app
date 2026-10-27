@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
+import { dmy } from "../../../lib/i18n";
 
 const ANNO_CORRENTE = new Date().getFullYear();
 
@@ -250,7 +251,7 @@ export default function SpeseAdminPage() {
           <div key={s.id} className="richiesta-item">
             <strong>{s.oggetto}</strong> &mdash; {s.famiglie?.nome}
             <p className="descrizione">
-              {s.data}
+              {dmy(s.data)}
               {s.anno_riferimento && String(s.anno_riferimento) !== String(s.data).slice(0, 4)
                 ? ` (competenza ${s.anno_riferimento})`
                 : ""}{" "}
@@ -287,7 +288,7 @@ export default function SpeseAdminPage() {
           <div key={v.id} className="richiesta-item">
             <strong>{Number(v.importo).toFixed(2)} &euro;</strong> &mdash; {v.famiglie?.nome}
             <p className="descrizione">
-              {v.data}
+              {dmy(v.data)}
               {v.metodo ? ` — ${v.metodo}` : ""}
               {v.note ? ` (${v.note})` : ""}
             </p>

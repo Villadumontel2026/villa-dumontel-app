@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
+import { dmy } from "../../../../lib/i18n";
 
 const ETICHETTE_STATO = {
   "da approvare": "da validare",
@@ -160,7 +161,7 @@ export default function StoricoTurniPage() {
             <span className={classeBadgeStato(t.stato)}>{ETICHETTE_STATO[t.stato] || t.stato}</span>{" "}
             {t.storico && <span className="badge">storico</span>}{" "}
             <strong>{t.collaboratori?.nome}</strong> &mdash; {t.alloggi?.nome}{" "}
-            &mdash; {t.data} &mdash; {t.ore} ore &mdash; {Number(t.importo_dovuto || 0).toFixed(2)} &euro;
+            &mdash; {dmy(t.data)} &mdash; {t.ore} ore &mdash; {Number(t.importo_dovuto || 0).toFixed(2)} &euro;
             {t.note && <p className="descrizione">{t.note}</p>}
           </div>
         ))}

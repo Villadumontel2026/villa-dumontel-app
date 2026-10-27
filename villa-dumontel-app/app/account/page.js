@@ -12,6 +12,7 @@ export default function AccountPage() {
   const [prefMsg, setPrefMsg] = useState(null);
   const [famiglie, setFamiglie] = useState([]);
   const [collaboratori, setCollaboratori] = useState([]);
+  const [provaMsg, setProvaMsg] = useState(null);
   const [caricamento, setCaricamento] = useState(true);
   const [email, setEmail] = useState(null);
   const [messaggio, setMessaggio] = useState(null);
@@ -116,6 +117,24 @@ export default function AccountPage() {
           </p>
         </div>
       </main>
+    );
+  }
+
+  async function cancellaProva() {
+    if (
+      !window.confirm(
+        "Cancellare tutte le richieste, gli avvisi, i turni e i conti della famiglia, alloggio e collaboratrice PROVA? I dati reali non vengono toccati."
+      )
+    )
+      return;
+    setProvaMsg(null);
+    const { data, error } = await supabase.rpc("cancella_dati_prova");
+    if (error) {
+      setProvaMsg("Errore: " + error.message);
+      return;
+    }
+    setProvaMsg(
+      `Fatto. Cancellati: ${data.richieste} richieste, ${data.avvisi} avvisi, ${data.turni} turni, ${data.versamenti} versamenti, ${data.spese} spese.`
     );
   }
 
@@ -239,6 +258,21 @@ export default function AccountPage() {
               </button>
             ))}
           </p>
+        </div>
+      )}
+
+      {ruoloReale === "admin" && ruolo === "admin" && (
+        <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
+          <h2>Ambiente di prova</h2>
+          <p className="muted">
+            Per provare l&apos;app usa la <strong>Famiglia PROVA</strong> e la <strong>Collaboratrice PROVA</strong>{" "}
+            (con &quot;Vedi l&apos;app come...&quot;). Quando hai finito, questo pulsante cancella tutto ci&ograve; che le
+            riguarda, senza toccare i dati reali.
+          </p>
+          <button type="button" className="btn" onClick={cancellaProva}>
+            Cancella dati di prova
+          </button>
+          {provaMsg && <p style={{ marginTop: "0.75rem" }}>{provaMsg}</p>}
         </div>
       )}
     </main>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
+import { dmy } from "../../../lib/i18n";
 
 export default function PaginaAdminPulizie() {
   const [caricamento, setCaricamento] = useState(true);
@@ -49,10 +50,14 @@ export default function PaginaAdminPulizie() {
   }, []);
 
   async function approvaTurno(id) {
+    const turno = turniDaApprovare.find((x) => x.id === id);
     const { error } = await supabase
       .from("turni_pulizia")
       .update({ stato: "approvato" })
       .eq("id", id);
+    if (!error && turno?.richiesta_id) {
+      await supabase.from("richieste").update({ stato: "completata" }).eq("id", turno.richiesta_id);
+    }
     if (error) {
       alert("Errore: " + error.message);
       return;
@@ -61,10 +66,15 @@ export default function PaginaAdminPulizie() {
   }
 
   async function rifiutaTurno(id) {
+    const turno = turniDaApprovare.find((x) => x.id === id);
     const { error } = await supabase
       .from("turni_pulizia")
       .update({ stato: "rifiutato" })
       .eq("id", id);
+    if (!error && turno?.richiesta_id) {
+      // la pulizia torna alla collaboratrice, che puo' riconfermare
+      await supabase.from("richieste").update({ convalidata_il: null }).eq("id", turno.richiesta_id);
+    }
     if (error) {
       alert("Errore: " + error.message);
       return;
@@ -139,7 +149,7 @@ export default function PaginaAdminPulizie() {
             <div key={t.id} className="richiesta-item">
               <span className="badge badge-nuova">da validare</span>{" "}
               <strong>{t.collaboratori?.nome}</strong> &mdash; {t.alloggi?.nome}{" "}
-              &mdash; {t.data}{t.ora_inizio ? " alle " + String(t.ora_inizio).slice(0, 5) : ""} &mdash; {t.ore} ore
+              &mdash; {dmy(t.data)}{t.ora_inizio ? " alle " + String(t.ora_inizio).slice(0, 5) : ""} &mdash; {t.ore} ore
               {(t.attivita || t.note) && (
                 <p className="descrizione">
                   {t.attivita}

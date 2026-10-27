@@ -5,6 +5,7 @@ import AvvisiBox from "../../components/AvvisiBox";
 import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
+import { dmy, fmtCreata } from "../../../lib/i18n";
 
 const ETICHETTE_STATO = {
   "da approvare": "da validare",
@@ -68,6 +69,7 @@ export default function PaginaCollaboratrice() {
         .eq("tipo", "pulizie")
         .eq("collaboratore_id", profilo.collaboratore_id)
         .in("stato", ["nuova", "in gestione", "confermata"])
+        .is("convalidata_il", null)
         .order("data", { ascending: true });
       setRichieste(ric || []);
 
@@ -99,6 +101,7 @@ export default function PaginaCollaboratrice() {
       .eq("tipo", "pulizie")
       .eq("collaboratore_id", collabId)
       .in("stato", ["nuova", "in gestione", "confermata"])
+        .is("convalidata_il", null)
       .order("data", { ascending: true });
     setRichieste(ric || []);
   }
@@ -135,6 +138,7 @@ export default function PaginaCollaboratrice() {
       alloggio_id: r.alloggio_id,
       data: r.data,
       ore,
+      richiesta_id: r.id,
       note: r.descrizione || null,
       importo_dovuto: ore * (collaboratore?.tariffa_oraria || 15),
       stato: "da approvare",
@@ -145,7 +149,11 @@ export default function PaginaCollaboratrice() {
     }
     const { error } = await supabase
       .from("richieste")
-      .update({ durata_ore: ore, convalidata_il: new Date().toISOString(), stato: "completata" })
+      .update({
+        durata_prevista_ore: r.durata_ore || null,
+        durata_ore: ore,
+        convalidata_il: new Date().toISOString(),
+      })
       .eq("id", r.id);
     if (error) {
       setMsg("Turno inviato, ma la richiesta non si e' chiusa: " + error.message);
@@ -200,13 +208,15 @@ export default function PaginaCollaboratrice() {
           {msg && <p className="muted">{msg}</p>}
           {richieste
             .filter((r) => !r.accettata_il)
+            .sort((a, b) => String(b.creato_il || "").localeCompare(String(a.creato_il || "")))
             .map((r) => (
               <div key={r.id} className="richiesta-item">
                 <span className="badge badge-nuova">da accettare</span>{" "}
-                <strong>{r.alloggi?.nome}</strong> &mdash; {r.data}{" "}
+                <strong>{r.alloggi?.nome}</strong> &mdash; {dmy(r.data)}{" "}
                 {r.ora ? String(r.ora).slice(0, 5) : ""}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
+                {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
                 <form
                   onSubmit={(e) => {
                     e.preventDefault();
@@ -241,13 +251,15 @@ export default function PaginaCollaboratrice() {
           <h2>Pulizie in programma</h2>
           {richieste
             .filter((r) => r.accettata_il)
+            .sort((a, b) => String(b.creato_il || "").localeCompare(String(a.creato_il || "")))
             .map((r) => (
               <div key={r.id} className="richiesta-item">
-                <strong>{r.alloggi?.nome}</strong> &mdash; {r.data}{" "}
+                <strong>{r.alloggi?.nome}</strong> &mdash; {dmy(r.data)}{" "}
                 {r.ora ? String(r.ora).slice(0, 5) : ""}
                 {r.durata_ore ? ` — previste ${r.durata_ore} ore` : ""}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
+                {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
                 <div style={{ margin: "0.5rem 0" }}>
                   <CalendarButton richiesta={r} />
                 </div>
@@ -295,7 +307,7 @@ export default function PaginaCollaboratrice() {
         {turni.map((t) => (
           <div key={t.id} className="richiesta-item">
             <span className={classeBadgeStato(t.stato)}>{ETICHETTE_STATO[t.stato] || t.stato}</span>{" "}
-            <strong>{t.alloggi?.nome}</strong> &mdash; {t.data} &mdash; {t.ore} ore
+            <strong>{t.alloggi?.nome}</strong> &mdash; {dmy(t.data)} &mdash; {t.ore} ore
             {t.note && <p className="descrizione">{t.note}</p>}
           </div>
         ))}

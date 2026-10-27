@@ -5,7 +5,7 @@ import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
 import { useApp } from "../../components/AppProvider";
-import { fmtData, traduciSotto } from "../../../lib/i18n";
+import { fmtData, fmtCreata, traduciSotto } from "../../../lib/i18n";
 
 const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
@@ -138,10 +138,11 @@ export default function RichiesteOspitePage() {
     );
   }
 
-  const inCorso = richieste.filter((r) => ANNULLABILI.includes(r.stato));
+  const perCreazione = (a, b) => String(b.creato_il || "").localeCompare(String(a.creato_il || ""));
+  const inCorso = richieste.filter((r) => ANNULLABILI.includes(r.stato)).sort(perCreazione);
   const chiuse = richieste
     .filter((r) => !ANNULLABILI.includes(r.stato))
-    .sort((a, b) => String(b.data || "").localeCompare(String(a.data || "")));
+    .sort(perCreazione);
 
   function riga(r) {
     return (
@@ -170,6 +171,7 @@ export default function RichiesteOspitePage() {
           {r.tipo === "pulizie" && r.note ? ` — ${r.note}` : ""}
           {r.tipo === "pulizie" && r.accettata_il ? ` — ${t("ro.accettata")}` : ""}
         </p>
+        {r.creato_il && <span className="creata">{fmtCreata(lang, r.creato_il)}</span>}
         {r.proposta_data && (
           <div
             style={{ background: "#fff6e0", padding: "0.7rem 0.9rem", borderRadius: 10, margin: "0.5rem 0" }}

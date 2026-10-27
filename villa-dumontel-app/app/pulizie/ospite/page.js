@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
+import { dmy } from "../../../lib/i18n";
 
 export default function PaginaOspitePulizie() {
   const [caricamento, setCaricamento] = useState(true);
@@ -106,7 +107,7 @@ export default function PaginaOspitePulizie() {
         {turni.length === 0 && <p className="muted">Nessun turno registrato.</p>}
         {turni.map((t) => (
           <div key={t.id} className="richiesta-item">
-            <strong>{t.alloggi?.nome}</strong> &mdash; {t.data}
+            <strong>{t.alloggi?.nome}</strong> &mdash; {dmy(t.data)}
             {t.note && <p className="descrizione">{t.note}</p>}
           </div>
         ))}

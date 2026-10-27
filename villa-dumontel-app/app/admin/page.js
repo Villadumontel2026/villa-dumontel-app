@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
-import { fmtData } from "../../lib/i18n";
+import { fmtData, fmtCreata } from "../../lib/i18n";
 import CalendarioVista from "../components/CalendarioVista";
 import AvvisiBox from "../components/AvvisiBox";
 
@@ -143,6 +143,7 @@ export default function AdminHome() {
         {inAttesa(r) ? " (da confermare)" : ""}
         {r.proposta_data ? " (proposta inviata)" : ""}
       </p>
+      {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
     </div>
   );
 

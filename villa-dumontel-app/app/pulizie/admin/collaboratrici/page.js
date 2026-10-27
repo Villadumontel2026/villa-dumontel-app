@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
+import { dmy } from "../../../../lib/i18n";
 
 export default function CollaboratriciPage() {
   const [caricamento, setCaricamento] = useState(true);
@@ -290,7 +291,7 @@ export default function CollaboratriciPage() {
                 <strong>{Number(p.importo).toFixed(2)} &euro;</strong> &mdash; {c?.nome}{" "}
                 &mdash; {al?.nome}
                 <p className="descrizione">
-                  {p.data}
+                  {dmy(p.data)}
                   {p.note ? ` (${p.note})` : ""}
                 </p>
                 <div className="stato-actions">

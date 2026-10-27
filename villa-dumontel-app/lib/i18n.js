@@ -522,6 +522,34 @@ export function fmtData(lang, iso, conAnno = true) {
   });
 }
 
+// Data in formato europeo: 28/10/2026
+export function dmy(iso) {
+  if (!iso) return "";
+  const m = String(iso).slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? m[3] + "/" + m[2] + "/" + m[1] : String(iso);
+}
+
+// "Richiesta il 27/10/2026 15:31" (ora di Roma)
+export function fmtCreata(lang, ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  if (isNaN(d)) return "";
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Europe/Rome",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(d)
+      .map((x) => [x.type, x.value])
+  );
+  return (lang === "en" ? "Requested on " : "Richiesta il ") + `${p.day}/${p.month}/${p.year} ${p.hour}:${p.minute}`;
+}
+
 export function fmtEuro(lang, n) {
   return Number(n || 0).toLocaleString(locale(lang), {
     minimumFractionDigits: 2,
