@@ -226,3 +226,43 @@ export function linkGoogle(ev) {
   });
   return "https://calendar.google.com/calendar/render?" + p.toString();
 }
+
+// Invito al calendario da spedire per email (METHOD:REQUEST oppure METHOD:CANCEL).
+// ev: evento costruito con costruisciEvento. opzioni: { metodo, organizzatore, partecipante, nome }
+export function invitoIcs(ev, opzioni) {
+  const { metodo = "REQUEST", organizzatore, partecipante } = opzioni;
+  const annullato = metodo === "CANCEL";
+  const righe = [
+    "BEGIN:VCALENDAR",
+    "VERSION:2.0",
+    "PRODID:-//Villa Dumontel//IT",
+    "CALSCALE:GREGORIAN",
+    "METHOD:" + metodo,
+    "BEGIN:VEVENT",
+    "UID:richiesta-" + ev.id + "@villadumontel.it",
+    "DTSTAMP:" + fmtUtc(new Date()),
+    "LAST-MODIFIED:" + fmtUtc(ev.modificata),
+    "SEQUENCE:" + Math.floor(ev.modificata.getTime() / 1000),
+    ev.tuttoGiorno ? "DTSTART;VALUE=DATE:" + ev.inizioData : "DTSTART:" + fmtUtc(ev.inizio),
+    ev.tuttoGiorno ? "DTEND;VALUE=DATE:" + ev.fineData : "DTEND:" + fmtUtc(ev.fine),
+    "SUMMARY:" + esc(ev.titolo),
+    "DESCRIPTION:" + esc(ev.descrizione),
+    "LOCATION:" + esc(ev.luogo),
+    "STATUS:" + (annullato ? "CANCELLED" : ev.tentativo ? "TENTATIVE" : "CONFIRMED"),
+    "TRANSP:OPAQUE",
+    "ORGANIZER;CN=Villa Dumontel:mailto:" + organizzatore,
+    "ATTENDEE;CN=" + esc(partecipante) + ";ROLE=REQ-PARTICIPANT;PARTSTAT=NEEDS-ACTION;RSVP=" +
+      (annullato ? "FALSE" : "TRUE") + ":mailto:" + partecipante,
+  ];
+  if (!annullato && ev.promemoria && !ev.tuttoGiorno) {
+    righe.push(
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:" + esc(ev.testoPromemoria || "Pulizie tra un'ora"),
+      "TRIGGER:-PT1H",
+      "END:VALARM"
+    );
+  }
+  righe.push("END:VEVENT", "END:VCALENDAR");
+  return righe.map(piega).join("\r\n");
+}

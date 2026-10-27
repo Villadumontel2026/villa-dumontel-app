@@ -107,6 +107,15 @@ export function AppProvider({ children }) {
     try {
       window.localStorage.setItem(CHIAVE, l);
     } catch (e) {}
+    // ricorda la lingua anche per le email (se la tabella delle preferenze esiste)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        supabase
+          .from("preferenze_notifiche")
+          .upsert({ user_id: session.user.id, lingua: l, aggiornato_il: new Date().toISOString() }, { onConflict: "user_id" })
+          .then(() => {});
+      }
+    });
   }, []);
 
   const valore = useMemo(

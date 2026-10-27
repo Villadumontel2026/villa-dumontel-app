@@ -7,6 +7,9 @@ import { impostaVista, leggiVista } from "../../lib/vista";
 
 export default function AccountPage() {
   const { t, lang, setLang, ruoloReale, ruolo } = useApp();
+  const [prefEmail, setPrefEmail] = useState(true);
+  const [prefCal, setPrefCal] = useState(null);
+  const [prefMsg, setPrefMsg] = useState(null);
   const [famiglie, setFamiglie] = useState([]);
   const [collaboratori, setCollaboratori] = useState([]);
   const [caricamento, setCaricamento] = useState(true);
@@ -26,6 +29,48 @@ export default function AccountPage() {
     supabase.from("famiglie").select("id, nome").order("id").then(({ data }) => setFamiglie(data || []));
     supabase.from("collaboratori").select("id, nome").order("id").then(({ data }) => setCollaboratori(data || []));
   }, [ruoloReale]);
+
+  // preferenze di notifica
+  useEffect(() => {
+    async function leggi() {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session) return;
+      const { data } = await supabase
+        .from("preferenze_notifiche")
+        .select("*")
+        .eq("user_id", session.user.id)
+        .maybeSingle();
+      if (data) {
+        if (data.email_attive !== null) setPrefEmail(data.email_attive);
+        if (data.calendario) setPrefCal(data.calendario);
+      }
+    }
+    leggi();
+  }, []);
+
+  const calEffettivo = prefCal || (ruolo === "ospite" ? "invito" : "nessuno");
+
+  async function salvaPreferenze(e) {
+    e.preventDefault();
+    setPrefMsg(null);
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    if (!session) return;
+    const { error } = await supabase.from("preferenze_notifiche").upsert(
+      {
+        user_id: session.user.id,
+        email_attive: prefEmail,
+        calendario: calEffettivo,
+        lingua: lang,
+        aggiornato_il: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
+    setPrefMsg(error ? error.message : t("acc.prefSalvate"));
+  }
 
   async function salva(e) {
     e.preventDefault();
@@ -108,6 +153,46 @@ export default function AccountPage() {
             English
           </button>
         </p>
+      </div>
+
+      <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
+        <h2>{t("acc.notifiche")}</h2>
+        <p className="muted">{t("acc.notificheTesto")}</p>
+        <form onSubmit={salvaPreferenze}>
+          <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 400 }}>
+            <input
+              type="checkbox"
+              checked={prefEmail}
+              onChange={(e) => setPrefEmail(e.target.checked)}
+              style={{ width: "auto", marginBottom: 0 }}
+            />
+            {t("acc.emailAvvisi")}
+          </label>
+          <p style={{ marginBottom: "0.25rem", fontWeight: 600 }}>{t("acc.calendario")}</p>
+          {[
+            ["invito", "acc.calInvito"],
+            ["abbonamento", "acc.calAbbonamento"],
+            ["nessuno", "acc.calNessuno"],
+          ].map(([v, k]) => (
+            <label key={v} style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontWeight: 400 }}>
+              <input
+                type="radio"
+                name="calendario"
+                checked={calEffettivo === v}
+                onChange={() => setPrefCal(v)}
+                style={{ width: "auto", marginBottom: 0, marginTop: "0.25rem" }}
+              />
+              {t(k)}
+            </label>
+          ))}
+          <p className="muted" style={{ fontSize: "0.85em" }}>
+            {t("acc.calAvviso")}
+          </p>
+          <button type="submit" className="btn">
+            {t("acc.salvaPref")}
+          </button>
+          {prefMsg && <p style={{ color: "#1f5c2e" }}>{prefMsg}</p>}
+        </form>
       </div>
 
       {ruoloReale === "admin" && ruolo === "admin" && (
