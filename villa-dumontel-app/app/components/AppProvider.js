@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { supabase } from "../../lib/supabaseClient";
 import { LINGUE, tradurre, traduciVoci, DIZ } from "../../lib/i18n";
 import { leggiVista } from "../../lib/vista";
+import Toast from "./Toast";
 
 const Ctx = createContext({
   lang: "it",
@@ -142,7 +143,12 @@ export function AppProvider({ children }) {
     [lang, setLang, pronto, email, ruolo, ruoloReale, taskTutte]
   );
 
-  return <Ctx.Provider value={valore}>{children}</Ctx.Provider>;
+  return (
+    <Ctx.Provider value={valore}>
+      {children}
+      <Toast />
+    </Ctx.Provider>
+  );
 }
 
 export function useApp() {
