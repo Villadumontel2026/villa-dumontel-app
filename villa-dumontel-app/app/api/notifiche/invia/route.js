@@ -51,6 +51,7 @@ async function elabora(id, segreto, mappaTask) {
   let inviate = 0;
 
   let pushInviate = 0;
+  const infoPush = [];
   for (const d of destinatari || []) {
     // Notifica push (sul telefono), se l'avviso la prevede e l'utente ha attivato un dispositivo
     if (avviso.invia_push && (d.sottoscrizioni || []).length && (!SOLO_A || d.email === SOLO_A)) {
@@ -62,6 +63,7 @@ async function elabora(id, segreto, mappaTask) {
       };
       for (const sub of d.sottoscrizioni) {
         const esito = await inviaPush(sub, messaggio);
+        infoPush.push("push " + (esito.status || "?") + (esito.errore ? " " + esito.errore : ""));
         if (esito.ok) pushInviate++;
         else if (esito.status === 404 || esito.status === 410) {
           await supabase.rpc("elimina_sottoscrizione_push", { p_endpoint: sub.endpoint, p_segreto: segreto });
@@ -69,6 +71,9 @@ async function elabora(id, segreto, mappaTask) {
           errori.push("push: " + (esito.status || esito.errore));
         }
       }
+    }
+    else if (avviso.invia_push && (d.sottoscrizioni || []).length) {
+      infoPush.push("push saltata (modalita' test)");
     }
     if (avviso.invia_email === false || !d.email_attive) continue;
     const emailReale = d.email;
@@ -147,7 +152,7 @@ async function elabora(id, segreto, mappaTask) {
   await supabase.rpc("segna_avviso_inviato", {
     p_id: id,
     p_segreto: segreto,
-    p_errore: errori.length ? errori.join(" | ").slice(0, 500) : null,
+    p_errore: errori.concat(infoPush).length ? errori.concat(infoPush).join(" | ").slice(0, 500) : null,
   });
   return { id, inviate, push: pushInviate, errori: errori.length };
 }

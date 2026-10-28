@@ -13,6 +13,29 @@ export default function AccountPage() {
   const [prefMsg, setPrefMsg] = useState(null);
   const [push, setPush] = useState("carico");
   const [pushErr, setPushErr] = useState(null);
+  const [pushProva, setPushProva] = useState(null);
+
+  async function provaPush() {
+    setPushProva(lang === "en" ? "Sending..." : "Invio...");
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    try {
+      const res = await fetch("/api/push/prova", {
+        method: "POST",
+        headers: { Authorization: "Bearer " + session.access_token },
+      });
+      const j = await res.json();
+      if (!res.ok) return setPushProva(j.errore || "Errore " + res.status);
+      setPushProva(
+        j.esiti
+          .map((e) => (e.ok ? (lang === "en" ? "Sent (" : "Inviata (") + e.status + ")" : "Errore " + e.status + (e.errore ? ": " + e.errore : "")))
+          .join(" | ")
+      );
+    } catch (e) {
+      setPushProva(e.message);
+    }
+  }
 
   useEffect(() => {
     statoPush().then(setPush);
@@ -265,9 +288,15 @@ export default function AccountPage() {
         {push === "attivo" && (
           <>
             <p style={{ color: "#1f5c2e" }}>{lang === "en" ? "Active on this device." : "Attive su questo dispositivo."}</p>
-            <button type="button" className="btn btn-light" onClick={() => cambiaPush(false)}>
-              {lang === "en" ? "Turn off" : "Disattiva"}
-            </button>
+            <p style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button type="button" className="btn" onClick={provaPush}>
+                {lang === "en" ? "Send a test notification" : "Invia notifica di prova"}
+              </button>
+              <button type="button" className="btn btn-light" onClick={() => cambiaPush(false)}>
+                {lang === "en" ? "Turn off" : "Disattiva"}
+              </button>
+            </p>
+            {pushProva && <p className="muted">{pushProva}</p>}
           </>
         )}
         {pushErr && <p style={{ color: "#a32d2d" }}>{pushErr}</p>}

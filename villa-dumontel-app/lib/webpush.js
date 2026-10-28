@@ -78,7 +78,7 @@ export async function inviaPush(sub, payload) {
       },
       body: cifraPayload(sub, JSON.stringify(payload)),
     });
-    return { ok: res.ok, status: res.status };
+    return { ok: res.ok, status: res.status, errore: res.ok ? null : (await res.text()).slice(0, 160) };
   } catch (e) {
     return { ok: false, status: 0, errore: e.message };
   }
