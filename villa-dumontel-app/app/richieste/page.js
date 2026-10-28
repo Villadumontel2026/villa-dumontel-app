@@ -71,7 +71,7 @@ export default function RichiestePage() {
   }
 
   async function eliminaGenerica(id) {
-    if (!window.confirm("Eliminare questo promemoria?")) return;
+    if (!window.confirm("Eliminare questa richiesta generica?")) return;
     const { error } = await supabase.from("richieste_generiche").delete().eq("id", id);
     if (error) {
       setErrore("Errore: " + error.message);
@@ -546,10 +546,10 @@ export default function RichiestePage() {
                   <input type="date" name="scadenza" />
                 </label>
                 <button type="submit" className="btn">
-                  Aggiungi promemoria
+                  Aggiungi richiesta generica
                 </button>
               </form>
-              {aperte.length === 0 && <p className="muted">Nessun promemoria aperto.</p>}
+              {aperte.length === 0 && <p className="muted">Nessuna richiesta generica aperta.</p>}
               {aperte.map(rigaG)}
               {fatte.length > 0 && (
                 <details style={{ marginTop: "1rem" }}>

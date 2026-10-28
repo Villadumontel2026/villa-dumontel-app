@@ -188,7 +188,7 @@ export default function AdminHome() {
               ({generiche.length})
             </span>
           </h2>
-          {generiche.length === 0 && <p className="muted">Nessun promemoria aperto.</p>}
+          {generiche.length === 0 && <p className="muted">Nessuna richiesta generica aperta.</p>}
           {generiche.slice(0, 5).map((g) => {
             const giorni = g.scadenza ? Math.round((new Date(g.scadenza) - new Date(oggi)) / 86400000) : null;
             return (
@@ -211,7 +211,7 @@ export default function AdminHome() {
           })}
           <p style={{ margin: "0.6rem 0 0" }}>
             <a href="/richieste" className="btn btn-light">
-              Gestisci i promemoria
+              Gestisci le richieste generiche
             </a>
           </p>
         </div>
