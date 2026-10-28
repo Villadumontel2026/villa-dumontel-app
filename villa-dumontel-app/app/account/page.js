@@ -351,11 +351,16 @@ export default function AccountPage() {
 
       {ruoloReale === "admin" && ruolo === "admin" && (
         <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
-          <h2>Promemoria automatici</h2>
-          <p className="muted">Scegli quali promemoria inviare per ristoranti, attivit&agrave;, trasporti e pulizie.</p>
-          <p>
-            <a href="/impostazioni/promemoria" className="btn">
-              Gestisci promemoria automatici
+          <h2>Notifiche e promemoria</h2>
+          <p className="muted">
+            Scegli per ogni evento chi avvisare e con quale canale (app, email, push), e i promemoria automatici.
+          </p>
+          <p style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <a href="/impostazioni/notifiche" className="btn">
+              Notifiche per evento
+            </a>
+            <a href="/impostazioni/promemoria" className="btn btn-light">
+              Promemoria automatici
             </a>
           </p>
         </div>
