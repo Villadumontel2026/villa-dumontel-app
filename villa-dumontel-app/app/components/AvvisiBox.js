@@ -14,6 +14,11 @@ const PAGINA = {
 export default function AvvisiBox({ tipo, id = null }) {
   const { t, lang } = useApp();
   const [avvisi, setAvvisi] = useState([]);
+  const [giaQui, setGiaQui] = useState(false);
+
+  useEffect(() => {
+    setGiaQui(window.location.pathname.replace(/\/$/, "") === PAGINA[tipo]);
+  }, [tipo]);
 
   async function carica() {
     let q = supabase
@@ -50,9 +55,11 @@ export default function AvvisiBox({ tipo, id = null }) {
         </p>
       ))}
       <p style={{ margin: "0.6rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-        <a href={PAGINA[tipo]} className="btn btn-light">
-          {t("av.apri")}
-        </a>
+        {!giaQui && (
+          <a href={PAGINA[tipo]} className="btn btn-light">
+            {t("av.apri")}
+          </a>
+        )}
         <button type="button" className="btn" onClick={segnaLetti}>
           {t("av.letti")}
         </button>

@@ -40,7 +40,7 @@ export default function CalendarioVista({
   mostraAlloggio = false,
   onCambiato,
 }) {
-  const { t, lang, voci } = useApp();
+  const { t, lang, voci, task } = useApp();
   const [vista, setVista] = useState("mese");
   const [cursore, setCursore] = useState(() => new Date());
   const [giornoSel, setGiornoSel] = useState(null);
@@ -137,6 +137,10 @@ export default function CalendarioVista({
         note: f.note.value || null,
       };
       if (f.pax) upd.pax = f.pax.value ? parseInt(f.pax.value, 10) : null;
+      if (r.tipo === "pulizie") {
+        const scelte = Array.from(f.querySelectorAll('input[name="voci"]:checked')).map((c) => c.value);
+        upd.descrizione = scelte.length ? scelte.join(", ") : null;
+      }
       if (f.durata_ore) upd.durata_ore = f.durata_ore.value ? parseFloat(f.durata_ore.value) : null;
       ({ error } = await supabase.from("richieste").update(upd).eq("id", r.id));
     } else {
@@ -147,6 +151,13 @@ export default function CalendarioVista({
         p_pax: f.pax && f.pax.value ? parseInt(f.pax.value, 10) : r.pax || null,
         p_note: f.note.value || null,
       }));
+      if (!error && r.tipo === "pulizie") {
+        const scelte = Array.from(f.querySelectorAll('input[name="voci"]:checked')).map((c) => c.value);
+        const nuova = scelte.length ? scelte.join(", ") : null;
+        if (nuova !== (r.descrizione || null)) {
+          ({ error } = await supabase.from("richieste").update({ descrizione: nuova }).eq("id", r.id));
+        }
+      }
     }
     if (error) return setErrore(t("c.errore") + error.message);
     setEvSel(null);
@@ -198,6 +209,26 @@ export default function CalendarioVista({
                 {t("f.durata")}
                 <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue={r.durata_ore || ""} />
               </label>
+            )}
+            {r.tipo === "pulizie" && (
+              <div style={{ margin: "0.5rem 0" }}>
+                <strong style={{ fontSize: "0.9rem" }}>{t("ro.indica")}</strong>
+                {task.map((tk) => (
+                  <label
+                    key={tk.id || tk.nome_it}
+                    style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
+                  >
+                    <input
+                      type="checkbox"
+                      name="voci"
+                      value={tk.nome_it}
+                      defaultChecked={String(r.descrizione || "").includes(tk.nome_it)}
+                      style={{ width: "auto", marginBottom: 0 }}
+                    />
+                    {lang === "en" ? tk.nome_en || tk.nome_it : tk.nome_it}
+                  </label>
+                ))}
+              </div>
             )}
             {r.tipo !== "pulizie" && (
               <label>
