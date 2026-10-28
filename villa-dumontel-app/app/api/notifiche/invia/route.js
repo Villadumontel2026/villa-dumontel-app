@@ -1,5 +1,6 @@
 import { supabase } from "../../../../lib/supabaseClient";
 import { costruisciEvento, invitoIcs } from "../../../../lib/calendario";
+import { inviaPush } from "../../../../lib/webpush";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 30;
@@ -49,8 +50,27 @@ async function elabora(id, segreto, mappaTask) {
   const errori = [];
   let inviate = 0;
 
+  let pushInviate = 0;
   for (const d of destinatari || []) {
-    if (!d.email_attive) continue;
+    // Notifica push (sul telefono), se l'avviso la prevede e l'utente ha attivato un dispositivo
+    if (avviso.invia_push && (d.sottoscrizioni || []).length && (!SOLO_A || d.email === SOLO_A)) {
+      const l = d.lingua === "en" ? "en" : "it";
+      const messaggio = {
+        title: "Villa Dumontel",
+        body: l === "en" ? avviso.testo_en : avviso.testo_it,
+        url: PAGINA[avviso.destinatario_tipo] || "/",
+      };
+      for (const sub of d.sottoscrizioni) {
+        const esito = await inviaPush(sub, messaggio);
+        if (esito.ok) pushInviate++;
+        else if (esito.status === 404 || esito.status === 410) {
+          await supabase.rpc("elimina_sottoscrizione_push", { p_endpoint: sub.endpoint, p_segreto: segreto });
+        } else {
+          errori.push("push: " + (esito.status || esito.errore));
+        }
+      }
+    }
+    if (avviso.invia_email === false || !d.email_attive) continue;
     const emailReale = d.email;
     d.email = SOLO_A || d.email;
     const lang = d.lingua === "en" ? "en" : "it";
@@ -129,7 +149,7 @@ async function elabora(id, segreto, mappaTask) {
     p_segreto: segreto,
     p_errore: errori.length ? errori.join(" | ").slice(0, 500) : null,
   });
-  return { id, inviate, errori: errori.length };
+  return { id, inviate, push: pushInviate, errori: errori.length };
 }
 
 export async function POST(request) {

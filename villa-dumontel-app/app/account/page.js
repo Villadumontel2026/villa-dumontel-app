@@ -4,12 +4,30 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import { impostaVista, leggiVista } from "../../lib/vista";
+import { attivaPush, disattivaPush, eIphoneNonInstallato, pushSupportato, statoPush } from "../../lib/push";
 
 export default function AccountPage() {
   const { t, lang, setLang, ruoloReale, ruolo } = useApp();
   const [prefEmail, setPrefEmail] = useState(true);
   const [prefCal, setPrefCal] = useState(null);
   const [prefMsg, setPrefMsg] = useState(null);
+  const [push, setPush] = useState("carico");
+  const [pushErr, setPushErr] = useState(null);
+
+  useEffect(() => {
+    statoPush().then(setPush);
+  }, []);
+
+  async function cambiaPush(attiva) {
+    setPushErr(null);
+    try {
+      if (attiva) await attivaPush();
+      else await disattivaPush();
+    } catch (e) {
+      setPushErr(e.message);
+    }
+    setPush(await statoPush());
+  }
   const [famiglie, setFamiglie] = useState([]);
   const [collaboratori, setCollaboratori] = useState([]);
   const [provaMsg, setProvaMsg] = useState(null);
@@ -212,6 +230,47 @@ export default function AccountPage() {
           </button>
           {prefMsg && <p style={{ color: "#1f5c2e" }}>{prefMsg}</p>}
         </form>
+      </div>
+
+      <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
+        <h2>{lang === "en" ? "Phone notifications" : "Notifiche sul telefono"}</h2>
+        <p className="muted">
+          {lang === "en"
+            ? "Get a notification on this device when something changes, even when the app is closed."
+            : "Ricevi una notifica su questo dispositivo quando cambia qualcosa, anche con l'app chiusa."}
+        </p>
+        {push === "non-supportato" && (
+          <p className="muted">
+            {eIphoneNonInstallato()
+              ? lang === "en"
+                ? "On iPhone: open the app in Safari, tap Share > Add to Home Screen, then open it from the home screen and come back here."
+                : "Su iPhone: apri l'app con Safari, tocca Condividi > Aggiungi alla schermata Home, poi aprila dalla Home e torna qui."
+              : lang === "en"
+              ? "This browser does not support notifications."
+              : "Questo browser non supporta le notifiche."}
+          </p>
+        )}
+        {push === "bloccato" && (
+          <p className="muted">
+            {lang === "en"
+              ? "Notifications are blocked for this site. Enable them in your browser or phone settings."
+              : "Le notifiche sono bloccate per questo sito. Attivale dalle impostazioni del browser o del telefono."}
+          </p>
+        )}
+        {push === "spento" && (
+          <button type="button" className="btn" onClick={() => cambiaPush(true)}>
+            {lang === "en" ? "Turn on on this device" : "Attiva su questo dispositivo"}
+          </button>
+        )}
+        {push === "attivo" && (
+          <>
+            <p style={{ color: "#1f5c2e" }}>{lang === "en" ? "Active on this device." : "Attive su questo dispositivo."}</p>
+            <button type="button" className="btn btn-light" onClick={() => cambiaPush(false)}>
+              {lang === "en" ? "Turn off" : "Disattiva"}
+            </button>
+          </>
+        )}
+        {pushErr && <p style={{ color: "#a32d2d" }}>{pushErr}</p>}
       </div>
 
       {ruoloReale === "admin" && ruolo === "admin" && (

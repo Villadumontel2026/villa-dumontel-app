@@ -109,7 +109,7 @@ export default function PromemoriaPage() {
       <p className="muted">
         Per ogni tipo di richiesta scegli chi riceve un promemoria e quanto tempo prima dell&apos;evento. Valgono solo per le
         richieste confermate. Per ogni promemoria puoi scegliere uno o pi&ugrave; canali: avviso nell&apos;app e/o email (la mail rispetta la preferenza di
-        ciascun utente). La notifica push sul telefono arriver&agrave; in una fase successiva.
+        ciascun utente). La notifica push arriva solo a chi l&apos;ha attivata sul proprio telefono (Account).
       </p>
       {msg && <p style={{ color: "#a33" }}>{msg}</p>}
 
@@ -181,12 +181,14 @@ export default function PromemoriaPage() {
                     />
                     Email
                   </label>
-                  <label
-                    style={{ margin: 0, fontWeight: 400, display: "flex", gap: "0.3rem", alignItems: "center", opacity: 0.6 }}
-                    title="In arrivo"
-                  >
-                    <input type="checkbox" disabled style={{ width: "auto", marginBottom: 0 }} />
-                    Push (in arrivo)
+                  <label style={{ margin: 0, fontWeight: 400, display: "flex", gap: "0.3rem", alignItems: "center" }}>
+                    <input
+                      type="checkbox"
+                      checked={r.canale_push}
+                      onChange={(e) => aggiorna(r.id, { canale_push: e.target.checked })}
+                      style={{ width: "auto", marginBottom: 0 }}
+                    />
+                    Push
                   </label>
                   <label style={{ margin: 0, fontWeight: 400, display: "flex", gap: "0.3rem", alignItems: "center" }}>
                     <input
