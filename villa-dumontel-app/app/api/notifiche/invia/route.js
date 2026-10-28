@@ -59,7 +59,8 @@ async function elabora(id, segreto, mappaTask) {
 
     // invito al calendario: solo se l'utente lo ha scelto e c'e' un evento con data
     let metodo = null;
-    if (d.calendario === "invito" && r.data && avviso.destinatario_tipo !== "admin") {
+    const eRicordo = /^(Promemoria|Reminder):/.test(avviso.testo_it || "");
+    if (!eRicordo && d.calendario === "invito" && r.data && avviso.destinatario_tipo !== "admin") {
       if (r.stato === "annullata") metodo = "CANCEL";
       else if (r.stato === "confermata") metodo = "REQUEST";
     }

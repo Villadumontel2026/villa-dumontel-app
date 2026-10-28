@@ -263,6 +263,18 @@ export default function AccountPage() {
 
       {ruoloReale === "admin" && ruolo === "admin" && (
         <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
+          <h2>Promemoria</h2>
+          <p className="muted">Scegli quali promemoria inviare per ristoranti, attivit&agrave;, trasporti e pulizie.</p>
+          <p>
+            <a href="/impostazioni/promemoria" className="btn">
+              Gestisci promemoria
+            </a>
+          </p>
+        </div>
+      )}
+
+      {ruoloReale === "admin" && ruolo === "admin" && (
+        <div className="card" style={{ maxWidth: 420, marginTop: "1.5rem" }}>
           <h2>Ambiente di prova</h2>
           <p className="muted">
             Per provare l&apos;app usa la <strong>Famiglia PROVA</strong> e la <strong>Collaboratrice PROVA</strong>{" "}
