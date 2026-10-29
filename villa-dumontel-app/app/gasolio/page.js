@@ -20,6 +20,12 @@ const TIPI_CONTATORE = [
   ["acquedotto", "Acquedotto (m³)"],
   ["altro", "Altro"],
 ];
+const GRUPPI_LETTURE = [
+  ["riscaldamento", "Riscaldamento e acqua calda"],
+  ["acquedotto", "Acquedotto"],
+  ["desayeux", "Casa Désayeux"],
+  ["altro", "Altro"],
+];
 const SCHEDE = [
   ["conti", "Conti"],
   ["letture", "Letture"],
@@ -44,6 +50,7 @@ export default function GasolioPage() {
   const [modAnticipo, setModAnticipo] = useState(null);
   const [modTariffa, setModTariffa] = useState(null);
   const [famSel, setFamSel] = useState(null);
+  const [gruppoLetture, setGruppoLetture] = useState("riscaldamento");
   const [contiDal, setContiDal] = useState("");
   const [periodoSel, setPeriodoSel] = useState(null);
 
@@ -226,8 +233,24 @@ export default function GasolioPage() {
   );
 
   // ---------- Letture ----------
-  const dateLetture = [...new Set(letture.map((l) => String(l.data).slice(0, 10)))].sort().reverse();
-  const contAttivi = contatori.filter((c) => c.attivo);
+  // le letture sono divise in gruppi (riscaldamento e acqua calda, acquedotto, ...): si sceglie dall'elenco
+  const nomeUnita = (id) => unita.find((u) => u.id === id)?.nome;
+  const gruppoDi = (c) =>
+    c.tipo === "acquedotto"
+      ? "acquedotto"
+      : nomeUnita(c.unita_id) === "Casa Désayeux"
+      ? "desayeux"
+      : c.tipo === "altro"
+      ? "altro"
+      : "riscaldamento";
+  const contGruppo = contatori.filter((c) => gruppoDi(c) === gruppoLetture);
+  const idGruppo = new Set(contGruppo.map((c) => c.id));
+  const dateLetture = [
+    ...new Set(letture.filter((l) => idGruppo.has(l.contatore_id)).map((l) => String(l.data).slice(0, 10))),
+  ]
+    .sort()
+    .reverse();
+  const contAttivi = contGruppo.filter((c) => c.attivo);
   const ultimo = (cid, prima) => {
     const l = letture
       .filter((x) => x.contatore_id === cid && (!prima || String(x.data).slice(0, 10) < prima))
@@ -262,6 +285,22 @@ export default function GasolioPage() {
 
   const schedaLetture = (
     <>
+      <label>
+        Tipo di lettura
+        <select
+          value={gruppoLetture}
+          onChange={(e) => {
+            setGruppoLetture(e.target.value);
+            setModLettura(null);
+          }}
+        >
+          {GRUPPI_LETTURE.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h2 style={{ marginTop: 0 }}>{modLettura ? "Modifica letture del " + dmy(modLettura) : "Nuova lettura"}</h2>
         <form onSubmit={salvaLetture} key={modLettura || "nuova"}>
@@ -297,7 +336,7 @@ export default function GasolioPage() {
         </form>
       </div>
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>Letture registrate</h2>
+        <h2 style={{ marginTop: 0 }}>Letture registrate: {GRUPPI_LETTURE.find((g) => g[0] === gruppoLetture)?.[1]}</h2>
         {dateLetture.length === 0 && <p className="muted">Nessuna lettura.</p>}
         {dateLetture.map((d) => (
           <div key={d} className="richiesta-item">
@@ -312,12 +351,12 @@ export default function GasolioPage() {
               <Cestino
                 onClick={() => {
                   if (window.confirm("Eliminare tutte le letture del " + dmy(d) + "?"))
-                    esegui(supabase.from("letture").delete().eq("data", d));
+                    esegui(supabase.from("letture").delete().eq("data", d).in("contatore_id", [...idGruppo]));
                 }}
               />
             </span>
             <p className="descrizione" style={{ margin: "0.2rem 0 0" }}>
-              {contatori
+              {contGruppo
                 .filter((c) => valoreData(c.id, d) !== "")
                 .map((c) => `${c.nome}: ${valoreData(c.id, d)}`)
                 .join(" · ")}
