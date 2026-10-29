@@ -52,12 +52,21 @@ export default function GasolioPage() {
   const [famSel, setFamSel] = useState(null);
   const [gruppoLetture, setGruppoLetture] = useState("riscaldamento");
   const [contiDal, setContiDal] = useState("");
+  const [ponderazioneDal, setPonderazioneDal] = useState("");
+  const [offsetLitri, setOffsetLitri] = useState(0);
+  const [consumiDef, setConsumiDef] = useState([]);
+  const [defVals, setDefVals] = useState({});
   const [periodoSel, setPeriodoSel] = useState(null);
 
   async function carica() {
     const q = (t, o) => supabase.from(t).select("*").order(o.col, { ascending: o.asc !== false });
-    const imp = await supabase.from("impostazioni_gasolio").select("*").eq("chiave", "conti_dal").maybeSingle();
-    setContiDal(imp.data ? imp.data.valore : "");
+    const imp = await supabase.from("impostazioni_gasolio").select("*");
+    const impo = Object.fromEntries((imp.data || []).map((x) => [x.chiave, x.valore]));
+    setContiDal(impo.conti_dal || "");
+    setPonderazioneDal(impo.ponderazione_dal || "");
+    setOffsetLitri(parseFloat(impo.offset_litri) || 0);
+    const cd = await supabase.from("consumi_gasolio").select("*");
+    setConsumiDef(cd.data || []);
     const [f, u, c, l, t, a, n] = await Promise.all([
       supabase.from("famiglie").select("id, nome, test").order("id"),
       q("unita_consumo", { col: "ordine" }),
@@ -105,9 +114,24 @@ export default function GasolioPage() {
   }
 
   const periodi = useMemo(
-    () => calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti }),
-    [unita, contatori, letture, tariffe, acquisti]
+    () => calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti, ponderazioneDal, offsetLitri }),
+    [unita, contatori, letture, tariffe, acquisti, ponderazioneDal, offsetLitri]
   );
+
+  const periodoVisto =
+    periodi.find((p) => p.da + "|" + p.a === periodoSel) || periodi[periodi.length - 1] || null;
+  const defSalvato = (p, unitaId) =>
+    consumiDef.find((c) => String(c.data_da).slice(0, 10) === p.da && String(c.data_a).slice(0, 10) === p.a && c.unita_id === unitaId);
+  useEffect(() => {
+    if (!periodoVisto) return;
+    const v = {};
+    for (const r of periodoVisto.righe) {
+      const sv = defSalvato(periodoVisto, r.unita.id);
+      v[r.unita.id] = sv ? String(sv.importo) : r.totale !== null ? String(arrotonda(r.totale)) : "";
+    }
+    setDefVals(v);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [periodoVisto?.da, periodoVisto?.a, consumiDef, periodi]);
 
   const nomeFam = (id) => famiglie.find((f) => f.id === id)?.nome || "—";
 
@@ -131,10 +155,27 @@ export default function GasolioPage() {
       </main>
     );
 
+  async function salvaDefinitivi(p) {
+    const righe = p.righe
+      .map((r) => ({
+        data_da: p.da,
+        data_a: p.a,
+        unita_id: r.unita.id,
+        importo: parseFloat(defVals[r.unita.id]),
+        reale: r.totale !== null ? arrotonda(r.totale) : null,
+        aggiornato_il: new Date().toISOString(),
+      }))
+      .filter((x) => !Number.isNaN(x.importo));
+    if (righe.length === 0) return setMsg("Inserisci almeno un importo.");
+    await esegui(supabase.from("consumi_gasolio").upsert(righe, { onConflict: "data_da,data_a,unita_id" }));
+  }
+  async function ripristinaCalcolato(p) {
+    if (!window.confirm("Eliminare i valori definitivi di questo periodo e tornare al calcolato?")) return;
+    await esegui(supabase.from("consumi_gasolio").delete().eq("data_da", p.da).eq("data_a", p.a));
+  }
+
   // ---------- Conti ----------
-  // di default l'ultimo periodo di lettura
-  const periodoVisto =
-    periodi.find((p) => p.da + "|" + p.a === periodoSel) || periodi[periodi.length - 1] || null;
+  // (periodo mostrato: di default l'ultimo)
   const schedaConti = (
     <>
       <p className="muted">
@@ -169,9 +210,14 @@ export default function GasolioPage() {
               : "Tariffe mancanti"}
             {" · "}costo generale riscaldamento {fmt(p.costoGenerale)} € (al prezzo di riferimento {fmt(p.rif)} €/l)
           </p>
+          {p.storico && (
+            <p className="muted" style={{ marginTop: 0 }}>
+              Periodo storico: tariffe di riferimento (gasolio a {fmt(p.rif)} €/l), senza ponderazione sul prezzo del gasolio.
+            </p>
+          )}
           {p.prezzi && (
             <p className="muted" style={{ marginTop: 0 }}>
-              Gasolio negli ultimi 12 mesi ({fmt(p.prezzi.litri, 0)} l acquistati): prezzo medio pieno{" "}
+              Gasolio bruciato nel periodo ({fmt(p.prezzi.litri, 0)} l, prima il più vecchio): prezzo medio pieno{" "}
               {fmt(p.prezzi.pieno, 3)} €/l · scontato {fmt(p.prezzi.scontato, 3)} €/l. Le tariffe sono proporzionate a questo
               prezzo rispetto a {fmt(p.rif)} €/l.
             </p>
@@ -179,7 +225,8 @@ export default function GasolioPage() {
           {p.avvisi.length > 0 && (
             <p style={{ background: "#fff6e0", padding: "0.4rem 0.6rem", borderRadius: 8 }}>{p.avvisi.join(" · ")}</p>
           )}
-          <div style={{ overflowX: "auto" }}>
+          <div style={{ display: "flex", gap: "1.25rem", flexWrap: "wrap", alignItems: "flex-start" }}>
+          <div style={{ overflowX: "auto", flex: "1 1 26rem" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.9rem" }}>
               <thead>
                 <tr style={{ textAlign: "right", color: "var(--color-muted)" }}>
@@ -215,10 +262,58 @@ export default function GasolioPage() {
               </tbody>
             </table>
           </div>
+          <div style={{ flex: "0 1 15rem", background: "#f7f5ef", borderRadius: 10, padding: "0.75rem" }}>
+            <strong>Valori definitivi</strong>
+            <p className="muted" style={{ fontSize: "0.8em", margin: "0.15rem 0 0.5rem" }}>
+              Scrivi tu l&apos;importo da addebitare. Il valore calcolato resta in memoria.
+            </p>
+            {p.righe.map((r) => {
+              const sv = defSalvato(p, r.unita.id);
+              return (
+                <label key={r.unita.id} style={{ fontWeight: 400 }}>
+                  {r.unita.nome} (€)
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={defVals[r.unita.id] ?? ""}
+                    onChange={(e) => setDefVals({ ...defVals, [r.unita.id]: e.target.value })}
+                    style={{ marginBottom: 0 }}
+                  />
+                  <span className="muted" style={{ fontSize: "0.8em" }}>
+                    calcolato {fmt(r.totale)} €{sv ? " · salvato" : ""}
+                  </span>
+                </label>
+              );
+            })}
+            {famiglie.map((f) => {
+              const unitaF = p.righe.filter((r) => r.unita.famiglia_id === f.id);
+              if (unitaF.length === 0) return null;
+              const somma = unitaF.reduce((s2, r) => s2 + (parseFloat(defVals[r.unita.id]) || 0), 0);
+              return (
+                <p key={f.id} style={{ margin: "0.4rem 0 0" }}>
+                  <strong>{f.nome}</strong>: {fmt(somma)} €{" "}
+                  <span className="muted" style={{ fontSize: "0.8em" }}>
+                    ({unitaF.map((r) => r.unita.nome).join(" + ")})
+                  </span>
+                </p>
+              );
+            })}
+            <p style={{ margin: "0.6rem 0 0", display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+              <button type="button" className="btn" onClick={() => salvaDefinitivi(p)}>
+                Salva
+              </button>
+              {p.righe.some((r) => defSalvato(p, r.unita.id)) && (
+                <button type="button" className="btn btn-light" onClick={() => ripristinaCalcolato(p)}>
+                  Usa il calcolato
+                </button>
+              )}
+            </p>
+          </div>
+          </div>
           <div style={{ marginTop: "0.75rem" }}>
             {Object.entries(p.perFamiglia).map(([fid, tot]) => (
               <p key={fid} style={{ margin: "0.2rem 0" }}>
-                <strong>{nomeFam(Number(fid))}</strong>: {fmt(tot)} € da addebitare
+                <strong>{nomeFam(Number(fid))}</strong>: {fmt(tot)} € calcolati
               </p>
             ))}
             {p.litri !== null && (
@@ -444,6 +539,22 @@ export default function GasolioPage() {
         </form>
       </div>
       <div className="card">
+        {(() => {
+          const g = contatori.find((c) => c.tipo === "caldaia_litri" && nomeUnita(c.unita_id) === "Generale");
+          const ult = g
+            ? letture.filter((l) => l.contatore_id === g.id).sort((a, b) => String(b.data).localeCompare(String(a.data)))[0]
+            : null;
+          if (!ult) return null;
+          const acqFino = acquisti.filter((a) => String(a.data) <= String(ult.data).slice(0, 10)).reduce((x, a) => x + Number(a.litri), 0);
+          return (
+            <p className="muted" style={{ marginTop: 0 }}>
+              Controllo: al {dmy(ult.data)} acquistati {fmt(acqFino, 0)} l, caldaia a {fmt(Number(ult.valore), 0)} l
+              {offsetLitri ? ` (+${fmt(offsetLitri, 0)} l iniziali)` : ""} &rarr; giacenza stimata{" "}
+              {fmt(acqFino + offsetLitri - Number(ult.valore), 0)} l. Se non torna con il serbatoio, manca qualche acquisto
+              (o serve l&apos;offset).
+            </p>
+          );
+        })()}
         <h2 style={{ marginTop: 0 }}>
           Acquisti{" "}
           <span className="muted" style={{ fontWeight: 400 }}>
@@ -507,19 +618,34 @@ export default function GasolioPage() {
     const righe = [];
     for (const p of periodi) {
       if (contiDal && p.da < contiDal) continue; // periodi gia' addebitati altrove
-      const tot = p.perFamiglia[famId];
-      if (tot === undefined) continue;
-      const dettaglio = p.righe
-        .filter((r) => r.unita.famiglia_id === famId && r.totale !== null)
-        .map((r) => `${r.unita.nome}: riscaldamento ${fmt(r.riscaldamento)} + acqua ${fmt(r.acqua)}`)
-        .join(" · ");
+      const unitaFam = p.righe.filter((r) => r.unita.famiglia_id === famId);
+      if (unitaFam.length === 0) continue;
+      let tot = 0;
+      let ok = false;
+      let definitivo = false;
+      const parti = [];
+      for (const r of unitaFam) {
+        const sv = defSalvato(p, r.unita.id);
+        if (sv) {
+          tot += Number(sv.importo);
+          ok = true;
+          definitivo = true;
+          parti.push(`${r.unita.nome}: ${fmt(sv.importo)} € (definitivo; calcolato ${fmt(r.totale)} €)`);
+        } else if (r.totale !== null) {
+          tot += r.totale;
+          ok = true;
+          parti.push(`${r.unita.nome}: riscaldamento ${fmt(r.riscaldamento)} + acqua ${fmt(r.acqua)} (calcolato)`);
+        }
+      }
+      if (!ok) continue;
       righe.push({
         chiave: "p" + p.da + p.a,
         data: p.a,
         tipo: "consumi",
         importo: -tot,
         descrizione: `Riscaldamento e acqua calda ${dmy(p.da)} → ${dmy(p.a)}`,
-        dettaglio,
+        dettaglio: parti.join(" · "),
+        definitivo,
       });
     }
     for (const m of anticipi.filter((x) => x.famiglia_id === famId)) {
@@ -672,7 +798,7 @@ export default function GasolioPage() {
             {r.dettaglio && <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>{r.dettaglio}</p>}
             {r.tipo === "consumi" && (
               <p className="muted" style={{ fontSize: "0.8em", margin: "0.15rem 0 0" }}>
-                calcolato dalle letture
+                {r.definitivo ? "importo definitivo deciso da te" : "calcolato dalle letture"}
               </p>
             )}
           </div>
@@ -715,6 +841,39 @@ export default function GasolioPage() {
   }
   const schedaImpostazioni = (
     <>
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <h2 style={{ marginTop: 0 }}>Prezzo del gasolio nei conti</h2>
+        <p className="muted">
+          I periodi che iniziano prima di questa data usano le tariffe di riferimento, senza ponderazione (sono i dati già
+          addebitati). Dopo, il costo si pondera sul gasolio effettivamente bruciato: si consuma prima quello più vecchio
+          (si usano i litri letti sul contatore della caldaia e gli acquisti in ordine di data).
+        </p>
+        <label>
+          Ponderazione sul gasolio dal
+          <input
+            type="date"
+            defaultValue={ponderazioneDal}
+            onBlur={(e) => {
+              if (e.target.value && e.target.value !== ponderazioneDal)
+                esegui(supabase.from("impostazioni_gasolio").upsert({ chiave: "ponderazione_dal", valore: e.target.value }, { onConflict: "chiave" }));
+            }}
+          />
+        </label>
+        <label>
+          Litri già nel serbatoio quando il contatore caldaia era a zero
+          <input
+            type="number"
+            step="any"
+            defaultValue={offsetLitri}
+            onBlur={(e) => {
+              const v = parseFloat(e.target.value) || 0;
+              if (v !== offsetLitri)
+                esegui(supabase.from("impostazioni_gasolio").upsert({ chiave: "offset_litri", valore: String(v) }, { onConflict: "chiave" }));
+            }}
+          />
+        </label>
+      </div>
+
       <div className="card" style={{ marginBottom: "1rem" }}>
         <h2 style={{ marginTop: 0 }}>Inizio dei conti</h2>
         <p className="muted">

@@ -44,6 +44,57 @@ export function prezzoGasolio(acquisti, data, giorni = 365) {
   return { pieno: pieno / litri, scontato: scontato / litri, litri, stimato };
 }
 
+// Prezzo del gasolio effettivamente bruciato tra due letture del contatore caldaia (litri cumulativi):
+// si consuma prima il gasolio piu' vecchio (FIFO). Gli acquisti formano "strati" in ordine di data; la posizione
+// nello strato e' data dal valore del contatore + i litri gia' presenti nel serbatoio a contatore zero (offset).
+export function prezzoFifo(acquisti, m0, m1, offset = 0) {
+  const lista = [...(acquisti || [])]
+    .filter((a) => Number(a.litri) > 0)
+    .sort((a, b) => String(a.data).localeCompare(String(b.data)) || Number(a.id || 0) - Number(b.id || 0));
+  if (lista.length === 0 || m0 === null || m1 === null || m1 <= m0) return null;
+  const da = m0 + offset;
+  const a = m1 + offset;
+  let cum = 0;
+  let litri = 0;
+  let pieno = 0;
+  let scontato = 0;
+  let stimato = false;
+  let ultimo = null;
+  for (const ac of lista) {
+    const l = Number(ac.litri);
+    const sc = ac.prezzo_l_scontato ? Number(ac.prezzo_l_scontato) : Number(ac.costo) / l;
+    let pi;
+    if (ac.prezzo_l_pieno) pi = Number(ac.prezzo_l_pieno);
+    else {
+      pi = sc + DEFISCALIZZAZIONE_L;
+      stimato = true;
+    }
+    ultimo = { sc, pi };
+    const inizio = cum;
+    const fine = cum + l;
+    cum = fine;
+    const ov = Math.min(fine, a) - Math.max(inizio, da);
+    if (ov > 0) {
+      litri += ov;
+      pieno += pi * ov;
+      scontato += sc * ov;
+    }
+  }
+  let oltre = false;
+  if (a > cum) {
+    // consumo oltre gli acquisti registrati: si usa l'ultimo prezzo
+    const ov = a - Math.max(cum, da);
+    if (ov > 0 && ultimo) {
+      litri += ov;
+      pieno += ultimo.pi * ov;
+      scontato += ultimo.sc * ov;
+      oltre = true;
+    }
+  }
+  if (litri === 0) return null;
+  return { pieno: pieno / litri, scontato: scontato / litri, litri, stimato, oltre, metodo: "fifo" };
+}
+
 export function tariffaPer(tariffe, data) {
   const ok = tariffe
     .filter((t) => String(t.valida_dal).slice(0, 10) <= data)
@@ -52,7 +103,7 @@ export function tariffaPer(tariffe, data) {
 }
 
 // unita: [{id, nome, famiglia_id, peso, ripartizione}], contatori: [{id, unita_id, tipo, nome}], letture: [{contatore_id, data, valore}]
-export function calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti = [] }) {
+export function calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti = [], ponderazioneDal = null, offsetLitri = 0 }) {
   const tipiConti = ["calore_generale", "calore", "contalitri", "caldaia_litri"];
   const idConti = new Set(contatori.filter((c) => tipiConti.includes(c.tipo)).map((c) => c.id));
   const date = [
@@ -75,10 +126,20 @@ export function calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti = 
     if (!tar) avvisi.push("Tariffe mancanti per questo periodo");
 
     // prezzo del gasolio nel periodo e fattore rispetto al prezzo di riferimento
+    // - periodi che iniziano prima di "ponderazioneDal": tariffe di riferimento, senza ponderazione (dati storici)
+    // - dopo: gasolio effettivamente bruciato (FIFO sul contatore caldaia)
     const rif = tar && tar.prezzo_rif_l ? Number(tar.prezzo_rif_l) : 1.45;
-    const prezzi = prezzoGasolio(acquisti, d1);
-    if (!prezzi && acquisti.length > 0) avvisi.push("Nessun acquisto di gasolio nei 12 mesi: uso il prezzo di riferimento");
+    const storico = !!(ponderazioneDal && d0 < ponderazioneDal);
+    let prezzi = null;
+    if (!storico && acquisti.length > 0) {
+      const cald0 = contatori.find((c) => c.tipo === "caldaia_litri" && c.unita_id === (generale && generale.unita_id));
+      const m0 = cald0 ? valoreA(letture, cald0.id, d0) : null;
+      const m1 = cald0 ? valoreA(letture, cald0.id, d1) : null;
+      prezzi = prezzoFifo(acquisti, m0, m1, offsetLitri);
+      if (!prezzi) avvisi.push("Prezzo del gasolio non calcolabile (letture caldaia o acquisti mancanti): uso il prezzo di riferimento");
+    }
     if (prezzi && prezzi.stimato) avvisi.push("Prezzo pieno stimato per alcuni acquisti (scontato + 0,12256 €/l)");
+    if (prezzi && prezzi.oltre) avvisi.push("Il consumo supera i litri acquistati registrati: usato l'ultimo prezzo per la parte eccedente");
     const fattoreDi = (u) => {
       if (!prezzi) return 1;
       const p = u.prezzo_gasolio === "scontato" ? prezzi.scontato : prezzi.pieno;
@@ -133,6 +194,7 @@ export function calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti = 
       tariffa: tar,
       prezzi,
       rif,
+      storico,
       costoGenerale: costoGen,
       deltaGenerale: dGen,
       righe,
