@@ -675,12 +675,13 @@ export default function GasolioPage() {
   }
 
   // Le Four (casa dei genitori): costi dai consumi meno il gasolio pagato da M&P
-  function estrattoLeFour() {
+  function estrattoLeFour(tutto = false) {
     const lf = unita.find((u) => u.nome === "Le Four");
     const righe = [];
     if (!lf) return righe;
     for (const p of periodi) {
-      if (contiDal && p.da < contiDal) continue;
+      const storico = !!(contiDal && p.da < contiDal);
+      if (storico && !tutto) continue;
       const r = p.righe.find((x) => x.unita.id === lf.id);
       if (!r) continue;
       const sv = defSalvato(p, lf.id);
@@ -694,14 +695,17 @@ export default function GasolioPage() {
         descrizione: `Riscaldamento e acqua calda ${dmy(p.da)} → ${dmy(p.a)}`,
         dettaglio: sv ? `definitivo; calcolato ${fmt(r.totale)} €` : `riscaldamento ${fmt(r.riscaldamento)} + acqua ${fmt(r.acqua)} (calcolato)`,
         definitivo: !!sv,
+        storico,
       });
     }
     for (const a of acquisti) {
       if (String(a.pagato_da || "").replace(/\s/g, "").toUpperCase() !== "M&P") continue;
       const d = String(a.data).slice(0, 10);
-      if (contiDal && d < contiDal) continue;
+      const storicoA = !!(contiDal && d < contiDal);
+      if (storicoA && !tutto) continue;
       righe.push({
         chiave: "a" + a.id,
+        storico: storicoA,
         data: d,
         tipo: "gasolio",
         importo: Number(a.costo),
@@ -719,6 +723,11 @@ export default function GasolioPage() {
   }
 
   const COL_LEFOUR = "#1565c0";
+  // credito/debito di Le Four maturato prima di "Conti dal": tenuto in memoria ma non incluso nel saldo
+  const lefourStorico = estrattoLeFour(true)
+    .filter((r) => r.storico)
+    .reduce((somma, r) => somma + r.importo, 0);
+  const haStoricoLeFour = estrattoLeFour(true).some((r) => r.storico);
   const famAttiva = famSel || famiglie[0]?.id;
   const righeEstratto = famAttiva === "lefour" ? estrattoLeFour() : estrattoConto(famAttiva);
   const schedaSaldi = (
@@ -758,8 +767,14 @@ export default function GasolioPage() {
                   {saldo < 0 ? "Da versare " : "Credito "} {fmt(Math.abs(saldo))} €
                 </p>
                 <p className="muted" style={{ margin: "0.2rem 0 0", fontSize: "0.85em" }}>
-                  consumi meno il gasolio pagato da M&amp;P
+                  consumi meno il gasolio pagato da M&amp;P, dal {dmy(contiDal)}
                 </p>
+                {haStoricoLeFour && (
+                  <p className="muted" style={{ margin: "0.2rem 0 0", fontSize: "0.85em" }}>
+                    In memoria, prima di quella data: {lefourStorico < 0 ? "da versare " : "credito "}
+                    {fmt(Math.abs(lefourStorico))} € (non incluso nel saldo)
+                  </p>
+                )}
               </div>
             );
           })()}
@@ -844,6 +859,12 @@ export default function GasolioPage() {
             </button>
           )}
         </p>
+        {famAttiva === "lefour" && haStoricoLeFour && (
+          <p className="muted" style={{ borderLeft: "3px solid " + COL_LEFOUR, paddingLeft: "0.6rem" }}>
+            Prima del {dmy(contiDal)} (tenuto in memoria, non incluso nel saldo): {lefourStorico < 0 ? "da versare " : "credito "}
+            {fmt(Math.abs(lefourStorico))} €.
+          </p>
+        )}
         {righeEstratto.length === 0 && <p className="muted">Nessun movimento.</p>}
         {[...righeEstratto].reverse().map((r) => (
           <div
