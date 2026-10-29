@@ -44,9 +44,13 @@ export default function GasolioPage() {
   const [modAnticipo, setModAnticipo] = useState(null);
   const [modTariffa, setModTariffa] = useState(null);
   const [famSel, setFamSel] = useState(null);
+  const [contiDal, setContiDal] = useState("");
+  const [periodoSel, setPeriodoSel] = useState(null);
 
   async function carica() {
     const q = (t, o) => supabase.from(t).select("*").order(o.col, { ascending: o.asc !== false });
+    const imp = await supabase.from("impostazioni_gasolio").select("*").eq("chiave", "conti_dal").maybeSingle();
+    setContiDal(imp.data ? imp.data.valore : "");
     const [f, u, c, l, t, a, n] = await Promise.all([
       supabase.from("famiglie").select("id, nome, test").order("id"),
       q("unita_consumo", { col: "ordine" }),
@@ -94,8 +98,8 @@ export default function GasolioPage() {
   }
 
   const periodi = useMemo(
-    () => calcolaPeriodi({ unita, contatori, letture, tariffe }),
-    [unita, contatori, letture, tariffe]
+    () => calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti }),
+    [unita, contatori, letture, tariffe, acquisti]
   );
 
   const nomeFam = (id) => famiglie.find((f) => f.id === id)?.nome || "—";
@@ -121,6 +125,9 @@ export default function GasolioPage() {
     );
 
   // ---------- Conti ----------
+  // di default l'ultimo periodo di lettura
+  const periodoVisto =
+    periodi.find((p) => p.da + "|" + p.a === periodoSel) || periodi[periodi.length - 1] || null;
   const schedaConti = (
     <>
       <p className="muted">
@@ -128,7 +135,22 @@ export default function GasolioPage() {
         calda (contalitri), come nel foglio dei conti. Il risultato non entra nelle spese in automatico.
       </p>
       {periodi.length === 0 && <p className="muted">Servono almeno due date di lettura.</p>}
-      {[...periodi].reverse().map((p) => (
+      {periodi.length > 0 && (
+        <label>
+          Periodo di lettura
+          <select
+            value={periodoVisto ? periodoVisto.da + "|" + periodoVisto.a : ""}
+            onChange={(e) => setPeriodoSel(e.target.value)}
+          >
+            {[...periodi].reverse().map((p) => (
+              <option key={p.da + p.a} value={p.da + "|" + p.a}>
+                {dmy(p.da)} → {dmy(p.a)}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {(periodoVisto ? [periodoVisto] : []).map((p) => (
         <div key={p.da + p.a} className="card" style={{ marginBottom: "1rem" }}>
           <h2 style={{ marginTop: 0 }}>
             {dmy(p.da)} &rarr; {dmy(p.a)}
@@ -138,8 +160,15 @@ export default function GasolioPage() {
               ? `Tariffe: ${fmt(p.tariffa.eur_mwh)} €/MWh · ${fmt(p.tariffa.eur_m3)} €/m³` +
                 (p.tariffa.eur_l_condomini ? ` · gasolio ${fmt(p.tariffa.eur_l_condomini)} €/l` : "")
               : "Tariffe mancanti"}
-            {" · "}costo generale riscaldamento {fmt(p.costoGenerale)} €
+            {" · "}costo generale riscaldamento {fmt(p.costoGenerale)} € (al prezzo di riferimento {fmt(p.rif)} €/l)
           </p>
+          {p.prezzi && (
+            <p className="muted" style={{ marginTop: 0 }}>
+              Gasolio negli ultimi 12 mesi ({fmt(p.prezzi.litri, 0)} l acquistati): prezzo medio pieno{" "}
+              {fmt(p.prezzi.pieno, 3)} €/l · scontato {fmt(p.prezzi.scontato, 3)} €/l. Le tariffe sono proporzionate a questo
+              prezzo rispetto a {fmt(p.rif)} €/l.
+            </p>
+          )}
           {p.avvisi.length > 0 && (
             <p style={{ background: "#fff6e0", padding: "0.4rem 0.6rem", borderRadius: 8 }}>{p.avvisi.join(" · ")}</p>
           )}
@@ -148,6 +177,7 @@ export default function GasolioPage() {
               <thead>
                 <tr style={{ textAlign: "right", color: "var(--color-muted)" }}>
                   <th style={{ textAlign: "left" }}>Unità</th>
+                  <th>Gasolio €/l</th>
                   <th>MWh</th>
                   <th>Riscald. €</th>
                   <th>m³ acqua</th>
@@ -161,6 +191,10 @@ export default function GasolioPage() {
                     <td style={{ textAlign: "left" }}>
                       {r.unita.nome}
                       {r.unita.famiglia_id ? <span className="muted"> · {nomeFam(r.unita.famiglia_id)}</span> : null}
+                    </td>
+                    <td>
+                      {r.prezzoL !== null ? fmt(r.prezzoL, 3) : "—"}
+                      <span className="muted"> {r.unita.prezzo_gasolio === "scontato" ? "scont." : "pieno"}</span>
                     </td>
                     <td>{fmt(r.deltaCalore, 3)}</td>
                     <td>{fmt(r.riscaldamento)}</td>
@@ -304,6 +338,8 @@ export default function GasolioPage() {
       costo: parseFloat(f.costo.value),
       fornitore: f.fornitore.value || null,
       pagato_da: f.pagato_da.value || null,
+      prezzo_l_scontato: f.prezzo_l_scontato.value ? parseFloat(f.prezzo_l_scontato.value) : null,
+      prezzo_l_pieno: f.prezzo_l_pieno.value ? parseFloat(f.prezzo_l_pieno.value) : null,
       note: f.note.value || null,
     };
     const q = modAcquisto
@@ -333,6 +369,14 @@ export default function GasolioPage() {
           <label>
             Costo (€)
             <input type="number" step="0.01" name="costo" defaultValue={modAcquisto?.costo || ""} required />
+          </label>
+          <label>
+            Prezzo al litro scontato (€/l, IVA inclusa, quello pagato)
+            <input type="number" step="any" name="prezzo_l_scontato" defaultValue={modAcquisto?.prezzo_l_scontato || ""} placeholder="vuoto = costo ÷ litri" />
+          </label>
+          <label>
+            Prezzo al litro pieno (€/l, senza sconto di defiscalizzazione)
+            <input type="number" step="any" name="prezzo_l_pieno" defaultValue={modAcquisto?.prezzo_l_pieno || ""} placeholder="vuoto = scontato + 0,12256" />
           </label>
           <label>
             Fornitore
@@ -385,7 +429,15 @@ export default function GasolioPage() {
               />
             </span>
             <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>
-              {[a.fornitore, a.pagato_da ? "pagato da " + a.pagato_da : null, a.note].filter(Boolean).join(" · ")}
+              {[
+                `scontato ${fmt(a.prezzo_l_scontato ? Number(a.prezzo_l_scontato) : Number(a.costo) / Number(a.litri), 4)} €/l`,
+                a.prezzo_l_pieno ? `pieno ${fmt(Number(a.prezzo_l_pieno), 4)} €/l` : "pieno stimato",
+                a.fornitore,
+                a.pagato_da ? "pagato da " + a.pagato_da : null,
+                a.note,
+              ]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
         ))}
@@ -415,6 +467,7 @@ export default function GasolioPage() {
   function estrattoConto(famId) {
     const righe = [];
     for (const p of periodi) {
+      if (contiDal && p.da < contiDal) continue; // periodi gia' addebitati altrove
       const tot = p.perFamiglia[famId];
       if (tot === undefined) continue;
       const dettaglio = p.righe
@@ -600,6 +653,7 @@ export default function GasolioPage() {
       eur_m3: n(f.eur_m3.value),
       eur_l_condomini: n(f.eur_l_condomini.value),
       eur_l_residenti: n(f.eur_l_residenti.value),
+      prezzo_rif_l: n(f.prezzo_rif_l.value) || 1.45,
     };
     const q = modTariffa
       ? supabase.from("tariffe_gasolio").update(riga).eq("id", modTariffa.id)
@@ -623,6 +677,27 @@ export default function GasolioPage() {
   const schedaImpostazioni = (
     <>
       <div className="card" style={{ marginBottom: "1rem" }}>
+        <h2 style={{ marginTop: 0 }}>Inizio dei conti</h2>
+        <p className="muted">
+          I periodi di lettura che iniziano prima di questa data non entrano nel saldo delle famiglie (sono già stati
+          addebitati nelle spese).
+        </p>
+        <label>
+          Conti dal
+          <input
+            type="date"
+            defaultValue={contiDal}
+            onBlur={(e) => {
+              if (e.target.value && e.target.value !== contiDal)
+                esegui(
+                  supabase.from("impostazioni_gasolio").upsert({ chiave: "conti_dal", valore: e.target.value }, { onConflict: "chiave" })
+                );
+            }}
+          />
+        </label>
+      </div>
+
+      <div className="card" style={{ marginBottom: "1rem" }}>
         <h2 style={{ marginTop: 0 }}>Tariffe</h2>
         <p className="muted">
           Valgono dalla data indicata fino alla tariffa successiva. Un periodo usa la tariffa in vigore alla data della
@@ -630,7 +705,7 @@ export default function GasolioPage() {
         </p>
         {tariffe.map((t) => (
           <div key={t.id} className="richiesta-item">
-            <strong>dal {dmy(t.valida_dal)}</strong> &mdash; {fmt(t.eur_mwh)} €/MWh · {fmt(t.eur_m3)} €/m³
+            <strong>dal {dmy(t.valida_dal)}</strong> &mdash; {fmt(t.eur_mwh)} €/MWh · {fmt(t.eur_m3)} €/m³ · gasolio rif. {fmt(t.prezzo_rif_l || 1.45)} €/l
             {t.eur_l_condomini ? ` · ${fmt(t.eur_l_condomini)} €/l condomini` : ""}
             {t.eur_l_residenti ? ` · ${fmt(t.eur_l_residenti)} €/l residenti` : ""}
             <span style={{ marginLeft: "0.5rem" }}>
@@ -650,11 +725,15 @@ export default function GasolioPage() {
             <input type="date" name="valida_dal" defaultValue={modTariffa?.valida_dal || oggi()} required />
           </label>
           <label>
-            €/MWh
+            Prezzo del gasolio di riferimento (€/l)
+            <input type="number" step="any" name="prezzo_rif_l" defaultValue={modTariffa?.prezzo_rif_l || 1.45} required />
+          </label>
+          <label>
+            €/MWh (calore contabilizzato, rendimento 91%)
             <input type="number" step="any" name="eur_mwh" defaultValue={modTariffa?.eur_mwh || ""} required />
           </label>
           <label>
-            €/m³ (contalitri)
+            €/m³ acqua calda sanitaria (rendimento 100%)
             <input type="number" step="any" name="eur_m3" defaultValue={modTariffa?.eur_m3 || ""} required />
           </label>
           <label>
@@ -707,6 +786,14 @@ export default function GasolioPage() {
               />
               In ripartizione
             </label>
+            <select
+              value={u.prezzo_gasolio || "pieno"}
+              style={{ width: "auto", marginBottom: 0 }}
+              onChange={(e) => esegui(supabase.from("unita_consumo").update({ prezzo_gasolio: e.target.value }).eq("id", u.id))}
+            >
+              <option value="pieno">Gasolio a prezzo pieno</option>
+              <option value="scontato">Gasolio scontato</option>
+            </select>
             <select
               value={u.famiglia_id || ""}
               style={{ width: "auto", marginBottom: 0 }}

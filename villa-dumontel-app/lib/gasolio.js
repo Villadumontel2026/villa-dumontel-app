@@ -1,4 +1,7 @@
 // Calcolo dei consumi e delle quote di riscaldamento / acqua calda per periodo (tra due letture).
+// Le tariffe (EUR/MWh e EUR/m3) sono riferite a un prezzo del gasolio (di norma 1,45 EUR/l, rendimento caldaia 91%)
+// e vengono proporzionate al prezzo reale del gasolio nel periodo: media ponderata degli acquisti degli ultimi 12 mesi,
+// al prezzo pieno o scontato (defiscalizzazione) secondo l'unita'.
 // Replica il foglio "CONTI DUMONTEL":
 //  - riscaldamento: costo generale = delta MWh del contatore generale x EUR/MWh; ogni unita' ha un "teorico"
 //    (delta MWh x EUR/MWh x peso, con Le Four a 0,8) e riceve la quota proporzionale del costo generale;
@@ -12,6 +15,35 @@ function valoreA(letture, contatoreId, data) {
   return l ? Number(l.valore) : null;
 }
 
+export const DEFISCALIZZAZIONE_L = 0.12256; // EUR/l, per stimare il prezzo pieno quando manca
+
+// Prezzo medio ponderato (sui litri) degli acquisti dei 12 mesi fino a "data"
+export function prezzoGasolio(acquisti, data, giorni = 365) {
+  const fine = new Date(data + "T00:00:00Z").getTime();
+  const inizio = fine - giorni * 86400000;
+  let litri = 0;
+  let pieno = 0;
+  let scontato = 0;
+  let stimato = false;
+  for (const a of acquisti || []) {
+    const t = new Date(String(a.data).slice(0, 10) + "T00:00:00Z").getTime();
+    if (t > fine || t <= inizio || !Number(a.litri)) continue;
+    const l = Number(a.litri);
+    const sc = a.prezzo_l_scontato ? Number(a.prezzo_l_scontato) : Number(a.costo) / l;
+    let pi;
+    if (a.prezzo_l_pieno) pi = Number(a.prezzo_l_pieno);
+    else {
+      pi = sc + DEFISCALIZZAZIONE_L;
+      stimato = true;
+    }
+    litri += l;
+    pieno += pi * l;
+    scontato += sc * l;
+  }
+  if (litri === 0) return null;
+  return { pieno: pieno / litri, scontato: scontato / litri, litri, stimato };
+}
+
 export function tariffaPer(tariffe, data) {
   const ok = tariffe
     .filter((t) => String(t.valida_dal).slice(0, 10) <= data)
@@ -20,7 +52,7 @@ export function tariffaPer(tariffe, data) {
 }
 
 // unita: [{id, nome, famiglia_id, peso, ripartizione}], contatori: [{id, unita_id, tipo, nome}], letture: [{contatore_id, data, valore}]
-export function calcolaPeriodi({ unita, contatori, letture, tariffe }) {
+export function calcolaPeriodi({ unita, contatori, letture, tariffe, acquisti = [] }) {
   const tipiConti = ["calore_generale", "calore", "contalitri", "caldaia_litri"];
   const idConti = new Set(contatori.filter((c) => tipiConti.includes(c.tipo)).map((c) => c.id));
   const date = [
@@ -42,7 +74,18 @@ export function calcolaPeriodi({ unita, contatori, letture, tariffe }) {
     const avvisi = [];
     if (!tar) avvisi.push("Tariffe mancanti per questo periodo");
 
-    // riscaldamento
+    // prezzo del gasolio nel periodo e fattore rispetto al prezzo di riferimento
+    const rif = tar && tar.prezzo_rif_l ? Number(tar.prezzo_rif_l) : 1.45;
+    const prezzi = prezzoGasolio(acquisti, d1);
+    if (!prezzi && acquisti.length > 0) avvisi.push("Nessun acquisto di gasolio nei 12 mesi: uso il prezzo di riferimento");
+    if (prezzi && prezzi.stimato) avvisi.push("Prezzo pieno stimato per alcuni acquisti (scontato + 0,12256 €/l)");
+    const fattoreDi = (u) => {
+      if (!prezzi) return 1;
+      const p = u.prezzo_gasolio === "scontato" ? prezzi.scontato : prezzi.pieno;
+      return p / rif;
+    };
+
+    // riscaldamento: costo generale al prezzo di riferimento, ripartito sui consumi pesati, poi proporzionato al prezzo
     const dGen = delta(generale);
     const costoGen = dGen !== null && tar ? dGen * Number(tar.eur_mwh) : null;
     const righe = unita
@@ -52,20 +95,23 @@ export function calcolaPeriodi({ unita, contatori, letture, tariffe }) {
         const lit = contatori.find((c) => c.unita_id === u.id && c.tipo === "contalitri");
         const dCal = delta(cal);
         const dLit = delta(lit);
+        const fattore = fattoreDi(u);
         return {
           unita: u,
           deltaCalore: dCal,
           deltaAcqua: dLit,
-          teorico: dCal !== null && tar ? dCal * Number(tar.eur_mwh) * Number(u.peso) : null,
-          acqua: dLit !== null && tar ? dLit * Number(tar.eur_m3) : null,
+          pesato: dCal !== null ? dCal * Number(u.peso) : null,
+          fattore,
+          prezzoL: prezzi ? (u.prezzo_gasolio === "scontato" ? prezzi.scontato : prezzi.pieno) : null,
+          acqua: dLit !== null && tar ? dLit * Number(tar.eur_m3) * fattore : null,
           riscaldamento: null,
           totale: null,
         };
       });
-    const sommaTeorico = righe.reduce((s, r) => s + (r.teorico || 0), 0);
+    const sommaPesata = righe.reduce((s2, r) => s2 + (r.pesato || 0), 0);
     for (const r of righe) {
-      if (costoGen !== null && r.teorico !== null && sommaTeorico > 0) {
-        r.riscaldamento = (r.teorico / sommaTeorico) * costoGen;
+      if (costoGen !== null && r.pesato !== null && sommaPesata > 0) {
+        r.riscaldamento = (r.pesato / sommaPesata) * costoGen * r.fattore;
       }
       if (r.riscaldamento !== null || r.acqua !== null) r.totale = (r.riscaldamento || 0) + (r.acqua || 0);
       if (r.riscaldamento === null || r.acqua === null) avvisi.push("Letture mancanti per " + r.unita.nome);
@@ -85,6 +131,8 @@ export function calcolaPeriodi({ unita, contatori, letture, tariffe }) {
       da: d0,
       a: d1,
       tariffa: tar,
+      prezzi,
+      rif,
       costoGenerale: costoGen,
       deltaGenerale: dGen,
       righe,
