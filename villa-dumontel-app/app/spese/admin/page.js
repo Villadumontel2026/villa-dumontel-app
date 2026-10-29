@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { dmy } from "../../../lib/i18n";
+import { Matita, Cestino } from "../../components/IconeAzione";
 
 const ANNO_CORRENTE = new Date().getFullYear();
 
@@ -250,6 +251,12 @@ export default function SpeseAdminPage() {
         {filtrate.map((s) => (
           <div key={s.id} className="richiesta-item">
             <strong>{s.oggetto}</strong> &mdash; {s.famiglie?.nome}
+            {!s.pagamento_collaboratore_id && (
+              <span style={{ marginLeft: "0.4rem", whiteSpace: "nowrap" }}>
+                <Matita onClick={() => (window.location.href = "/spese/admin/modifica?id=" + s.id)} />
+                <Cestino onClick={() => eliminaSpesa(s.id)} />
+              </span>
+            )}
             <p className="descrizione">
               {dmy(s.data)}
               {s.anno_riferimento && String(s.anno_riferimento) !== String(s.data).slice(0, 4)
@@ -262,16 +269,7 @@ export default function SpeseAdminPage() {
               <p className="muted" style={{ fontSize: "0.85em", margin: "0.25rem 0 0" }}>
                 Generata da un versamento alla collaboratrice: si modifica da Pulizie &gt; Collaboratrici.
               </p>
-            ) : (
-              <div className="stato-actions">
-                <a href={"/spese/admin/modifica?id=" + s.id}>
-                  <button type="button">Modifica</button>
-                </a>{" "}
-                <button type="button" onClick={() => eliminaSpesa(s.id)}>
-                  Elimina
-                </button>
-              </div>
-            )}
+            ) : null}
           </div>
         ))}
       </div>
@@ -287,16 +285,14 @@ export default function SpeseAdminPage() {
         {versFiltrati.map((v) => (
           <div key={v.id} className="richiesta-item">
             <strong>{Number(v.importo).toFixed(2)} &euro;</strong> &mdash; {v.famiglie?.nome}
+            <span style={{ marginLeft: "0.4rem", whiteSpace: "nowrap" }}>
+              <Cestino onClick={() => eliminaVersamento(v.id)} />
+            </span>
             <p className="descrizione">
               {dmy(v.data)}
               {v.metodo ? ` — ${v.metodo}` : ""}
               {v.note ? ` (${v.note})` : ""}
             </p>
-            <div className="stato-actions">
-              <button type="button" onClick={() => eliminaVersamento(v.id)}>
-                Elimina
-              </button>
-            </div>
           </div>
         ))}
       </div>
