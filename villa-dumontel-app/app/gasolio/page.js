@@ -518,11 +518,16 @@ export default function GasolioPage() {
           </label>
           <label>
             Pagato da
-            <input name="pagato_da" list="pagatori" defaultValue={modAcquisto?.pagato_da || ""} />
-            <datalist id="pagatori">
-              <option value="M&P" />
-              <option value="JD" />
-            </datalist>
+            <select
+              name="pagato_da"
+              defaultValue={
+                ["JD", "M&P"].includes(modAcquisto?.pagato_da) ? modAcquisto.pagato_da : modAcquisto ? "Altro" : "JD"
+              }
+            >
+              <option value="JD">JD</option>
+              <option value="M&P">M&amp;P</option>
+              <option value="Altro">Altro</option>
+            </select>
           </label>
           <label>
             Note
@@ -669,7 +674,53 @@ export default function GasolioPage() {
     return righe;
   }
 
+  // Le Four (casa dei genitori): costi dai consumi meno il gasolio pagato da M&P
+  function estrattoLeFour() {
+    const lf = unita.find((u) => u.nome === "Le Four");
+    const righe = [];
+    if (!lf) return righe;
+    for (const p of periodi) {
+      if (contiDal && p.da < contiDal) continue;
+      const r = p.righe.find((x) => x.unita.id === lf.id);
+      if (!r) continue;
+      const sv = defSalvato(p, lf.id);
+      const tot = sv ? Number(sv.importo) : r.totale;
+      if (tot === null || tot === undefined) continue;
+      righe.push({
+        chiave: "p" + p.da + p.a,
+        data: p.a,
+        tipo: "consumi",
+        importo: -tot,
+        descrizione: `Riscaldamento e acqua calda ${dmy(p.da)} → ${dmy(p.a)}`,
+        dettaglio: sv ? `definitivo; calcolato ${fmt(r.totale)} €` : `riscaldamento ${fmt(r.riscaldamento)} + acqua ${fmt(r.acqua)} (calcolato)`,
+        definitivo: !!sv,
+      });
+    }
+    for (const a of acquisti) {
+      if (String(a.pagato_da || "").replace(/\s/g, "").toUpperCase() !== "M&P") continue;
+      const d = String(a.data).slice(0, 10);
+      if (contiDal && d < contiDal) continue;
+      righe.push({
+        chiave: "a" + a.id,
+        data: d,
+        tipo: "gasolio",
+        importo: Number(a.costo),
+        descrizione: `Gasolio pagato da M&P: ${fmt(a.litri, 0)} l`,
+        dettaglio: [a.fornitore, a.note].filter(Boolean).join(" · "),
+      });
+    }
+    righe.sort((x, y) => x.data.localeCompare(y.data) || x.chiave.localeCompare(y.chiave));
+    let saldo = 0;
+    for (const r of righe) {
+      saldo += r.importo;
+      r.saldo = saldo;
+    }
+    return righe;
+  }
+
+  const COL_LEFOUR = "#1565c0";
   const famAttiva = famSel || famiglie[0]?.id;
+  const righeEstratto = famAttiva === "lefour" ? estrattoLeFour() : estrattoConto(famAttiva);
   const schedaSaldi = (
     <>
       <p className="muted">
@@ -693,6 +744,25 @@ export default function GasolioPage() {
             </div>
           );
         })}
+        {unita.some((u) => u.nome === "Le Four") &&
+          (() => {
+            const saldo = (estrattoLeFour().slice(-1)[0] || { saldo: 0 }).saldo;
+            return (
+              <div
+                className="card"
+                style={{ borderLeft: "4px solid " + COL_LEFOUR, background: "#eef4fc", cursor: "pointer" }}
+                onClick={() => setFamSel("lefour")}
+              >
+                <h2 style={{ marginTop: 0, color: COL_LEFOUR }}>Le Four</h2>
+                <p style={{ margin: 0, fontWeight: 600, color: saldo < 0 ? "#b3261e" : "#2e7d32" }}>
+                  {saldo < 0 ? "Da versare " : "Credito "} {fmt(Math.abs(saldo))} €
+                </p>
+                <p className="muted" style={{ margin: "0.2rem 0 0", fontSize: "0.85em" }}>
+                  consumi meno il gasolio pagato da M&amp;P
+                </p>
+              </div>
+            );
+          })()}
       </div>
 
       <div className="card" style={{ marginBottom: "1rem" }}>
@@ -760,10 +830,27 @@ export default function GasolioPage() {
               {f.nome}
             </button>
           ))}
+          {unita.some((u) => u.nome === "Le Four") && (
+            <button
+              type="button"
+              className={famAttiva === "lefour" ? "btn" : "btn btn-light"}
+              style={{
+                padding: "0.3rem 0.8rem",
+                ...(famAttiva === "lefour" ? { background: COL_LEFOUR } : { borderColor: COL_LEFOUR, color: COL_LEFOUR }),
+              }}
+              onClick={() => setFamSel("lefour")}
+            >
+              Le Four
+            </button>
+          )}
         </p>
-        {estrattoConto(famAttiva).length === 0 && <p className="muted">Nessun movimento.</p>}
-        {[...estrattoConto(famAttiva)].reverse().map((r) => (
-          <div key={r.chiave} className="richiesta-item">
+        {righeEstratto.length === 0 && <p className="muted">Nessun movimento.</p>}
+        {[...righeEstratto].reverse().map((r) => (
+          <div
+            key={r.chiave}
+            className="richiesta-item"
+            style={famAttiva === "lefour" ? { borderLeft: "3px solid " + COL_LEFOUR, paddingLeft: "0.6rem" } : undefined}
+          >
             <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
               <span>
                 <strong>{dmy(r.data)}</strong> &mdash; {r.descrizione}
@@ -796,9 +883,9 @@ export default function GasolioPage() {
               </span>
             </div>
             {r.dettaglio && <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>{r.dettaglio}</p>}
-            {r.tipo === "consumi" && (
+            {(r.tipo === "consumi" || r.tipo === "gasolio") && (
               <p className="muted" style={{ fontSize: "0.8em", margin: "0.15rem 0 0" }}>
-                {r.definitivo ? "importo definitivo deciso da te" : "calcolato dalle letture"}
+                {r.tipo === "gasolio" ? "pagamento del gasolio" : r.definitivo ? "importo definitivo deciso da te" : "calcolato dalle letture"}
               </p>
             )}
           </div>
