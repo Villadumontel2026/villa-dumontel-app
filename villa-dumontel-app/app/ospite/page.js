@@ -28,6 +28,12 @@ const ICONE = {
       <path d="M12 11v5M12 8h.01" />
     </>
   ),
+  documenti: (
+    <>
+      <path d="M6 3h8l4 4v14H6z" />
+      <path d="M14 3v4h4M9 13h6M9 17h6" />
+    </>
+  ),
 };
 
 function Icona({ nome }) {
@@ -168,6 +174,7 @@ export default function OspiteHome() {
     },
     { href: "/ospite/costi", icona: "costi", titolo: t("oh.azCosti"), sub: t("oh.azCostiSub") },
     { href: "/calendario", icona: "calendario", titolo: t("oh.azCalendario"), sub: t("oh.azCalendarioSub") },
+    { href: "/documenti", icona: "documenti", titolo: t("oh.azDocumenti"), sub: t("oh.azDocumentiSub") },
     { href: "/info", icona: "info", titolo: t("oh.azInfo"), sub: t("oh.azInfoSub") },
   ];
 

@@ -5,6 +5,8 @@ import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import { useApp } from "../../components/AppProvider";
 import { fmtData, fmtEuro } from "../../../lib/i18n";
+import { Graffetta } from "../../components/IconeAzione";
+import { apriDocumento } from "../../../lib/documenti";
 
 const ANNO_CORRENTE = new Date().getFullYear();
 
@@ -21,6 +23,7 @@ export default function CostiOspitePage() {
   const [spese, setSpese] = useState([]);
   const [incassi, setIncassi] = useState([]);
   const [annoSel, setAnnoSel] = useState(String(ANNO_CORRENTE));
+  const [allegati, setAllegati] = useState([]);
 
   useEffect(() => {
     async function carica() {
@@ -53,6 +56,12 @@ export default function CostiOspitePage() {
         .eq("famiglia_id", profilo.famiglia_id)
         .order("data", { ascending: false });
       setSpese(speseData || []);
+
+      const { data: allData } = await supabase
+        .from("documenti_spese")
+        .select("documento_id, spesa_id, documenti(id, nome, percorso)")
+        .limit(5000);
+      setAllegati(allData || []);
 
       const { data: incassiData } = await supabase
         .from("pagamenti_famiglie")
@@ -164,6 +173,32 @@ export default function CostiOspitePage() {
               {fmtData(lang, s.data)} &mdash; {euro(s.importo)} &euro;
               {s.note ? ` (${s.note})` : ""}
             </p>
+            {allegati
+              .filter((a) => a.spesa_id === s.id && a.documenti)
+              .map((a) => (
+                <p key={a.documento_id} className="descrizione" style={{ margin: "0.15rem 0 0" }}>
+                  <Graffetta titolo={t("doc.apri")} onClick={() => apriDocumento(a.documenti)} />
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      apriDocumento(a.documenti);
+                    }}
+                  >
+                    {a.documenti.nome}
+                  </a>
+                  {" · "}
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      apriDocumento(a.documenti, true);
+                    }}
+                  >
+                    {t("doc.scarica")}
+                  </a>
+                </p>
+              ))}
           </div>
         ))}
       </div>

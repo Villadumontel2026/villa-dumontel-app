@@ -11,6 +11,7 @@ const LINK_PER_RUOLO = {
     { href: "/pulizie/admin", label: "nav.pulizie" },
     { href: "/spese/admin", label: "nav.spese" },
     { href: "/gasolio", label: "nav.gasolio" },
+    { href: "/documenti", label: "nav.documenti" },
     { href: "/calendario", label: "nav.calendario" },
     { href: "/info", label: "nav.info" },
   ],

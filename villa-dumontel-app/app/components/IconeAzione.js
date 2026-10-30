@@ -34,3 +34,13 @@ export function Cestino({ onClick, titolo = "Elimina" }) {
     </button>
   );
 }
+
+export function Graffetta({ onClick, titolo = "Allega un file" }) {
+  return (
+    <button type="button" onClick={onClick} title={titolo} aria-label={titolo} style={stile}>
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 11.5 12.5 20a5.5 5.5 0 0 1-7.8-7.8l9-9a3.7 3.7 0 0 1 5.2 5.3l-9 9a1.8 1.8 0 0 1-2.6-2.6l8.2-8.2" />
+      </svg>
+    </button>
+  );
+}

@@ -1,11 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { dmy } from "../../../lib/i18n";
-import { Matita, Cestino } from "../../components/IconeAzione";
+import { Matita, Cestino, Graffetta } from "../../components/IconeAzione";
+import { caricaDocumento, apriDocumento, eliminaDocumento } from "../../../lib/documenti";
 
 const ANNO_CORRENTE = new Date().getFullYear();
+
+function AllegaPulsante({ onFile }) {
+  const ref = useRef(null);
+  return (
+    <>
+      <input
+        ref={ref}
+        type="file"
+        accept="application/pdf,image/*"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const f = e.target.files && e.target.files[0];
+          e.target.value = "";
+          if (f) onFile(f);
+        }}
+      />
+      <Graffetta onClick={() => ref.current && ref.current.click()} titolo="Allega una fattura o un documento" />
+    </>
+  );
+}
 
 function annoSpesa(s) {
   return s.anno_riferimento || parseInt(String(s.data || "").slice(0, 4), 10) || null;
@@ -20,6 +41,47 @@ export default function SpeseAdminPage() {
   const [filtroFamiglia, setFiltroFamiglia] = useState("tutte");
   const [filtroAnno, setFiltroAnno] = useState(String(ANNO_CORRENTE));
   const [annoRiep, setAnnoRiep] = useState(String(ANNO_CORRENTE));
+  const [allegati, setAllegati] = useState([]); // righe documenti_spese con documenti(...)
+  const [caricandoSpesa, setCaricandoSpesa] = useState(null);
+
+  async function caricaAllegati() {
+    const { data } = await supabase
+      .from("documenti_spese")
+      .select("documento_id, spesa_id, documenti(id, nome, percorso, mime)")
+      .limit(5000);
+    setAllegati(data || []);
+  }
+
+  async function allega(spesa, file) {
+    // Le quote di una stessa bolletta sono spese separate (una per famiglia): offro di collegare il file a tutte
+    const gemelle = spese.filter(
+      (x) =>
+        x.id !== spesa.id &&
+        x.oggetto === spesa.oggetto &&
+        String(x.data) === String(spesa.data) &&
+        !x.pagamento_collaboratore_id
+    );
+    let ids = [spesa.id];
+    if (gemelle.length > 0) {
+      const nomi = gemelle.map((x) => x.famiglie?.nome).filter(Boolean).join(", ");
+      if (window.confirm(`Collegare lo stesso file anche alle spese di: ${nomi}? (stesso oggetto e data)`)) {
+        ids = ids.concat(gemelle.map((x) => x.id));
+      }
+    }
+    setCaricandoSpesa(spesa.id);
+    const r = await caricaDocumento(file, { categoria: "fattura", visibilita: "admin", spesaIds: ids });
+    setCaricandoSpesa(null);
+    if (r.errore) alert("Errore: " + r.errore);
+    await caricaAllegati();
+  }
+
+  async function rimuoviAllegato(spesaId, doc) {
+    if (!window.confirm(`Rimuovere "${doc.nome}" da questa spesa?`)) return;
+    await supabase.from("documenti_spese").delete().eq("documento_id", doc.id).eq("spesa_id", spesaId);
+    const altri = allegati.filter((a) => a.documento_id === doc.id && a.spesa_id !== spesaId);
+    if (altri.length === 0) await eliminaDocumento(doc);
+    await caricaAllegati();
+  }
 
   useEffect(() => {
     async function carica() {
@@ -59,6 +121,7 @@ export default function SpeseAdminPage() {
         .select("*, famiglie(nome)")
         .order("data", { ascending: false });
       setVersamenti(versData || []);
+      await caricaAllegati();
 
       setCaricamento(false);
     }
@@ -254,9 +317,27 @@ export default function SpeseAdminPage() {
             {!s.pagamento_collaboratore_id && (
               <span style={{ marginLeft: "0.4rem", whiteSpace: "nowrap" }}>
                 <Matita onClick={() => (window.location.href = "/spese/admin/modifica?id=" + s.id)} />
+                <AllegaPulsante onFile={(f) => allega(s, f)} />
                 <Cestino onClick={() => eliminaSpesa(s.id)} />
               </span>
             )}
+            {caricandoSpesa === s.id && <span className="muted"> caricamento...</span>}
+            {allegati
+              .filter((a) => a.spesa_id === s.id && a.documenti)
+              .map((a) => (
+                <span key={a.documento_id} style={{ display: "inline-block", marginLeft: "0.6rem", fontSize: "0.85em" }}>
+                  <a
+                    href="#"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      apriDocumento(a.documenti);
+                    }}
+                  >
+                    {a.documenti.nome}
+                  </a>
+                  <Cestino titolo="Rimuovi allegato" onClick={() => rimuoviAllegato(s.id, a.documenti)} />
+                </span>
+              ))}
             <p className="descrizione">
               {dmy(s.data)}
               {s.anno_riferimento && String(s.anno_riferimento) !== String(s.data).slice(0, 4)
