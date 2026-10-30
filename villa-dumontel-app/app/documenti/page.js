@@ -217,6 +217,12 @@ export default function DocumentiPage() {
         e le fatture collegate alle loro spese (le allegati dalla pagina Spese con la graffetta).
       </p>
 
+      <p>
+        <a href="/documenti/abbina" className="btn btn-light">
+          Abbina le fatture alle spese
+        </a>
+      </p>
+
       <div className="card" style={{ marginBottom: "2rem" }}>
         <h2>Carica documenti</h2>
         <form onSubmit={carica_files}>
