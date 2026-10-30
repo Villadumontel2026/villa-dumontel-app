@@ -8,28 +8,23 @@ import { caricaDocumento, apriDocumento, eliminaDocumento } from "../../../lib/d
 
 const ANNO_CORRENTE = new Date().getFullYear();
 
-function AllegaPulsante({ onFile }) {
-  const ref = useRef(null);
+function Modale({ titolo, onChiudi, children }) {
   return (
-    <>
-      <input
-        ref={ref}
-        type="file"
-        accept="application/pdf,image/*"
-        style={{ display: "none" }}
-        onChange={(e) => {
-          const f = e.target.files && e.target.files[0];
-          e.target.value = "";
-          if (f) onFile(f);
-        }}
-      />
-      <Graffetta onClick={() => ref.current && ref.current.click()} titolo="Allega una fattura o un documento" />
-    </>
+    <div
+      onClick={onChiudi}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "3vh 1rem", overflowY: "auto" }}
+    >
+      <div className="card" onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 560, background: "#fff" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
+          <h2 style={{ margin: 0 }}>{titolo}</h2>
+          <button type="button" className="btn btn-light" onClick={onChiudi}>
+            Chiudi
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
   );
-}
-
-function annoSpesa(s) {
-  return s.anno_riferimento || parseInt(String(s.data || "").slice(0, 4), 10) || null;
 }
 
 export default function SpeseAdminPage() {
@@ -43,6 +38,30 @@ export default function SpeseAdminPage() {
   const [annoRiep, setAnnoRiep] = useState(String(ANNO_CORRENTE));
   const [allegati, setAllegati] = useState([]); // righe documenti_spese con documenti(...)
   const [caricandoSpesa, setCaricandoSpesa] = useState(null);
+  const [modaleSpesa, setModaleSpesa] = useState(null); // spesa a cui si sta allegando
+  const [archivio, setArchivio] = useState([]);
+  const [cercaDoc, setCercaDoc] = useState("");
+  const fileRef = useRef(null);
+
+  async function apriModale(spesa) {
+    setCercaDoc("");
+    setModaleSpesa(spesa);
+    const { data } = await supabase
+      .from("documenti")
+      .select("id, nome, percorso, mime, note, categoria, creato_il")
+      .order("creato_il", { ascending: false })
+      .limit(1000);
+    setArchivio(data || []);
+  }
+
+  async function collegaEsistente(spesa, doc) {
+    const ids = await scegliSpeseDaCollegare(spesa);
+    const righe = ids.map((spesa_id) => ({ documento_id: doc.id, spesa_id }));
+    const { error } = await supabase.from("documenti_spese").upsert(righe, { onConflict: "documento_id,spesa_id" });
+    if (error) alert("Errore: " + error.message);
+    setModaleSpesa(null);
+    await caricaAllegati();
+  }
 
   async function caricaAllegati() {
     const { data } = await supabase
@@ -52,7 +71,7 @@ export default function SpeseAdminPage() {
     setAllegati(data || []);
   }
 
-  async function allega(spesa, file) {
+  async function scegliSpeseDaCollegare(spesa) {
     // Le quote di una stessa bolletta sono spese separate (una per famiglia): offro di collegare il file a tutte
     const gemelle = spese.filter(
       (x) =>
@@ -68,10 +87,16 @@ export default function SpeseAdminPage() {
         ids = ids.concat(gemelle.map((x) => x.id));
       }
     }
+    return ids;
+  }
+
+  async function allega(spesa, file) {
+    const ids = await scegliSpeseDaCollegare(spesa);
     setCaricandoSpesa(spesa.id);
     const r = await caricaDocumento(file, { categoria: "fattura", visibilita: "admin", spesaIds: ids });
     setCaricandoSpesa(null);
     if (r.errore) alert("Errore: " + r.errore);
+    setModaleSpesa(null);
     await caricaAllegati();
   }
 
@@ -317,7 +342,7 @@ export default function SpeseAdminPage() {
             {!s.pagamento_collaboratore_id && (
               <span style={{ marginLeft: "0.4rem", whiteSpace: "nowrap" }}>
                 <Matita onClick={() => (window.location.href = "/spese/admin/modifica?id=" + s.id)} />
-                <AllegaPulsante onFile={(f) => allega(s, f)} />
+                <Graffetta onClick={() => apriModale(s)} titolo="Allega una fattura o un documento" />
                 <Cestino onClick={() => eliminaSpesa(s.id)} />
               </span>
             )}
@@ -377,6 +402,52 @@ export default function SpeseAdminPage() {
           </div>
         ))}
       </div>
+      {modaleSpesa && (
+        <Modale titolo="Allega un documento" onChiudi={() => setModaleSpesa(null)}>
+          <p className="muted" style={{ margin: "0.5rem 0" }}>
+            {modaleSpesa.oggetto} &mdash; {modaleSpesa.famiglie?.nome} &mdash; {dmy(modaleSpesa.data)}
+          </p>
+          <label>
+            Cerca nell&apos;archivio
+            <input value={cercaDoc} onChange={(e) => setCercaDoc(e.target.value)} placeholder="es. 08 09" autoFocus />
+          </label>
+          <div style={{ maxHeight: "40vh", overflowY: "auto", marginBottom: "1rem" }}>
+            {archivio
+              .filter((d) => {
+                const q = cercaDoc.trim().toLowerCase();
+                return !q || (d.nome + " " + (d.note || "")).toLowerCase().includes(q);
+              })
+              .slice(0, 60)
+              .map((d) => (
+                <div key={d.id} className="richiesta-item" style={{ display: "flex", justifyContent: "space-between", gap: "0.75rem", alignItems: "center" }}>
+                  <span style={{ minWidth: 0 }}>
+                    <strong style={{ wordBreak: "break-word" }}>{d.nome}</strong>
+                    {d.note && <span className="muted" style={{ display: "block", fontSize: "0.8em" }}>{d.note}</span>}
+                  </span>
+                  <button type="button" className="btn" onClick={() => collegaEsistente(modaleSpesa, d)}>
+                    Collega
+                  </button>
+                </div>
+              ))}
+            {archivio.length === 0 && <p className="muted">L&apos;archivio e&apos; vuoto: carica prima i documenti dalla pagina Documenti.</p>}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="application/pdf,image/*"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files && e.target.files[0];
+              e.target.value = "";
+              if (f) allega(modaleSpesa, f);
+            }}
+          />
+          <button type="button" className="btn btn-light" onClick={() => fileRef.current && fileRef.current.click()}>
+            Oppure carica un nuovo file dal computer
+          </button>
+        </Modale>
+      )}
     </main>
   );
 }
+

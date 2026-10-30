@@ -15,6 +15,15 @@ import {
   dimensioneLeggibile,
 } from "../../lib/documenti";
 
+function categoriaDaCartella(cartella, predefinita) {
+  const c = cartella.toLowerCase();
+  if (/electric|elettric|water|acqua|acquedott|expenses|spese|purchases|services/.test(c)) return "fattura";
+  if (/contract|contratt/.test(c)) return "contratto";
+  if (/istruzion|welcome kit/.test(c)) return "istruzioni";
+  if (/informazion/.test(c)) return "info";
+  return predefinita;
+}
+
 export default function DocumentiPage() {
   const { t } = useApp();
   const [caricamento, setCaricamento] = useState(true);
@@ -32,6 +41,7 @@ export default function DocumentiPage() {
   const [visNuovo, setVisNuovo] = useState("admin");
   const [famNuovo, setFamNuovo] = useState("");
   const [stato, setStato] = useState(null);
+  const [deduci, setDeduci] = useState(true);
 
   async function carica(prof) {
     const { data } = await supabase.from("documenti").select("*").order("creato_il", { ascending: false }).limit(1000);
@@ -73,7 +83,7 @@ export default function DocumentiPage() {
     const q = cerca.trim().toLowerCase();
     return docs.filter(
       (d) =>
-        (!q || d.nome.toLowerCase().includes(q)) &&
+        (!q || (d.nome + " " + (d.note || "")).toLowerCase().includes(q)) &&
         (filtroCat === "tutte" || d.categoria === filtroCat) &&
         (filtroVis === "tutte" || d.visibilita === filtroVis)
     );
@@ -143,7 +153,10 @@ export default function DocumentiPage() {
   // ---------- admin ----------
   async function carica_files(e) {
     e.preventDefault();
-    const files = Array.from(e.target.files_input.files || []);
+    const scelti = Array.from(e.target.files_input.files || []);
+    const cartella = Array.from(e.target.cartella_input.files || []);
+    // dalla cartella scarto i file di sistema (es. .DS_Store)
+    const files = scelti.concat(cartella.filter((f) => !f.name.startsWith(".") && f.name !== "Thumbs.db"));
     if (files.length === 0) return;
     if (visNuovo === "famiglia" && !famNuovo) {
       alert("Scegli la famiglia.");
@@ -153,10 +166,13 @@ export default function DocumentiPage() {
     const errori = [];
     for (let i = 0; i < files.length; i++) {
       setStato(`Caricamento ${i + 1} di ${files.length}...`);
+      const rel = files[i].webkitRelativePath || "";
+      const cartellaDoc = rel.includes("/") ? rel.slice(0, rel.lastIndexOf("/")) : null;
       const r = await caricaDocumento(files[i], {
-        categoria: catNuovo,
+        categoria: deduci && cartellaDoc ? categoriaDaCartella(cartellaDoc, catNuovo) : catNuovo,
         visibilita: visNuovo,
         famiglia_id: visNuovo === "famiglia" ? Number(famNuovo) : null,
+        note: cartellaDoc,
       });
       if (r.errore) errori.push(`${files[i].name}: ${r.errore}`);
       else ok++;
@@ -206,7 +222,15 @@ export default function DocumentiPage() {
         <form onSubmit={carica_files}>
           <label>
             File (anche piu' di uno)
-            <input type="file" name="files_input" multiple required />
+            <input type="file" name="files_input" multiple />
+          </label>
+          <label>
+            Oppure una cartella intera (il percorso resta nelle note)
+            <input type="file" name="cartella_input" webkitdirectory="" directory="" multiple />
+          </label>
+          <label style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontWeight: 400 }}>
+            <input type="checkbox" checked={deduci} onChange={(e) => setDeduci(e.target.checked)} style={{ width: "auto", margin: 0 }} />
+            Deduci la categoria dal nome della cartella (bollette, contratti, istruzioni...)
           </label>
           <label>
             Categoria
@@ -254,7 +278,7 @@ export default function DocumentiPage() {
       </h2>
       <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap", marginBottom: "1rem" }}>
         <label style={{ minWidth: 200 }}>
-          Cerca per nome
+          Cerca per nome o cartella
           <input value={cerca} onChange={(e) => setCerca(e.target.value)} />
         </label>
         <label style={{ minWidth: 180 }}>
@@ -291,6 +315,7 @@ export default function DocumentiPage() {
               {dmy(String(d.creato_il).slice(0, 10))} · {dimensioneLeggibile(d.dimensione)}
               {collegati[d.id] ? ` · collegato a ${collegati[d.id]} spese` : ""}
               {d.visibilita === "famiglia" && d.famiglia_id ? ` · ${nomeFam(d.famiglia_id)}` : ""}
+              {d.note ? ` · ${d.note}` : ""}
             </p>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
               <select value={d.categoria} onChange={(e) => aggiorna(d, { categoria: e.target.value })} style={{ width: "auto", marginBottom: 0 }}>
