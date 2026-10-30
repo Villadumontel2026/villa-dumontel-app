@@ -1,5 +1,5 @@
 import { supabase } from "../../../../lib/supabaseClient";
-import { costruisciEvento, calendarioIcs } from "../../../../lib/calendario";
+import { costruisciEvento, costruisciEventoCalendario, calendarioIcs } from "../../../../lib/calendario";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,9 @@ export async function GET(request, { params }) {
   if (error) {
     return new Response("Errore nel calendario", { status: 500 });
   }
-  if (!data || data.length === 0) {
+  // eventi creati dall'admin (se la funzione non esiste ancora, si prosegue senza)
+  const { data: evs } = await supabase.rpc("feed_eventi", { p_token: token });
+  if ((!data || data.length === 0) && (!evs || evs.length === 0)) {
     // Token sconosciuto o nessun evento: restituiamo comunque un calendario vuoto valido
     return new Response(calendarioIcs([], "Villa Dumontel"), {
       headers: {
@@ -26,11 +28,12 @@ export async function GET(request, { params }) {
   }
 
   const appUrl = new URL(request.url).origin;
-  const ruolo = data[0].ruolo;
+  const ruolo = (data && data[0] ? data[0].ruolo : evs && evs[0] ? evs[0].ruolo : null);
   const lang = new URL(request.url).searchParams.get("lang") === "en" ? "en" : "it";
   const { data: tk } = await supabase.from("task_pulizie").select("nome_it, nome_en");
   const taskMap = Object.fromEntries((tk || []).filter((x) => x.nome_en).map((x) => [x.nome_it, x.nome_en]));
-  const eventi = data.map((r) => costruisciEvento(r, { ruolo, appUrl, lang, taskMap }));
+  const eventi = (data || []).map((r) => costruisciEvento(r, { ruolo, appUrl, lang, taskMap }));
+  (evs || []).forEach((e) => eventi.push(costruisciEventoCalendario(e, { lang })));
 
   return new Response(calendarioIcs(eventi, "Villa Dumontel"), {
     headers: {

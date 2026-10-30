@@ -144,6 +144,41 @@ export function costruisciEvento(r, opzioni = {}) {
   return { ...base, tuttoGiorno: false, inizio, fine };
 }
 
+// Evento creato dall'admin (tabella eventi, con promemoria_minuti dal feed)
+export function costruisciEventoCalendario(e, opzioni = {}) {
+  const lang = opzioni.lang === "en" ? "en" : "it";
+  const titolo = lang === "en" && e.titolo_en ? e.titolo_en : e.titolo;
+  const note = lang === "en" && e.note_en ? e.note_en : e.note;
+  const [y, m, d] = String(e.data_inizio).slice(0, 10).split("-").map(Number);
+  const [fy, fm, fd] = String(e.data_fine || e.data_inizio).slice(0, 10).split("-").map(Number);
+  const base = {
+    uid: "evento-" + e.id,
+    id: e.id,
+    titolo,
+    descrizione: [note, "Villa Dumontel"].filter(Boolean).join("\n"),
+    luogo: "Villa Dumontel, Via Passerin d'Entrèves 3, Courmayeur",
+    tentativo: false,
+    modificata: e.aggiornato_il ? new Date(e.aggiornato_il) : new Date(),
+    allarmiMinuti: e.promemoria_minuti || [],
+  };
+  if (!e.ora_inizio) {
+    return { ...base, tuttoGiorno: true, inizioData: fmtData(y, m, d), fineData: fmtData(fy, fm, fd + 1) };
+  }
+  const [hh, mi] = String(e.ora_inizio).split(":").map(Number);
+  const inizio = romaInUtc(y, m, d, hh, mi || 0);
+  let fine;
+  if (e.ora_fine) {
+    const [eh, em] = String(e.ora_fine).split(":").map(Number);
+    fine = romaInUtc(fy, fm, fd, eh, em || 0);
+  } else if (e.data_fine && e.data_fine !== e.data_inizio) {
+    fine = romaInUtc(fy, fm, fd, 23, 59);
+  } else {
+    fine = new Date(inizio.getTime() + 60 * 60000);
+  }
+  if (fine <= inizio) fine = new Date(inizio.getTime() + 60 * 60000);
+  return { ...base, tuttoGiorno: false, inizio, fine };
+}
+
 function esc(t) {
   return String(t)
     .replace(/\\/g, "\\\\")
@@ -169,7 +204,7 @@ function piega(riga) {
 export function veventDa(ev) {
   const r = [
     "BEGIN:VEVENT",
-    "UID:richiesta-" + ev.id + "@villadumontel.it",
+    "UID:" + (ev.uid || "richiesta-" + ev.id) + "@villadumontel.it",
     "DTSTAMP:" + fmtUtc(new Date()),
     "LAST-MODIFIED:" + fmtUtc(ev.modificata),
     "SEQUENCE:" + Math.floor(ev.modificata.getTime() / 1000),
@@ -180,6 +215,17 @@ export function veventDa(ev) {
     "LOCATION:" + esc(ev.luogo),
     "STATUS:" + (ev.tentativo ? "TENTATIVE" : "CONFIRMED"),
   ];
+  (ev.allarmiMinuti || []).forEach((m) => {
+    // per gli eventi di tutto il giorno il promemoria conta dalle 9:00, come nell'app
+    const scarto = ev.tuttoGiorno ? m - 540 : m;
+    r.push(
+      "BEGIN:VALARM",
+      "ACTION:DISPLAY",
+      "DESCRIPTION:" + esc(ev.titolo),
+      "TRIGGER:" + (scarto >= 0 ? "-" : "") + "PT" + Math.abs(scarto) + "M",
+      "END:VALARM"
+    );
+  });
   if (ev.promemoria && !ev.tuttoGiorno) {
     r.push(
       "BEGIN:VALARM",

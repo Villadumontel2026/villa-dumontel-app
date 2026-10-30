@@ -7,6 +7,7 @@ import { useApp } from "../components/AppProvider";
 import { fmtData } from "../../lib/i18n";
 import CalendarioVista from "../components/CalendarioVista";
 import AvvisiBox from "../components/AvvisiBox";
+import { espandiEventi, coloreEvento } from "../../lib/eventi";
 
 const iso = (d) =>
   d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -17,6 +18,7 @@ export default function CollaboratoreHome() {
   const [erroreAccesso, setErroreAccesso] = useState(null);
   const [collab, setCollab] = useState(null);
   const [pulizie, setPulizie] = useState([]);
+  const [eventiCal, setEventiCal] = useState([]);
 
   async function caricaPulizie(id) {
     const { data } = await supabase
@@ -27,6 +29,8 @@ export default function CollaboratoreHome() {
       .neq("stato", "annullata")
       .order("data", { ascending: true });
     setPulizie(data || []);
+    const { data: evs } = await supabase.from("eventi").select("*").order("data_inizio", { ascending: true }).limit(500);
+    setEventiCal(evs || []);
   }
 
   useEffect(() => {
@@ -140,8 +144,8 @@ export default function CollaboratoreHome() {
       <h2>Calendario</h2>
       <div className="card" style={{ marginBottom: "2rem" }}>
         <CalendarioVista
-          eventi={pulizie}
-          colore={() => "#2f4739"}
+          eventi={[...pulizie, ...espandiEventi(eventiCal, lang)]}
+          colore={(r) => (r.tipo === "evento" ? coloreEvento(r) : "#2f4739")}
           soloLettura
           mostraAlloggio
           testoAttesa="da accettare"

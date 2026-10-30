@@ -26,6 +26,9 @@ const GRUPPI = [
       ["richiesta_annullata", "La richiesta viene annullata"],
       ["proposta_modifica", "Ricevono una proposta di modifica"],
       ["pulizia_accettata", "La collaboratrice accetta la pulizia"],
+      ["evento_nuovo", "Nuovo evento nel calendario (se spunti \"Avvisa subito\")"],
+      ["evento_modificato", "Un evento viene modificato"],
+      ["evento_annullato", "Un evento viene eliminato"],
     ],
   ],
   [
@@ -34,6 +37,9 @@ const GRUPPI = [
     [
       ["pulizia_assegnata", "Le viene assegnata una nuova pulizia"],
       ["pulizia_modificata", "Una sua pulizia viene modificata o annullata"],
+      ["evento_nuovo", "Nuovo evento nel calendario (se spunti \"Avvisa subito\")"],
+      ["evento_modificato", "Un evento viene modificato"],
+      ["evento_annullato", "Un evento viene eliminato"],
     ],
   ],
 ];

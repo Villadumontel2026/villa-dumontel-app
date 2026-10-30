@@ -16,9 +16,12 @@ export default function AvvisiBox({ tipo, id = null }) {
   const [avvisi, setAvvisi] = useState([]);
   const [giaQui, setGiaQui] = useState(false);
 
+  const soloEventi = avvisi.length > 0 && avvisi.every((a) => a.evento_id);
+  const destinazione = soloEventi ? "/calendario" : PAGINA[tipo];
+
   useEffect(() => {
-    setGiaQui(window.location.pathname.replace(/\/$/, "") === PAGINA[tipo]);
-  }, [tipo]);
+    setGiaQui(window.location.pathname.replace(/\/$/, "") === destinazione);
+  }, [tipo, destinazione]);
 
   async function carica() {
     let q = supabase
@@ -56,7 +59,7 @@ export default function AvvisiBox({ tipo, id = null }) {
       ))}
       <p style={{ margin: "0.6rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         {!giaQui && (
-          <a href={PAGINA[tipo]} className="btn btn-light">
+          <a href={destinazione} className="btn btn-light">
             {t("av.apri")}
           </a>
         )}

@@ -6,6 +6,7 @@ import { useApp } from "../components/AppProvider";
 import { fmtData, fmtCreata } from "../../lib/i18n";
 import CalendarioVista from "../components/CalendarioVista";
 import AvvisiBox from "../components/AvvisiBox";
+import { espandiEventi, coloreEvento } from "../../lib/eventi";
 
 const COLORI = ["#2f4739", "#2b6a9e", "#a2562c", "#7a4b94"];
 const iso = (d) =>
@@ -19,6 +20,7 @@ export default function AdminHome() {
   const [richieste, setRichieste] = useState([]);
   const [generiche, setGeneriche] = useState([]);
   const [filtro, setFiltro] = useState("tutte");
+  const [eventiCal, setEventiCal] = useState([]);
 
   async function ricarica() {
     const { data: ric } = await supabase
@@ -27,6 +29,8 @@ export default function AdminHome() {
       .neq("stato", "annullata")
       .order("data", { ascending: true });
     setRichieste(ric || []);
+    const { data: evs } = await supabase.from("eventi").select("*").order("data_inizio", { ascending: true }).limit(1000);
+    setEventiCal(evs || []);
   }
 
   useEffect(() => {
@@ -257,9 +261,22 @@ export default function AdminHome() {
       {/* Calendario */}
       <h2>Calendario</h2>
       <div className="card" style={{ marginBottom: "2rem" }}>
+        <p style={{ marginTop: 0 }}>
+          <a href="/calendario/evento" className="btn">
+            Aggiungi un evento
+          </a>
+        </p>
         <CalendarioVista
-          eventi={visibili}
-          colore={(r) => colore(r.famiglia_id)}
+          eventi={[
+            ...visibili,
+            ...espandiEventi(
+              eventiCal.filter(
+                (e) => filtro === "tutte" || e.per_tipo === "villa" || String(e.per_famiglia_id) === filtro
+              ),
+              lang
+            ),
+          ]}
+          colore={(r) => (r.tipo === "evento" ? coloreEvento(r) : colore(r.famiglia_id))}
           amministratore
           onCambiato={ricarica}
         />

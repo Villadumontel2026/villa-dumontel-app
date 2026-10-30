@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
 import { fmtData, traduciSotto } from "../../lib/i18n";
+import { periodoEvento } from "../../lib/eventi";
+import AllegatiEvento from "./AllegatiEvento";
 
 const GIORNI_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const GIORNI_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -113,7 +115,7 @@ export default function CalendarioVista({
     return out;
   }, [cursore]);
 
-  const etichettaEv = (r) => (r.ora ? String(r.ora).slice(0, 5) + " " : "") + t("tipo." + r.tipo);
+  const etichettaEv = (r) => (r.ora ? String(r.ora).slice(0, 5) + " " : "") + (r.tipo === "evento" ? r.titolo : t("tipo." + r.tipo));
 
   // ---------- azioni ----------
   async function annullaEvento(r) {
@@ -164,7 +166,38 @@ export default function CalendarioVista({
     onCambiato && (await onCambiato());
   }
 
+  function dettaglioEvento(r) {
+    const selezionato = evSel === r.id;
+    const e = r._evento;
+    return (
+      <div key={r.id} className="richiesta-item" style={{ borderLeft: "4px solid " + colore(r), paddingLeft: "0.6rem" }}>
+        <div style={{ cursor: "pointer" }} onClick={() => setEvSel(selezionato ? null : r.id)}>
+          <strong>
+            {fmtData(lang, r.data, false)} {r.ora ? String(r.ora).slice(0, 5) : ""}
+          </strong>{" "}
+          &mdash; {r.titolo}
+          {!r.primoGiorno && <span className="muted"> ({lang === "en" ? "continues" : "continua"})</span>}
+        </div>
+        {selezionato && (
+          <div style={{ marginTop: "0.4rem" }}>
+            <p className="descrizione" style={{ margin: "0.15rem 0" }}>
+              {periodoEvento(e, (d) => fmtData(lang, d))}
+            </p>
+            {r.note && <p className="descrizione" style={{ whiteSpace: "pre-line" }}>{r.note}</p>}
+            <AllegatiEvento eventoId={e.id} />
+            {amministratore && (
+              <a href={"/calendario/evento?id=" + e.id} className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }}>
+                {t("ev.modifica")}
+              </a>
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   function dettaglio(r) {
+    if (r.tipo === "evento") return dettaglioEvento(r);
     const aperto = APERTI.includes(r.stato);
     const selezionato = evSel === r.id;
     return (

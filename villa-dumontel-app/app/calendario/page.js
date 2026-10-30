@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import CalendarioVista from "../components/CalendarioVista";
 import { applicaVista } from "../../lib/vista";
+import { espandiEventi, coloreEvento } from "../../lib/eventi";
 
 export default function CalendarioPage() {
   const { t, lang } = useApp();
@@ -15,6 +16,8 @@ export default function CalendarioPage() {
   const [copiato, setCopiato] = useState(false);
   const [famigliaId, setFamigliaId] = useState(null);
   const [mie, setMie] = useState([]);
+  const [eventiCal, setEventiCal] = useState([]);
+  const [sonoAdmin, setSonoAdmin] = useState(false);
 
   async function caricaMie(fid) {
     const { data } = await supabase
@@ -24,6 +27,8 @@ export default function CalendarioPage() {
       .neq("stato", "annullata")
       .order("data", { ascending: true });
     setMie(data || []);
+    const { data: evs } = await supabase.from("eventi").select("*").order("data_inizio", { ascending: true }).limit(500);
+    setEventiCal(evs || []);
   }
 
   async function caricaToken() {
@@ -51,6 +56,7 @@ export default function CalendarioPage() {
         .eq("id", session.user.id)
         .single();
       const p = applicaVista(pRaw);
+      setSonoAdmin(pRaw?.ruolo === "admin" && p?.ruolo === "admin");
       if (p && p.ruolo === "ospite" && p.famiglia_id) {
         setFamigliaId(p.famiglia_id);
         await caricaMie(p.famiglia_id);
@@ -113,12 +119,20 @@ export default function CalendarioPage() {
     <main>
       <h1>{t("cal.titolo")}</h1>
 
+      {sonoAdmin && (
+        <p style={{ marginBottom: "1.5rem" }}>
+          <a href="/calendario/evento" className="btn">
+            Aggiungi un evento
+          </a>
+        </p>
+      )}
+
       {famigliaId && (
         <div className="card" style={{ marginBottom: "1.5rem" }}>
           <h2 style={{ marginTop: 0 }}>{t("cal.mioTitolo")}</h2>
           <CalendarioVista
-            eventi={mie}
-            colore={() => "#2f4739"}
+            eventi={[...mie, ...espandiEventi(eventiCal, lang)]}
+            colore={(r) => (r.tipo === "evento" ? coloreEvento(r) : "#2f4739")}
             onCambiato={() => caricaMie(famigliaId)}
           />
         </div>
