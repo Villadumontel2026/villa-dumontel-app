@@ -61,6 +61,8 @@ export default function AdminHome() {
         .neq("stato", "annullata")
         .order("data", { ascending: true });
       setRichieste(ric || []);
+      const { data: evs } = await supabase.from("eventi").select("*").order("data_inizio", { ascending: true }).limit(1000);
+      setEventiCal(evs || []);
       const { data: gen } = await supabase
         .from("richieste_generiche")
         .select("*, famiglie(nome)")

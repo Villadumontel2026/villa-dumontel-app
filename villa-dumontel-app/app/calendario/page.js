@@ -18,6 +18,7 @@ export default function CalendarioPage() {
   const [mie, setMie] = useState([]);
   const [eventiCal, setEventiCal] = useState([]);
   const [sonoAdmin, setSonoAdmin] = useState(false);
+  const [tutteRichieste, setTutteRichieste] = useState([]);
 
   async function caricaMie(fid) {
     const { data } = await supabase
@@ -28,6 +29,17 @@ export default function CalendarioPage() {
       .order("data", { ascending: true });
     setMie(data || []);
     const { data: evs } = await supabase.from("eventi").select("*").order("data_inizio", { ascending: true }).limit(500);
+    setEventiCal(evs || []);
+  }
+
+  async function caricaAdmin() {
+    const { data } = await supabase
+      .from("richieste")
+      .select("*, alloggi(nome), famiglie(nome)")
+      .neq("stato", "annullata")
+      .order("data", { ascending: true });
+    setTutteRichieste((data || []).filter((r) => r.data));
+    const { data: evs } = await supabase.from("eventi").select("*").order("data_inizio", { ascending: true }).limit(1000);
     setEventiCal(evs || []);
   }
 
@@ -56,7 +68,9 @@ export default function CalendarioPage() {
         .eq("id", session.user.id)
         .single();
       const p = applicaVista(pRaw);
-      setSonoAdmin(pRaw?.ruolo === "admin" && p?.ruolo === "admin");
+      const admin = pRaw?.ruolo === "admin" && p?.ruolo === "admin";
+      setSonoAdmin(admin);
+      if (admin) await caricaAdmin();
       if (p && p.ruolo === "ospite" && p.famiglia_id) {
         setFamigliaId(p.famiglia_id);
         await caricaMie(p.famiglia_id);
@@ -125,6 +139,17 @@ export default function CalendarioPage() {
             Aggiungi un evento
           </a>
         </p>
+      )}
+
+      {sonoAdmin && (
+        <div className="card" style={{ marginBottom: "1.5rem" }}>
+          <CalendarioVista
+            eventi={[...tutteRichieste, ...espandiEventi(eventiCal, lang)]}
+            colore={(r) => (r.tipo === "evento" ? coloreEvento(r) : ["#2f4739", "#2b6a9e", "#a2562c", "#7a4b94"][(r.famiglia_id || 0) % 4])}
+            amministratore
+            onCambiato={caricaAdmin}
+          />
+        </div>
       )}
 
       {famigliaId && (
