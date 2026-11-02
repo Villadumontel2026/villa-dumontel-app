@@ -8,6 +8,10 @@ import { caricaDocumento, apriDocumento, eliminaDocumento } from "../../../lib/d
 
 const ANNO_CORRENTE = new Date().getFullYear();
 
+function annoSpesa(s) {
+  return s.anno_riferimento || parseInt(String(s.data || "").slice(0, 4), 10) || null;
+}
+
 function Modale({ titolo, onChiudi, children }) {
   return (
     <div
