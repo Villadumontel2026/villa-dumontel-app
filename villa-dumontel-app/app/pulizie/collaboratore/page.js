@@ -94,6 +94,23 @@ export default function PaginaCollaboratrice() {
     carica();
   }, []);
 
+  const [statiAlloggi, setStatiAlloggi] = useState([]);
+  async function caricaStati() {
+    const { data } = await supabase.from("stato_alloggi").select("*");
+    setStatiAlloggi(data || []);
+  }
+  useEffect(() => {
+    caricaStati();
+  }, []);
+
+  async function iniziate(r) {
+    setMsg(null);
+    const { error } = await supabase.rpc("pulizia_collaboratrice", { p_richiesta: r.id, p_stato: "in_corso" });
+    if (error) return setMsg("Errore: " + error.message);
+    await caricaStati();
+    setMsg("Pulizie segnate come in corso.");
+  }
+
   async function ricaricaRichieste() {
     const { data: ric } = await supabase
       .from("richieste")
@@ -159,6 +176,7 @@ export default function PaginaCollaboratrice() {
       setMsg("Turno inviato, ma la richiesta non si e' chiusa: " + error.message);
       return;
     }
+    await supabase.rpc("pulizia_collaboratrice", { p_richiesta: r.id, p_stato: "pulito" });
     await ricaricaRichieste();
     window.location.reload();
   }
@@ -257,6 +275,22 @@ export default function PaginaCollaboratrice() {
                 <strong>{r.alloggi?.nome}</strong> &mdash; {dmy(r.data)}{" "}
                 {r.ora ? String(r.ora).slice(0, 5) : ""}
                 {r.durata_ore ? ` — previste ${r.durata_ore} ore` : ""}
+                <p className="descrizione" style={{ margin: "0.15rem 0" }}>
+                  {r.sotto_tipo === "fine_soggiorno" ? "Pulizia di fine soggiorno" : "Pulizia periodica"}
+                  {(() => {
+                    const st = statiAlloggi.find((x) => x.famiglia_id === r.famiglia_id);
+                    if (!st) return "";
+                    const et = { da_pulire: "da pulire", in_corso: "pulizie in corso", pulito: "pulito" }[st.pulizia];
+                    return ` · stato appartamento: ${et}${st.da_confermare ? " (da confermare)" : ""}`;
+                  })()}
+                </p>
+                {!r.convalidata_il && (
+                  <p style={{ margin: "0.4rem 0" }}>
+                    <button type="button" className="btn btn-light" onClick={() => iniziate(r)}>
+                      Pulizie iniziate
+                    </button>
+                  </p>
+                )}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
                 {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}

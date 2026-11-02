@@ -247,6 +247,11 @@ const it = {
   "f.daAssegnare": "— da assegnare —",
   "f.durata": "Durata prevista (ore)",
   "f.cosaServe": "Cosa serve",
+  "f.tipoPulizia": "Tipo di pulizia",
+  "f.pulPeriodica": "Pulizia periodica",
+  "f.pulFine": "Pulizia di fine soggiorno",
+  "sotto.periodica": "Pulizia periodica",
+  "sotto.fine_soggiorno": "Pulizia di fine soggiorno",
   "f.note": "Note",
 
   // Info
@@ -501,6 +506,11 @@ const en = {
   "f.daAssegnare": "— to be assigned —",
   "f.durata": "Expected duration (hours)",
   "f.cosaServe": "What is needed",
+  "f.tipoPulizia": "Type of cleaning",
+  "f.pulPeriodica": "Regular cleaning",
+  "f.pulFine": "End-of-stay cleaning",
+  "sotto.periodica": "Regular cleaning",
+  "sotto.fine_soggiorno": "End-of-stay cleaning",
   "f.note": "Notes",
 
   "i.titolo": "Information",

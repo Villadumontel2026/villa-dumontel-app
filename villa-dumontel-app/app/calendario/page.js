@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import CalendarioVista from "../components/CalendarioVista";
 import { applicaVista } from "../../lib/vista";
+import AffittiBox from "../components/AffittiBox";
 import { espandiEventi, coloreEvento } from "../../lib/eventi";
 
 export default function CalendarioPage() {
@@ -19,6 +20,7 @@ export default function CalendarioPage() {
   const [eventiCal, setEventiCal] = useState([]);
   const [sonoAdmin, setSonoAdmin] = useState(false);
   const [tutteRichieste, setTutteRichieste] = useState([]);
+  const [famAdmin, setFamAdmin] = useState([]);
 
   async function caricaMie(fid) {
     const { data } = await supabase
@@ -39,6 +41,8 @@ export default function CalendarioPage() {
       .neq("stato", "annullata")
       .order("data", { ascending: true });
     setTutteRichieste((data || []).filter((r) => r.data));
+    const { data: fam } = await supabase.from("famiglie").select("id, nome, test").order("id");
+    setFamAdmin((fam || []).filter((x) => !x.test));
     const { data: evs } = await supabase.from("eventi").select("*").order("data_inizio", { ascending: true }).limit(1000);
     setEventiCal(evs || []);
   }
@@ -134,12 +138,19 @@ export default function CalendarioPage() {
       <h1>{t("cal.titolo")}</h1>
 
       {sonoAdmin && (
-        <p style={{ marginBottom: "1.5rem" }}>
+        <p style={{ marginBottom: "1.5rem", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
           <a href="/calendario/evento" className="btn">
             Aggiungi un evento
           </a>
+          <a href="/calendario/evento?tipo=arrivo" className="btn btn-light">
+            Registra arrivo
+          </a>
+          <a href="/calendario/evento?tipo=partenza" className="btn btn-light">
+            Registra fine soggiorno
+          </a>
         </p>
       )}
+      {sonoAdmin && famAdmin.length > 0 && <AffittiBox famiglie={famAdmin} />}
 
       {sonoAdmin && (
         <div className="card" style={{ marginBottom: "1.5rem" }}>

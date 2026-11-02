@@ -18,6 +18,7 @@ function daMinuti(m) {
 }
 
 const vuoto = {
+  tipo_evento: "generico", // generico | arrivo | partenza
   titolo: "",
   titolo_en: "",
   note: "",
@@ -60,12 +61,27 @@ export default function EventoAdminPage() {
       const { data: fam } = await supabase.from("famiglie").select("id, nome, test").order("id");
       setFamiglie((fam || []).filter((x) => !x.test));
 
-      const eid = new URLSearchParams(window.location.search).get("id");
+      const q = new URLSearchParams(window.location.search);
+      const eid = q.get("id");
+      const tipoUrl = q.get("tipo");
+      if (!eid && (tipoUrl === "arrivo" || tipoUrl === "partenza")) {
+        const fid = q.get("fam") || (fam && fam.find((x) => !x.test) ? String(fam.find((x) => !x.test).id) : "");
+        setF((prev) => ({
+          ...prev,
+          tipo_evento: tipoUrl,
+          per_tipo: "famiglia",
+          per_famiglia_id: fid,
+          vis_tutti: false,
+          vis_famiglie: fid ? [Number(fid)] : [],
+          vis_collaboratori: true,
+        }));
+      }
       if (eid) {
         const { data: e } = await supabase.from("eventi").select("*").eq("id", eid).single();
         if (!e) return setStato("nontrovato");
         setId(e.id);
         setF({
+          tipo_evento: e.tipo_evento || "generico",
           titolo: e.titolo || "",
           titolo_en: e.titolo_en || "",
           note: e.note || "",
@@ -124,6 +140,31 @@ export default function EventoAdminPage() {
     });
   }
 
+  function cambiaTipo(tipo) {
+    setF((prev) => {
+      const n = { ...prev, tipo_evento: tipo };
+      if (tipo !== "generico") {
+        n.per_tipo = "famiglia";
+        if (!n.per_famiglia_id && famiglie[0]) n.per_famiglia_id = String(famiglie[0].id);
+        if (tipo === "partenza") n.durata = "singolo";
+        if (!id) {
+          n.vis_tutti = false;
+          n.vis_famiglie = n.per_famiglia_id ? [Number(n.per_famiglia_id)] : [];
+          n.vis_collaboratori = true;
+        }
+      }
+      return n;
+    });
+  }
+
+  function cambiaFamigliaSoggiorno(fid) {
+    setF((prev) => {
+      const n = { ...prev, per_famiglia_id: fid };
+      if (!id) n.vis_famiglie = fid ? [Number(fid)] : [];
+      return n;
+    });
+  }
+
   function toggleFamiglia(fid) {
     setF((prev) => ({
       ...prev,
@@ -134,7 +175,14 @@ export default function EventoAdminPage() {
   async function salva(e) {
     e.preventDefault();
     setErrore(null);
-    if (!f.titolo.trim()) return setErrore("Scrivi il titolo dell'evento.");
+    const nomeFam = (famiglie.find((x) => String(x.id) === String(f.per_famiglia_id)) || {}).nome || "";
+    let titolo = f.titolo.trim();
+    let titolo_en = f.titolo_en.trim();
+    if (!titolo && f.tipo_evento === "arrivo") titolo = "Arrivo: " + nomeFam;
+    if (!titolo && f.tipo_evento === "partenza") titolo = "Fine soggiorno: " + nomeFam;
+    if (!titolo_en && f.tipo_evento === "arrivo") titolo_en = "Arrival: " + nomeFam;
+    if (!titolo_en && f.tipo_evento === "partenza") titolo_en = "Check-out: " + nomeFam;
+    if (!titolo) return setErrore("Scrivi il titolo dell'evento.");
     if (!f.data_inizio) return setErrore("Scegli la data.");
     if (f.per_tipo === "famiglia" && !f.per_famiglia_id) return setErrore("Scegli la famiglia.");
     let data_fine = null;
@@ -150,8 +198,9 @@ export default function EventoAdminPage() {
     setAttesa(true);
 
     const riga = {
-      titolo: f.titolo.trim(),
-      titolo_en: f.titolo_en.trim() || null,
+      tipo_evento: f.tipo_evento,
+      titolo,
+      titolo_en: titolo_en || null,
       note: f.note.trim() || null,
       note_en: f.note_en.trim() || null,
       per_tipo: f.per_tipo,
@@ -214,6 +263,7 @@ export default function EventoAdminPage() {
     if (avvisa) {
       await supabase.rpc("evento_avvisa", { p_id: eventoId, p_tipo: id ? "modificato" : "nuovo" });
     }
+    if (f.tipo_evento !== "generico") await supabase.rpc("aggiorna_stati_alloggi");
 
     setAttesa(false);
     if (falliti.length) {
@@ -287,18 +337,51 @@ export default function EventoAdminPage() {
           &larr; Calendario
         </a>
       </p>
-      <h1>{id ? "Modifica evento" : "Nuovo evento"}</h1>
+      <h1>
+        {id ? "Modifica " : "Nuovo "}
+        {f.tipo_evento === "arrivo" ? "arrivo" : f.tipo_evento === "partenza" ? "fine soggiorno" : "evento"}
+      </h1>
 
       <form onSubmit={salva} className="card" style={{ maxWidth: 640 }}>
+        <fieldset style={{ border: "none", padding: 0, margin: "0 0 1rem" }}>
+          <strong>Tipo</strong>
+          <label style={check}>
+            <input type="radio" style={cb} checked={f.tipo_evento === "generico"} onChange={() => cambiaTipo("generico")} /> Evento
+          </label>
+          <label style={check}>
+            <input type="radio" style={cb} checked={f.tipo_evento === "arrivo"} onChange={() => cambiaTipo("arrivo")} /> Arrivo di una famiglia
+          </label>
+          <label style={check}>
+            <input type="radio" style={cb} checked={f.tipo_evento === "partenza"} onChange={() => cambiaTipo("partenza")} /> Fine soggiorno
+          </label>
+        </fieldset>
+        {f.tipo_evento !== "generico" && (
+          <label>
+            Famiglia / appartamento
+            <select value={f.per_famiglia_id} onChange={(e) => cambiaFamigliaSoggiorno(e.target.value)} required>
+              {famiglie.map((x) => (
+                <option key={x.id} value={x.id}>
+                  {x.nome}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
         <label>
-          Titolo
-          <input value={f.titolo} onChange={(e) => set("titolo", e.target.value)} required placeholder="es. Arrivo di Karen e Julian" />
+          Titolo{f.tipo_evento !== "generico" ? " (se vuoto lo scrivo io)" : ""}
+          <input
+            value={f.titolo}
+            onChange={(e) => set("titolo", e.target.value)}
+            required={f.tipo_evento === "generico"}
+            placeholder={f.tipo_evento === "arrivo" ? "es. Arrivo: Karen e Julian" : f.tipo_evento === "partenza" ? "es. Fine soggiorno: Karen e Julian" : "es. Manutenzione caldaia"}
+          />
         </label>
         <label>
           Titolo in inglese (facoltativo, lo vedono gli ospiti in inglese)
           <input value={f.titolo_en} onChange={(e) => set("titolo_en", e.target.value)} />
         </label>
 
+        {f.tipo_evento === "generico" && (
         <fieldset style={{ border: "none", padding: 0, margin: "1rem 0 0" }}>
           <strong>L&apos;evento e&apos; per</strong>
           <label style={check}>
@@ -320,6 +403,7 @@ export default function EventoAdminPage() {
             <input type="radio" style={cb} checked={f.per_tipo === "admin"} onChange={() => cambiaPer("admin")} /> Admin
           </label>
         </fieldset>
+        )}
 
         <fieldset style={{ border: "none", padding: 0, margin: "1rem 0 0" }}>
           <strong>Chi lo vede</strong>
@@ -345,15 +429,21 @@ export default function EventoAdminPage() {
 
         <fieldset style={{ border: "none", padding: 0, margin: "1rem 0 0" }}>
           <strong>Quando</strong>
-          <label style={check}>
-            <input type="radio" style={cb} checked={f.durata === "singolo"} onChange={() => set("durata", "singolo")} /> Evento singolo (es. un arrivo)
-          </label>
-          <label style={check}>
-            <input type="radio" style={cb} checked={f.durata === "periodo"} onChange={() => set("durata", "periodo")} /> Con inizio e fine
-          </label>
+          {f.tipo_evento !== "partenza" && (
+            <>
+              <label style={check}>
+                <input type="radio" style={cb} checked={f.durata === "singolo"} onChange={() => set("durata", "singolo")} />{" "}
+                {f.tipo_evento === "arrivo" ? "Solo arrivo (la fine del soggiorno la registri dopo)" : "Evento singolo (es. un arrivo)"}
+              </label>
+              <label style={check}>
+                <input type="radio" style={cb} checked={f.durata === "periodo"} onChange={() => set("durata", "periodo")} />{" "}
+                {f.tipo_evento === "arrivo" ? "Con partenza (periodo di soggiorno)" : "Con inizio e fine"}
+              </label>
+            </>
+          )}
           <div style={riga}>
             <label>
-              {f.durata === "periodo" ? "Data di inizio" : "Data"}
+              {f.tipo_evento === "arrivo" ? "Data di arrivo" : f.tipo_evento === "partenza" ? "Data di fine soggiorno" : f.durata === "periodo" ? "Data di inizio" : "Data"}
               <input type="date" value={f.data_inizio} onChange={(e) => set("data_inizio", e.target.value)} required />
             </label>
             <label>
@@ -364,7 +454,7 @@ export default function EventoAdminPage() {
           {f.durata === "periodo" && (
             <div style={riga}>
               <label>
-                Data di fine
+                {f.tipo_evento === "arrivo" ? "Data di partenza" : "Data di fine"}
                 <input type="date" value={f.data_fine} min={f.data_inizio || undefined} onChange={(e) => set("data_fine", e.target.value)} required />
               </label>
               <label>
@@ -377,7 +467,7 @@ export default function EventoAdminPage() {
         </fieldset>
 
         <label style={{ marginTop: "1rem" }}>
-          Note
+          {f.tipo_evento === "arrivo" ? "Note sull'arrivo (es. orario del treno, richieste)" : "Note"}
           <textarea value={f.note} onChange={(e) => set("note", e.target.value)} rows={4}></textarea>
         </label>
         <label>

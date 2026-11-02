@@ -15,6 +15,7 @@ const GRUPPI = [
       ["proposta_risposta", "Un ospite risponde a una proposta di modifica"],
       ["pulizia_accettata", "La collaboratrice accetta una pulizia"],
       ["pulizia_fatta", "La collaboratrice segna una pulizia come fatta (da validare)"],
+      ["pulizia_in_corso", "La collaboratrice segna le pulizie come in corso"],
     ],
   ],
   [

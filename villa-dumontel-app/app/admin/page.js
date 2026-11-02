@@ -7,6 +7,7 @@ import { fmtData, fmtCreata } from "../../lib/i18n";
 import CalendarioVista from "../components/CalendarioVista";
 import AvvisiBox from "../components/AvvisiBox";
 import { espandiEventi, coloreEvento } from "../../lib/eventi";
+import AppartamentiBox from "../components/AppartamentiBox";
 
 const COLORI = ["#2f4739", "#2b6a9e", "#a2562c", "#7a4b94"];
 const iso = (d) =>
@@ -53,7 +54,7 @@ export default function AdminHome() {
         setCaricamento(false);
         return;
       }
-      const { data: fam } = await supabase.from("famiglie").select("id, nome").order("id");
+      const { data: fam } = await supabase.from("famiglie").select("id, nome, test").order("id");
       setFamiglie(fam || []);
       const { data: ric } = await supabase
         .from("richieste")
@@ -158,6 +159,8 @@ export default function AdminHome() {
       <h1>Home</h1>
 
       <AvvisiBox tipo="admin" />
+
+      <AppartamentiBox famiglie={famiglie.filter((x) => !x.test)} eventi={eventiCal} />
 
       {/* Da fare */}
       <div style={{ display: "grid", gap: "0.75rem", marginBottom: "1.5rem" }}>

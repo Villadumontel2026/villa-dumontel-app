@@ -94,6 +94,7 @@ export default function FormRichiesta({
         descrizione = p ? p.nome : null;
       }
     } else if (tipo === "pulizie") {
+      sotto_tipo = val("tipo_pulizia") || "periodica";
       const voci = Array.from(
         f.querySelectorAll('input[name="voci"]:checked')
       ).map((c) => c.value);
@@ -268,6 +269,15 @@ export default function FormRichiesta({
 
       {tipo === "pulizie" && (
         <>
+          <label>{t("f.tipoPulizia")}</label>
+          <label style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <input type="radio" name="tipo_pulizia" value="periodica" defaultChecked style={{ width: "auto", marginBottom: 0 }} />
+            {t("f.pulPeriodica")}
+          </label>
+          <label style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+            <input type="radio" name="tipo_pulizia" value="fine_soggiorno" style={{ width: "auto", marginBottom: 0 }} />
+            {t("f.pulFine")}
+          </label>
           <label>
             {t("f.dataDesiderata")}
             <input type="date" name="data" required />
