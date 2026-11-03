@@ -167,6 +167,7 @@ export default function RichiesteOspitePage() {
             ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}`
             : ""}
           {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
+          {r.nome_prenotazione ? ` — ${t("f.nomePren")}: ${r.nome_prenotazione}` : ""}
           {r.durata_ore ? ` — ${t("c.durata")} ${r.durata_ore} ${t("c.ore")}` : ""}
           {r.tipo === "pulizie" && r.note ? ` — ${r.note}` : ""}
           {r.tipo === "pulizie" && r.accettata_il ? ` — ${t("ro.accettata")}` : ""}

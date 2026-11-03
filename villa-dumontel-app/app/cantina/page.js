@@ -74,6 +74,16 @@ export default function CantinaPage() {
   const [scegliPerRiempi, setScegliPerRiempi] = useState(false);
   const [sel, setSel] = useState(null); // { scaffale, col, riga, bottiglia? } oppure { zona }
   const [errore, setErrore] = useState(null);
+  const [aperti, setAperti] = useState(() => new Set()); // finestre aperte: "s:ID" scaffale, "z:Nome" zona
+  const [provenienza, setProvenienza] = useState("Acquisto"); // per nuove bottiglie
+
+  const apriChiudi = (k) =>
+    setAperti((prev) => {
+      const n = new Set(prev);
+      if (n.has(k)) n.delete(k);
+      else n.add(k);
+      return n;
+    });
 
   async function carica() {
     const [s, v, b] = await Promise.all([
@@ -146,9 +156,10 @@ export default function CantinaPage() {
 
   async function piazza(vino, dove) {
     setErrore(null);
+    const prov = (provenienza || "").trim() || "Acquisto";
     const riga = dove.zona
-      ? { vino_id: vino.id, zona: dove.zona }
-      : { vino_id: vino.id, scaffale_id: dove.scaffale.id, colonna: dove.col, riga: dove.riga };
+      ? { vino_id: vino.id, zona: dove.zona, provenienza: prov }
+      : { vino_id: vino.id, scaffale_id: dove.scaffale.id, colonna: dove.col, riga: dove.riga, provenienza: prov };
     const { data, error } = await supabase.from("cantina_bottiglie").insert(riga).select().single();
     if (error) return setErrore("Errore: " + error.message);
     setBottiglie((prev) => [...prev, data]);
@@ -174,6 +185,25 @@ export default function CantinaPage() {
     if (!b && vinoRiempi) return piazza(vinoRiempi, { scaffale: s, col, riga });
     setSel({ scaffale: s, col, riga, bottiglia: b || null });
   }
+
+  async function cambiaProvenienza(b, valore) {
+    const prov = (valore || "").trim() || "Acquisto";
+    const { error } = await supabase.from("cantina_bottiglie").update({ provenienza: prov }).eq("id", b.id);
+    if (error) return setErrore("Errore: " + error.message);
+    setBottiglie((prev) => prev.map((x) => (x.id === b.id ? { ...x, provenienza: prov } : x)));
+    setSel((s) => (s && s.bottiglia && s.bottiglia.id === b.id ? { ...s, bottiglia: { ...s.bottiglia, provenienza: prov } } : s));
+  }
+
+  const campoProvenienza = (
+    <label>
+      Provenienza
+      <input
+        value={provenienza}
+        onChange={(e) => setProvenienza(e.target.value)}
+        placeholder="Acquisto, oppure chi l'ha regalata"
+      />
+    </label>
+  );
 
   const totBottiglie = bottiglie.length;
   const viniConGiacenza = new Set(bottiglie.map((b) => b.vino_id)).size;
@@ -212,6 +242,7 @@ export default function CantinaPage() {
           <p style={{ margin: 0 }}>
             Inserimento rapido: tocca le celle vuote per piazzare <strong>{nomeVino(vinoRiempi)}</strong>.
           </p>
+          {campoProvenienza}
           <p style={{ margin: "0.5rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <button type="button" className="btn btn-light" onClick={() => setScegliPerRiempi(true)}>
               Cambia vino
@@ -230,21 +261,50 @@ export default function CantinaPage() {
       )}
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
 
+      <p style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <button
+          type="button"
+          className="btn btn-light"
+          onClick={() => setAperti(new Set([...scaffali.map((s) => "s:" + s.id), ...ZONE.map((z) => "z:" + z)]))}
+        >
+          Apri tutto
+        </button>
+        <button type="button" className="btn btn-light" onClick={() => setAperti(new Set())}>
+          Chiudi tutto
+        </button>
+      </p>
+
       {scaffali.map((s) => {
         const righe = righeScaffale(s);
         const n = bottiglie.filter((b) => b.scaffale_id === s.id).length;
+        const nTrovate = trovati ? bottiglie.filter((b) => b.scaffale_id === s.id && trovati.has(b.vino_id)).length : 0;
+        // in modalità inserimento rapido o ricerca le scaffalature utili restano aperte
+        const aperta = aperti.has("s:" + s.id) || (!!trovati && nTrovate > 0);
         return (
           <div key={s.id} className="card" style={{ marginBottom: "1rem", opacity: s.attivo ? 1 : 0.7 }}>
-            <h3 style={{ margin: "0 0 0.15rem" }}>
-              Scaffalatura {s.codice}{" "}
-              <span className="muted" style={{ fontWeight: 400, fontSize: "0.85em" }}>
-                {s.tipo} · {s.posizione || ""} {s.attivo ? "" : "(da montare)"}
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => apriChiudi("s:" + s.id)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && apriChiudi("s:" + s.id)}
+              style={{ cursor: "pointer", display: "flex", gap: "0.6rem", alignItems: "center" }}
+            >
+              <span style={{ fontSize: "1.1rem", width: "1rem" }}>{aperta ? "▾" : "▸"}</span>
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <h3 style={{ margin: 0 }}>
+                  Scaffalatura {s.codice}{" "}
+                  <span className="muted" style={{ fontWeight: 400, fontSize: "0.85em" }}>
+                    {s.tipo} · {s.posizione || ""} {s.attivo ? "" : "(da montare)"}
+                  </span>
+                </h3>
+                <span className="muted" style={{ fontSize: "0.85em" }}>
+                  {n} bottiglie su {capienza(s)} posti
+                  {trovati ? ` · ${nTrovate} trovate` : ""}
+                </span>
               </span>
-            </h3>
-            <p className="muted" style={{ margin: "0 0 0.5rem", fontSize: "0.85em" }}>
-              {n} bottiglie su {capienza(s)} posti
-            </p>
-            <div style={{ overflowX: "auto" }}>
+            </div>
+            {aperta && (
+            <div style={{ overflowX: "auto", marginTop: "0.5rem" }}>
               <table style={{ borderCollapse: "separate", borderSpacing: 3 }}>
                 <thead>
                   <tr>
@@ -297,6 +357,7 @@ export default function CantinaPage() {
                 </tbody>
               </table>
             </div>
+            )}
           </div>
         );
       })}
@@ -307,11 +368,23 @@ export default function CantinaPage() {
         const dentro = bottiglie.filter((b) => b.zona === z && !b.scaffale_id);
         const gruppi = new Map();
         dentro.forEach((b) => gruppi.set(b.vino_id, [...(gruppi.get(b.vino_id) || []), b]));
+        const zonaAperta = aperti.has("z:" + z) || (!!trovati && dentro.some((b) => trovati.has(b.vino_id)));
         return (
           <div key={z} className="card" style={{ marginBottom: "1rem" }}>
-            <h3 style={{ margin: "0 0 0.4rem" }}>
-              {z} <span className="muted" style={{ fontWeight: 400 }}>({dentro.length})</span>
-            </h3>
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => apriChiudi("z:" + z)}
+              onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && apriChiudi("z:" + z)}
+              style={{ cursor: "pointer", display: "flex", gap: "0.6rem", alignItems: "center" }}
+            >
+              <span style={{ fontSize: "1.1rem", width: "1rem" }}>{zonaAperta ? "▾" : "▸"}</span>
+              <h3 style={{ margin: 0 }}>
+                {z} <span className="muted" style={{ fontWeight: 400 }}>({dentro.length})</span>
+              </h3>
+            </div>
+            {zonaAperta && (
+              <div style={{ marginTop: "0.5rem" }}>
             {[...gruppi.entries()].map(([vid, righe]) => {
               const v = viniPerId.get(vid);
               return (
@@ -331,6 +404,8 @@ export default function CantinaPage() {
             <button type="button" className="btn btn-light" onClick={() => setSel({ zona: z, aggiungi: true })}>
               Aggiungi un vino qui
             </button>
+              </div>
+            )}
           </div>
         );
       })}
@@ -363,6 +438,17 @@ export default function CantinaPage() {
                   In cantina: {giacenza(sel.bottiglia.vino_id)} bottiglie — {posizioniDi(sel.bottiglia.vino_id).join(", ")}
                 </p>
                 <label>
+                  Provenienza
+                  <input
+                    key={sel.bottiglia.id}
+                    defaultValue={sel.bottiglia.provenienza || "Acquisto"}
+                    onBlur={(e) => {
+                      if ((e.target.value || "").trim() !== (sel.bottiglia.provenienza || "Acquisto")) cambiaProvenienza(sel.bottiglia, e.target.value);
+                    }}
+                    placeholder="Acquisto, oppure chi l'ha regalata"
+                  />
+                </label>
+                <label>
                   Togli la bottiglia perché è stata
                   <select id="motivo" defaultValue="bevuta">
                     {MOTIVI_SCARICO.map((m) => (
@@ -391,6 +477,7 @@ export default function CantinaPage() {
           titolo={sel.scaffale ? "Aggiungi in " + codicePosizione(sel.scaffale, sel.col, sel.riga) : "Aggiungi in " + sel.zona}
           onChiudi={() => setSel(null)}
         >
+          {campoProvenienza}
           <ScegliVino
             vini={vini}
             onScegli={async (v) => {

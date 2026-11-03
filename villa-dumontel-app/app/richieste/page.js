@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import FormRichiesta from "../components/FormRichiesta";
+import SelettoreNumero from "../components/SelettoreNumero";
 import CalendarButton from "../components/CalendarButton";
 import { useApp } from "../components/AppProvider";
 import { dmy, fmtCreata } from "../../lib/i18n";
@@ -287,6 +288,9 @@ export default function RichiestePage() {
           {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
           {r.descrizione}
           {r.pax ? ` (${r.pax} pers.)` : ""}
+          {r.nome_prenotazione ? ` — a nome di ${r.nome_prenotazione}` : ""}
+          {r.tipo === "trasporto" && r.orario_tipo ? ` — ${r.orario_tipo === "arrivo" ? "arrivo" : "partenza"}` : ""}
+          {r.tipo === "pulizie" && !r.sotto_tipo ? " — tipo da indicare" : ""}
           {r.note ? ` (${r.note})` : ""}
         </p>
         {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
@@ -400,12 +404,12 @@ export default function RichiestePage() {
             {r.tipo === "pulizie" && (
               <label>
                 Durata (ore)
-                <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue={r.durata_ore || ""} />
+                <SelettoreNumero name="durata_ore" min={0.5} max={12} passo={0.5} defaultValue={r.durata_ore || ""} suffisso=" h" />
               </label>
             )}
             <label>
               Persone
-              <input type="number" name="pax" min="1" defaultValue={r.pax || ""} />
+              <SelettoreNumero name="pax" min={1} max={20} defaultValue={r.pax || ""} />
             </label>
             <label>
               Dettaglio (tipo)

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useApp } from "./AppProvider";
+import SelettoreNumero from "./SelettoreNumero";
 
 const CHECKLIST_PULIZIE = [
   "Cambio lenzuola",
@@ -21,6 +22,16 @@ const DIREZIONI = [
 
 const ALTRO = "__altro__";
 
+// Fasce orarie dei pasti (minuti dalla mezzanotte)
+const PRANZO = [11 * 60, 15 * 60];
+const CENA = [18 * 60, 24 * 60];
+
+function minuti(ora) {
+  if (!ora) return null;
+  const [h, m] = String(ora).split(":");
+  return parseInt(h, 10) * 60 + parseInt(m || "0", 10);
+}
+
 function raggruppa(posti) {
   const g = {};
   posti.forEach((p) => {
@@ -34,6 +45,7 @@ function raggruppa(posti) {
 // Props:
 //  alloggi, posti [{id, nome, categoria, sotto_categoria}]
 //  tipoIniziale, nomeIniziale (per i pulsanti "Prenota" delle pagine Info)
+//  collaboratori: se presente e' il form dell'admin (puo' indicare il tipo di pulizia)
 //  onSubmit(valori) -> Promise che ritorna un messaggio di errore oppure null
 //  etichettaBottone
 export default function FormRichiesta({
@@ -58,9 +70,12 @@ export default function FormRichiesta({
   };
 
   const [posto, setPosto] = useState(trovaIniziale(tipoIniziale));
+  const [tipologia, setTipologia] = useState("aeroporto");
   const [direzione, setDirezione] = useState(DIREZIONI[0]);
   const [errore, setErrore] = useState(null);
   const [formKey, setFormKey] = useState(0);
+
+  const isAdmin = !!collaboratori;
 
   function cambiaTipo(tp) {
     setTipo(tp);
@@ -77,13 +92,21 @@ export default function FormRichiesta({
     let sotto_tipo = val("sotto_tipo");
     let descrizione = null;
     let posto_id = null;
+    let tipologia_trasporto = null;
+    let orario_tipo = null;
 
     if (tipo === "trasporto") {
-      if (direzione === ALTRO) {
-        sotto_tipo = "Altro";
-        descrizione = val("altro_testo");
+      tipologia_trasporto = tipologia;
+      orario_tipo = val("orario_tipo") || "partenza";
+      if (tipologia === "aeroporto") {
+        if (direzione === ALTRO) {
+          sotto_tipo = "Altro";
+          descrizione = val("altro_testo");
+        } else {
+          sotto_tipo = direzione;
+        }
       } else {
-        sotto_tipo = direzione;
+        sotto_tipo = `${(val("da_luogo") || "").trim()} → ${(val("a_luogo") || "").trim()}`;
       }
     } else if (tipo === "ristorante" || tipo === "attivita") {
       if (posto === ALTRO || !posto) {
@@ -93,12 +116,37 @@ export default function FormRichiesta({
         posto_id = p ? p.id : null;
         descrizione = p ? p.nome : null;
       }
+      if (!descrizione) {
+        setErrore(t(tipo === "ristorante" ? "f.errRistorante" : "f.errAttivita"));
+        return;
+      }
     } else if (tipo === "pulizie") {
-      sotto_tipo = val("tipo_pulizia") || "periodica";
+      sotto_tipo = isAdmin ? val("tipo_pulizia") : null;
       const voci = Array.from(
         f.querySelectorAll('input[name="voci"]:checked')
       ).map((c) => c.value);
       descrizione = voci.length ? voci.join(", ") : null;
+    }
+
+    // Controlli sui campi obbligatori
+    if (tipo !== "pulizie") {
+      if (!val("data") || !val("ora") || !val("pax")) {
+        setErrore(t("f.errObbligatori"));
+        return;
+      }
+    }
+
+    // Avviso (non bloccante) sull'orario di pranzo/cena
+    if (tipo === "ristorante") {
+      const m = minuti(val("ora"));
+      const pasto = sotto_tipo === "cena" ? "cena" : "pranzo";
+      const [a, b] = pasto === "cena" ? CENA : PRANZO;
+      if (m !== null && (m < a || m >= b)) {
+        const ok = window.confirm(
+          t(pasto === "cena" ? "f.avvisoCena" : "f.avvisoPranzo").replace("{ora}", val("ora"))
+        );
+        if (!ok) return;
+      }
     }
 
     const err = await onSubmit({
@@ -113,6 +161,9 @@ export default function FormRichiesta({
       descrizione,
       posto_id,
       note: val("note"),
+      nome_prenotazione: tipo === "pulizie" ? null : (val("nome_prenotazione") || "").trim() || null,
+      tipologia_trasporto,
+      orario_tipo,
     });
 
     if (err) {
@@ -121,6 +172,7 @@ export default function FormRichiesta({
       f.reset();
       setPosto("");
       setDirezione(DIREZIONI[0]);
+      setTipologia("aeroporto");
       setFormKey((k) => k + 1);
     }
   }
@@ -131,7 +183,7 @@ export default function FormRichiesta({
       <>
         <label>
           {etichetta}
-          <select value={posto} onChange={(e) => setPosto(e.target.value)}>
+          <select value={posto} onChange={(e) => setPosto(e.target.value)} required>
             <option value="">{t("f.scegli")}</option>
             {Object.keys(gruppi).map((g) => (
               <optgroup key={g} label={g}>
@@ -159,6 +211,13 @@ export default function FormRichiesta({
       </>
     );
   }
+
+  const campoNome = (
+    <label>
+      {t("f.nomePrenotazione")}
+      <input type="text" name="nome_prenotazione" required placeholder={t("f.nomePrenotazioneHint")} />
+    </label>
+  );
 
   return (
     <form onSubmit={invia} key={formKey}>
@@ -190,37 +249,68 @@ export default function FormRichiesta({
       {tipo === "trasporto" && (
         <>
           <label>
-            {t("f.direzione")}
-            <select
-              value={direzione}
-              onChange={(e) => setDirezione(e.target.value)}
-            >
-              {DIREZIONI.map((d) => (
-                <option key={d} value={d}>
-                  {d}
-                </option>
-              ))}
-              <option value={ALTRO}>{t("c.altro")}</option>
+            {t("f.tipologia")}
+            <select value={tipologia} onChange={(e) => setTipologia(e.target.value)} required>
+              <option value="aeroporto">{t("f.tipAeroporto")}</option>
+              <option value="transfer">{t("f.tipTransfer")}</option>
             </select>
           </label>
-          {direzione === ALTRO && (
-            <label>
-              {t("f.tratta")}
-              <input type="text" name="altro_testo" required />
-            </label>
+
+          {tipologia === "aeroporto" && (
+            <>
+              <label>
+                {t("f.direzione")}
+                <select value={direzione} onChange={(e) => setDirezione(e.target.value)} required>
+                  {DIREZIONI.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                  <option value={ALTRO}>{t("c.altro")}</option>
+                </select>
+              </label>
+              {direzione === ALTRO && (
+                <label>
+                  {t("f.tratta")}
+                  <input type="text" name="altro_testo" required />
+                </label>
+              )}
+            </>
           )}
+
+          {tipologia === "transfer" && (
+            <>
+              <label>
+                {t("f.da")}
+                <input type="text" name="da_luogo" required />
+              </label>
+              <label>
+                {t("f.a")}
+                <input type="text" name="a_luogo" required />
+              </label>
+            </>
+          )}
+
           <label>
             {t("f.data")}
-            <input type="date" name="data" />
+            <input type="date" name="data" required />
           </label>
           <label>
-            {t("f.orarioVolo")}
-            <input type="time" name="ora" />
+            {t("f.orarioDi")}
+            <select name="orario_tipo" defaultValue="partenza" required>
+              <option value="partenza">{t("f.oraPartenza")}</option>
+              <option value="arrivo">{t("f.oraArrivo")}</option>
+            </select>
+          </label>
+          <label>
+            {t("f.ora")}
+            <input type="time" name="ora" required />
           </label>
           <label>
             {t("f.passeggeri")}
-            <input type="number" name="pax" min="1" />
+            <SelettoreNumero name="pax" min={1} max={20} required vuoto={t("f.scegliNumero")} />
           </label>
+          {campoNome}
         </>
       )}
 
@@ -229,23 +319,24 @@ export default function FormRichiesta({
           {selezionePosto("ristorante", t("f.ristorante"))}
           <label>
             {t("f.pasto")}
-            <select name="sotto_tipo">
+            <select name="sotto_tipo" required>
               <option value="pranzo">{t("sotto.pranzo")}</option>
               <option value="cena">{t("sotto.cena")}</option>
             </select>
           </label>
           <label>
             {t("f.data")}
-            <input type="date" name="data" />
+            <input type="date" name="data" required />
           </label>
           <label>
             {t("f.ora")}
-            <input type="time" name="ora" />
+            <input type="time" name="ora" required />
           </label>
           <label>
             {t("f.persone")}
-            <input type="number" name="pax" min="1" />
+            <SelettoreNumero name="pax" min={1} max={20} required vuoto={t("f.scegliNumero")} />
           </label>
+          {campoNome}
         </>
       )}
 
@@ -254,30 +345,32 @@ export default function FormRichiesta({
           {selezionePosto("attivita", t("f.attivita"))}
           <label>
             {t("f.data")}
-            <input type="date" name="data" />
+            <input type="date" name="data" required />
           </label>
           <label>
             {t("f.ora")}
-            <input type="time" name="ora" />
+            <input type="time" name="ora" required />
           </label>
           <label>
             {t("f.partecipanti")}
-            <input type="number" name="pax" min="1" />
+            <SelettoreNumero name="pax" min={1} max={20} required vuoto={t("f.scegliNumero")} />
           </label>
+          {campoNome}
         </>
       )}
 
       {tipo === "pulizie" && (
         <>
-          <label>{t("f.tipoPulizia")}</label>
-          <label style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <input type="radio" name="tipo_pulizia" value="periodica" defaultChecked style={{ width: "auto", marginBottom: 0 }} />
-            {t("f.pulPeriodica")}
-          </label>
-          <label style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}>
-            <input type="radio" name="tipo_pulizia" value="fine_soggiorno" style={{ width: "auto", marginBottom: 0 }} />
-            {t("f.pulFine")}
-          </label>
+          {isAdmin && (
+            <label>
+              {t("f.tipoPulizia")}
+              <select name="tipo_pulizia" defaultValue="">
+                <option value="">{t("f.pulDaIndicare")}</option>
+                <option value="periodica">{t("f.pulPeriodica")}</option>
+                <option value="fine_soggiorno">{t("f.pulFine")}</option>
+              </select>
+            </label>
+          )}
           <label>
             {t("f.dataDesiderata")}
             <input type="date" name="data" required />
@@ -301,7 +394,7 @@ export default function FormRichiesta({
           )}
           <label>
             {t("f.durata")}
-            <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue="3" required />
+            <SelettoreNumero name="durata_ore" min={0.5} max={12} passo={0.5} defaultValue="3" required suffisso=" h" />
           </label>
           <label>{t("f.cosaServe")}</label>
           {task.map((tk) => tk.nome_it).map((voce) => (

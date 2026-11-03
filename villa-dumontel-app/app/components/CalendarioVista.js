@@ -6,6 +6,7 @@ import { useApp } from "./AppProvider";
 import { fmtData, traduciSotto } from "../../lib/i18n";
 import { periodoEvento } from "../../lib/eventi";
 import AllegatiEvento from "./AllegatiEvento";
+import SelettoreNumero from "./SelettoreNumero";
 
 const GIORNI_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const GIORNI_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -213,6 +214,7 @@ export default function CalendarioVista({
             {r.sotto_tipo ? ` ${r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo)}` : ""}
             {r.descrizione ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}` : ""}
             {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
+            {r.nome_prenotazione ? ` — ${t("f.nomePren")}: ${r.nome_prenotazione}` : ""}
             {inAttesa(r) ? ` — ${testoAttesa || t("oh.inAttesa")}` : ""}
             {r.stato === "annullata" ? ` — ${t("stato.annullata")}` : ""}
           </p>
@@ -240,7 +242,7 @@ export default function CalendarioVista({
             {r.tipo === "pulizie" && amministratore && (
               <label>
                 {t("f.durata")}
-                <input type="number" name="durata_ore" min="0.5" max="12" step="0.5" defaultValue={r.durata_ore || ""} />
+                <SelettoreNumero name="durata_ore" min={0.5} max={12} passo={0.5} defaultValue={r.durata_ore || ""} suffisso=" h" />
               </label>
             )}
             {r.tipo === "pulizie" && (
@@ -266,7 +268,7 @@ export default function CalendarioVista({
             {r.tipo !== "pulizie" && (
               <label>
                 {t("f.persone")}
-                <input type="number" name="pax" min="1" defaultValue={r.pax || ""} />
+                <SelettoreNumero name="pax" min={1} max={20} defaultValue={r.pax || ""} />
               </label>
             )}
             <label>

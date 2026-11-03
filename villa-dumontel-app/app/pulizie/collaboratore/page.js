@@ -5,6 +5,7 @@ import AvvisiBox from "../../components/AvvisiBox";
 import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
+import SelettoreNumero from "../../components/SelettoreNumero";
 import { dmy, fmtCreata } from "../../../lib/i18n";
 
 const ETICHETTE_STATO = {
@@ -109,6 +110,15 @@ export default function PaginaCollaboratrice() {
     if (error) return setMsg("Errore: " + error.message);
     await caricaStati();
     setMsg("Pulizie segnate come in corso.");
+  }
+
+  async function impostaTipo(r, tipo) {
+    if (!tipo) return;
+    setMsg(null);
+    const { error } = await supabase.rpc("pulizia_tipo_collaboratrice", { p_richiesta: r.id, p_tipo: tipo });
+    if (error) return setMsg("Errore: " + error.message);
+    await ricaricaRichieste();
+    setMsg("Tipo di pulizia aggiornato.");
   }
 
   async function ricaricaRichieste() {
@@ -244,15 +254,15 @@ export default function PaginaCollaboratrice() {
                 >
                   <label style={{ margin: 0, fontWeight: 400 }}>
                     Durata prevista (ore){" "}
-                    <input
-                      type="number"
+                    <SelettoreNumero
                       name="durata"
-                      min="0.5"
-                      max="12"
-                      step="0.5"
+                      min={0.5}
+                      max={12}
+                      passo={0.5}
                       defaultValue={r.durata_ore || ""}
                       required
-                      style={{ width: "5rem", marginBottom: 0 }}
+                      suffisso=" h"
+                      style={{ width: "6rem", marginBottom: 0 }}
                     />
                   </label>
                   <button type="submit" className="btn">
@@ -276,7 +286,11 @@ export default function PaginaCollaboratrice() {
                 {r.ora ? String(r.ora).slice(0, 5) : ""}
                 {r.durata_ore ? ` — previste ${r.durata_ore} ore` : ""}
                 <p className="descrizione" style={{ margin: "0.15rem 0" }}>
-                  {r.sotto_tipo === "fine_soggiorno" ? "Pulizia di fine soggiorno" : "Pulizia periodica"}
+                  {r.sotto_tipo === "fine_soggiorno"
+                    ? "Pulizia di fine soggiorno"
+                    : r.sotto_tipo === "periodica"
+                    ? "Pulizia periodica"
+                    : "Tipo di pulizia da indicare"}
                   {(() => {
                     const st = statiAlloggi.find((x) => x.famiglia_id === r.famiglia_id);
                     if (!st) return "";
@@ -286,6 +300,18 @@ export default function PaginaCollaboratrice() {
                 </p>
                 {!r.convalidata_il && (
                   <p style={{ margin: "0.4rem 0" }}>
+                    <label style={{ margin: "0 0.5rem 0 0", fontWeight: 400 }}>
+                      Tipo{" "}
+                      <select
+                        value={r.sotto_tipo || ""}
+                        onChange={(e) => impostaTipo(r, e.target.value)}
+                        style={{ width: "auto", marginBottom: 0 }}
+                      >
+                        <option value="">— da indicare —</option>
+                        <option value="periodica">Periodica</option>
+                        <option value="fine_soggiorno">Fine soggiorno</option>
+                      </select>
+                    </label>
                     <button type="button" className="btn btn-light" onClick={() => iniziate(r)}>
                       Pulizie iniziate
                     </button>
@@ -306,15 +332,15 @@ export default function PaginaCollaboratrice() {
                 >
                   <label style={{ margin: 0, fontWeight: 400 }}>
                     Durata effettiva (ore){" "}
-                    <input
-                      type="number"
+                    <SelettoreNumero
                       name="durata"
-                      min="0.5"
-                      max="12"
-                      step="0.5"
+                      min={0.5}
+                      max={12}
+                      passo={0.5}
                       defaultValue={r.durata_ore || ""}
                       required
-                      style={{ width: "5rem", marginBottom: 0 }}
+                      suffisso=" h"
+                      style={{ width: "6rem", marginBottom: 0 }}
                     />
                   </label>
                   <button type="submit" className="btn">
