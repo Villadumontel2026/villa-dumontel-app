@@ -13,6 +13,13 @@ import {
   COLORI_PULIZIA,
 } from "../../lib/alloggi";
 
+const PILLOLA = {
+  libero: { bg: "#2e9e4f", fg: "#ffffff" },
+  occupato: { bg: "#c62828", fg: "#ffffff" },
+  prenotato: { bg: "#f59e0b", fg: "#3d2a00" },
+};
+const SEMAFORO = { da_pulire: "#d32f2f", in_corso: "#f59e0b", pulito: "#2e9e4f" };
+
 const badge = (c, testo) => (
   <span style={{ background: c.bg, color: c.fg, borderRadius: 999, padding: "0.15rem 0.7rem", fontWeight: 600, fontSize: "0.9rem", whiteSpace: "nowrap" }}>
     {testo}
@@ -63,6 +70,15 @@ export default function AppartamentiBox({ famiglie, eventi }) {
 
   return (
     <div style={{ marginBottom: "2rem" }}>
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+            .appart > summary::-webkit-details-marker { display: none; }
+            .appart-freccia { display: inline-block; transition: transform 0.15s; color: #6b6b60; }
+            .appart[open] .appart-freccia { transform: rotate(90deg); }
+          `,
+        }}
+      />
       <h2>Appartamenti</h2>
       <div style={{ display: "grid", gap: "1rem", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))" }}>
         {famiglie.map((f) => {
@@ -71,9 +87,34 @@ export default function AppartamentiBox({ famiglie, eventi }) {
           const st = stati.find((x) => x.famiglia_id === f.id) || { pulizia: "pulito", da_confermare: false };
           const nomiAlloggi = alloggi.filter((a) => a.famiglia_id === f.id).map((a) => a.nome).join(" + ");
           return (
-            <div key={f.id} className="card">
-              <h3 style={{ margin: "0 0 0.15rem" }}>{f.nome}</h3>
-              {nomiAlloggi && <p className="muted" style={{ margin: "0 0 0.6rem" }}>{nomiAlloggi}</p>}
+            <details key={f.id} className="card appart">
+              <summary style={{ cursor: "pointer", listStyle: "none", display: "flex", alignItems: "center", gap: "0.6rem", flexWrap: "wrap" }}>
+                <span className="appart-freccia" aria-hidden="true">&#9656;</span>
+                <span style={{ flex: 1, minWidth: 120 }}>
+                  <strong style={{ fontSize: "1.05rem" }}>{f.nome}</strong>
+                  {nomiAlloggi && <span className="muted" style={{ display: "block", fontSize: "0.8rem" }}>{nomiAlloggi}</span>}
+                </span>
+                <span
+                  style={{ background: PILLOLA[occ.stato].bg, color: PILLOLA[occ.stato].fg, borderRadius: 999, padding: "0.3rem 0.9rem", fontWeight: 700, fontSize: "0.9rem" }}
+                >
+                  {ETICHETTE_OCCUPAZIONE[occ.stato]}
+                </span>
+                <span style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", fontSize: "0.85rem" }} title={ETICHETTE_PULIZIA[st.pulizia]}>
+                  <span
+                    style={{
+                      width: 16,
+                      height: 16,
+                      borderRadius: 8,
+                      background: SEMAFORO[st.pulizia],
+                      border: st.da_confermare ? "2px dashed #1a1a1a" : "1px solid rgba(0,0,0,0.25)",
+                      display: "inline-block",
+                    }}
+                  />
+                  {ETICHETTE_PULIZIA[st.pulizia]}
+                  {st.da_confermare ? " (da confermare)" : ""}
+                </span>
+              </summary>
+              <div style={{ marginTop: "0.75rem", borderTop: "1px solid var(--color-border)", paddingTop: "0.6rem" }}>
 
               <p style={{ margin: "0.35rem 0" }}>
                 <span className="muted">Affitto: </span>
@@ -129,7 +170,8 @@ export default function AppartamentiBox({ famiglie, eventi }) {
                   Registra fine soggiorno
                 </a>
               </p>
-            </div>
+              </div>
+            </details>
           );
         })}
       </div>
