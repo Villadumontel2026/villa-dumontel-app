@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
 import SelettoreNumero from "./SelettoreNumero";
 
@@ -13,12 +14,9 @@ const CHECKLIST_PULIZIE = [
   "Riordino generale",
 ];
 
-const DIREZIONI = [
-  "Malpensa T1 → Courmayeur",
-  "Malpensa T2 → Courmayeur",
-  "Courmayeur → Malpensa T1",
-  "Courmayeur → Malpensa T2",
-];
+// Tappe del servizio aeroporto: navetta Aosta - Malpensa, con bus Courmayeur - Aosta
+const TAPPE = ["Courmayeur", "Aosta", "Malpensa T1", "Malpensa T2"];
+const e_malpensa = (x) => String(x || "").startsWith("Malpensa");
 
 const ALTRO = "__altro__";
 
@@ -71,11 +69,61 @@ export default function FormRichiesta({
 
   const [posto, setPosto] = useState(trovaIniziale(tipoIniziale));
   const [tipologia, setTipologia] = useState("aeroporto");
-  const [direzione, setDirezione] = useState(DIREZIONI[0]);
+  const [aeroDa, setAeroDa] = useState("Aosta");
+  const [aeroA, setAeroA] = useState("Malpensa T1");
   const [errore, setErrore] = useState(null);
   const [formKey, setFormKey] = useState(0);
 
   const isAdmin = !!collaboratori;
+
+  // Nome prenotazione: si ricorda l'ultimo usato su questo dispositivo
+  const [nomeRicordato, setNomeRicordato] = useState("");
+  useEffect(() => {
+    try {
+      setNomeRicordato(window.localStorage.getItem("vd_nome_prenotazione") || "");
+    } catch (e) {}
+  }, []);
+
+  // Pulizie (admin): se la data coincide con la fine di un soggiorno suggerisco "fine soggiorno"
+  const [finiSoggiorno, setFiniSoggiorno] = useState([]);
+  const [pulAlloggio, setPulAlloggio] = useState(alloggi && alloggi[0] ? String(alloggi[0].id) : "");
+  const [pulData, setPulData] = useState("");
+  const [pulTipo, setPulTipo] = useState("");
+  const [pulTocco, setPulTocco] = useState(false);
+  useEffect(() => {
+    if (!isAdmin) return;
+    supabase
+      .from("eventi")
+      .select("per_famiglia_id, tipo_evento, data_inizio, data_fine")
+      .in("tipo_evento", ["partenza", "arrivo"])
+      .then(({ data }) => {
+        const out = [];
+        (data || []).forEach((e) => {
+          if (e.tipo_evento === "partenza") out.push({ fam: e.per_famiglia_id, data: e.data_inizio });
+          else if (e.data_fine) out.push({ fam: e.per_famiglia_id, data: e.data_fine });
+        });
+        setFiniSoggiorno(out);
+      });
+  }, [isAdmin]);
+  const suggerisceFine = (() => {
+    const idA = pulAlloggio || (alloggi && alloggi[0] ? String(alloggi[0].id) : "");
+    const a = (alloggi || []).find((x) => String(x.id) === String(idA));
+    return !!(a && pulData && finiSoggiorno.some((f) => String(f.fam) === String(a.famiglia_id) && f.data === pulData));
+  })();
+  useEffect(() => {
+    if (!pulTocco) setPulTipo(suggerisceFine ? "fine_soggiorno" : "");
+  }, [suggerisceFine, pulTocco]);
+
+  // Courmayeur non ha corsa diretta per Malpensa: avviso con pop-up
+  function cambiaTappa(lato, valore) {
+    const nuovoDa = lato === "da" ? valore : aeroDa;
+    const nuovoA = lato === "a" ? valore : aeroA;
+    if (lato === "da") setAeroDa(valore);
+    else setAeroA(valore);
+    if ((nuovoDa === "Courmayeur" || nuovoA === "Courmayeur") && (e_malpensa(nuovoDa) || e_malpensa(nuovoA))) {
+      window.alert(t("f.avvisoCambio"));
+    }
+  }
 
   function cambiaTipo(tp) {
     setTipo(tp);
@@ -99,12 +147,18 @@ export default function FormRichiesta({
       tipologia_trasporto = tipologia;
       orario_tipo = val("orario_tipo") || "partenza";
       if (tipologia === "aeroporto") {
-        if (direzione === ALTRO) {
-          sotto_tipo = "Altro";
-          descrizione = val("altro_testo");
-        } else {
-          sotto_tipo = direzione;
+        const da = aeroDa === ALTRO ? (val("aero_da_altro") || "").trim() : aeroDa;
+        const a = aeroA === ALTRO ? (val("aero_a_altro") || "").trim() : aeroA;
+        if (!da || !a || da === a) {
+          setErrore(t("f.errTratta"));
+          return;
         }
+        if (!e_malpensa(da) && !e_malpensa(a)) {
+          setErrore(t("f.errAeroporto"));
+          return;
+        }
+        sotto_tipo = `${da} → ${a}`;
+        if (da === "Courmayeur" || a === "Courmayeur") descrizione = t("f.noteCambio");
       } else {
         sotto_tipo = `${(val("da_luogo") || "").trim()} → ${(val("a_luogo") || "").trim()}`;
       }
@@ -149,6 +203,13 @@ export default function FormRichiesta({
       }
     }
 
+    const nomeP = (val("nome_prenotazione") || "").trim();
+    if (nomeP && tipo !== "pulizie") {
+      try {
+        window.localStorage.setItem("vd_nome_prenotazione", nomeP);
+      } catch (e) {}
+    }
+
     const err = await onSubmit({
       tipo,
       alloggio_id: val("alloggio_id"),
@@ -171,7 +232,8 @@ export default function FormRichiesta({
     } else {
       f.reset();
       setPosto("");
-      setDirezione(DIREZIONI[0]);
+      setAeroDa("Aosta");
+      setAeroA("Malpensa T1");
       setTipologia("aeroporto");
       setFormKey((k) => k + 1);
     }
@@ -215,7 +277,14 @@ export default function FormRichiesta({
   const campoNome = (
     <label>
       {t("f.nomePrenotazione")}
-      <input type="text" name="nome_prenotazione" required placeholder={t("f.nomePrenotazioneHint")} />
+      <input
+        type="text"
+        name="nome_prenotazione"
+        key={"np" + nomeRicordato}
+        defaultValue={nomeRicordato}
+        required
+        placeholder={t("f.nomePrenotazioneHint")}
+      />
     </label>
   );
 
@@ -237,7 +306,7 @@ export default function FormRichiesta({
 
       <label>
         {t("f.alloggio")}
-        <select name="alloggio_id" required>
+        <select name="alloggio_id" required onChange={(e) => setPulAlloggio(e.target.value)}>
           {alloggi.map((a) => (
             <option key={a.id} value={a.id}>
               {a.nome}
@@ -259,9 +328,9 @@ export default function FormRichiesta({
           {tipologia === "aeroporto" && (
             <>
               <label>
-                {t("f.direzione")}
-                <select value={direzione} onChange={(e) => setDirezione(e.target.value)} required>
-                  {DIREZIONI.map((d) => (
+                {t("f.partenzaDa")}
+                <select value={aeroDa} onChange={(e) => cambiaTappa("da", e.target.value)} required>
+                  {TAPPE.map((d) => (
                     <option key={d} value={d}>
                       {d}
                     </option>
@@ -269,11 +338,33 @@ export default function FormRichiesta({
                   <option value={ALTRO}>{t("c.altro")}</option>
                 </select>
               </label>
-              {direzione === ALTRO && (
+              {aeroDa === ALTRO && (
                 <label>
-                  {t("f.tratta")}
-                  <input type="text" name="altro_testo" required />
+                  {t("f.indicaQuale")}
+                  <input type="text" name="aero_da_altro" required />
                 </label>
+              )}
+              <label>
+                {t("f.arrivoA")}
+                <select value={aeroA} onChange={(e) => cambiaTappa("a", e.target.value)} required>
+                  {TAPPE.map((d) => (
+                    <option key={d} value={d}>
+                      {d}
+                    </option>
+                  ))}
+                  <option value={ALTRO}>{t("c.altro")}</option>
+                </select>
+              </label>
+              {aeroA === ALTRO && (
+                <label>
+                  {t("f.indicaQuale")}
+                  <input type="text" name="aero_a_altro" required />
+                </label>
+              )}
+              {(aeroDa === "Courmayeur" || aeroA === "Courmayeur") && (
+                <p style={{ background: "#fff6e0", borderRadius: 8, padding: "0.5rem 0.7rem", margin: "0 0 0.8rem" }}>
+                  {t("f.avvisoCambio")}
+                </p>
               )}
             </>
           )}
@@ -364,16 +455,28 @@ export default function FormRichiesta({
           {isAdmin && (
             <label>
               {t("f.tipoPulizia")}
-              <select name="tipo_pulizia" defaultValue="">
+              <select
+                name="tipo_pulizia"
+                value={pulTipo}
+                onChange={(e) => {
+                  setPulTocco(true);
+                  setPulTipo(e.target.value);
+                }}
+              >
                 <option value="">{t("f.pulDaIndicare")}</option>
                 <option value="periodica">{t("f.pulPeriodica")}</option>
                 <option value="fine_soggiorno">{t("f.pulFine")}</option>
               </select>
+              {suggerisceFine && !pulTocco && (
+                <span className="muted" style={{ fontSize: "0.85em" }}>
+                  {t("f.suggFine")}
+                </span>
+              )}
             </label>
           )}
           <label>
             {t("f.dataDesiderata")}
-            <input type="date" name="data" required />
+            <input type="date" name="data" required onChange={(e) => setPulData(e.target.value)} />
           </label>
           <label>
             {t("f.oraInizio")}
