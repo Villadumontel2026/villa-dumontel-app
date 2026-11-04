@@ -10,12 +10,22 @@ self.addEventListener("push", (event) => {
   try { d = event.data ? event.data.json() : {}; } catch (e) {}
   const titolo = d.title || "Villa Dumontel";
   event.waitUntil(
-    self.registration.showNotification(titolo, {
-      body: d.body || "",
-      icon: "/icons/192",
-      badge: "/icons/192",
-      data: { url: d.url || "/" },
-    })
+    (async () => {
+      await self.registration.showNotification(titolo, {
+        body: d.body || "",
+        icon: "/icons/192",
+        badge: "/icons/192",
+        data: { url: d.url || "/" },
+      });
+      // numero sull'icona dell'app: +1 a ogni notifica (l'app lo riallinea quando si apre)
+      try {
+        const c = await caches.open("vd-badge");
+        const r = await c.match("/badge");
+        const n = (r ? parseInt(await r.text(), 10) || 0 : 0) + 1;
+        await c.put("/badge", new Response(String(n)));
+        if (self.navigator && self.navigator.setAppBadge) await self.navigator.setAppBadge(n);
+      } catch (e) {}
+    })()
   );
 });
 

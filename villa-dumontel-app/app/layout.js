@@ -3,6 +3,7 @@ import NavBar from "./components/NavBar";
 import HomeBar from "./components/HomeBar";
 import VistaBanner from "./components/VistaBanner";
 import { AppProvider } from "./components/AppProvider";
+import BadgeApp from "./components/BadgeApp";
 
 export const metadata = {
   title: "Villa Dumontel",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }) {
             <NavBar />
           </div>
         </header>
+        <BadgeApp />
         <VistaBanner />
         <div className="container">
           <HomeBar />

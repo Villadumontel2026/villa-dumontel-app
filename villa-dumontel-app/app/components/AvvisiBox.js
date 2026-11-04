@@ -43,6 +43,7 @@ export default function AvvisiBox({ tipo, id = null }) {
   async function segnaLetti() {
     await supabase.rpc("segna_avvisi_letti", { p_tipo: tipo, p_id: id });
     setAvvisi([]);
+    window.dispatchEvent(new Event("vd-avvisi"));
   }
 
   if (avvisi.length === 0) return null;
