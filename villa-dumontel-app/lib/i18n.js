@@ -7,6 +7,12 @@ export const LINGUA_DEFAULT = "it";
 
 const it = {
   // Menu
+  "nav.gestione": "Gestione",
+  "nav.conti": "Conti",
+  "nav.altro": "Altro",
+  "nav.cantinaMappa": "Mappa",
+  "nav.cantinaVini": "Vini",
+  "nav.cantinaScaffali": "Scaffalature",
   "nav.home": "Home",
   "nav.prenota": "Prenota",
   "nav.mieRichieste": "Richieste",
@@ -306,6 +312,12 @@ const it = {
 };
 
 const en = {
+  "nav.gestione": "Management",
+  "nav.conti": "Accounts",
+  "nav.altro": "More",
+  "nav.cantinaMappa": "Map",
+  "nav.cantinaVini": "Wines",
+  "nav.cantinaScaffali": "Racks",
   "nav.home": "Home",
   "nav.prenota": "Book",
   "nav.mieRichieste": "My requests",
