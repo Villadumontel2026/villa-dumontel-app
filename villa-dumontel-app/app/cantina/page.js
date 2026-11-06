@@ -14,6 +14,7 @@ import {
   sigla,
   cercaVini,
 } from "../../lib/cantina";
+import MaturitaForm from "../components/MaturitaForm";
 
 function Modale({ titolo, onChiudi, children }) {
   return (
@@ -76,6 +77,8 @@ export default function CantinaPage() {
   const [errore, setErrore] = useState(null);
   const [aperti, setAperti] = useState(() => new Set()); // finestre aperte: "s:ID" scaffale, "z:Nome" zona
   const [provenienza, setProvenienza] = useState("Acquisto"); // per nuove bottiglie
+  const [maturitaPer, setMaturitaPer] = useState(null); // { vino, dove }: chiedo la maturita' prima di piazzare
+  const [maturitaSaltata, setMaturitaSaltata] = useState(() => new Set());
 
   const apriChiudi = (k) =>
     setAperti((prev) => {
@@ -154,15 +157,21 @@ export default function CantinaPage() {
       })
       .sort();
 
-  async function piazza(vino, dove) {
+  async function piazza(vino, dove, senzaMaturita = false) {
     setErrore(null);
+    // la prima volta che entra un vino senza maturita' impostata, la chiedo
+    if (!senzaMaturita && !vino.maturita_ingresso && !maturitaSaltata.has(vino.id)) {
+      setMaturitaPer({ vino, dove });
+      return;
+    }
     const prov = (provenienza || "").trim() || "Acquisto";
-    const riga = dove.zona
+    const una = dove.zona
       ? { vino_id: vino.id, zona: dove.zona, provenienza: prov }
       : { vino_id: vino.id, scaffale_id: dove.scaffale.id, colonna: dove.col, riga: dove.riga, provenienza: prov };
-    const { data, error } = await supabase.from("cantina_bottiglie").insert(riga).select().single();
+    const righe = Array.from({ length: Math.max(1, dove.n || 1) }, () => ({ ...una }));
+    const { data, error } = await supabase.from("cantina_bottiglie").insert(righe).select();
     if (error) return setErrore("Errore: " + error.message);
-    setBottiglie((prev) => [...prev, data]);
+    setBottiglie((prev) => [...prev, ...(data || [])]);
   }
 
   async function rimuovi(b, motivo) {
@@ -214,8 +223,14 @@ export default function CantinaPage() {
     <main>
       <h1>Cantina</h1>
       <p>
+        <a href="/cantina/indice" className="btn">
+          Indice e vendita
+        </a>{" "}
         <a href="/cantina/vini" className="btn btn-light">
           Elenco vini
+        </a>{" "}
+        <a href="/cantina/ordini" className="btn btn-light">
+          Ordini
         </a>
       </p>
 
@@ -258,6 +273,20 @@ export default function CantinaPage() {
         <p className="muted">
           {trovati.size} vini trovati; le celle evidenziate contengono le loro bottiglie ({bottiglie.filter((b) => trovati.has(b.vino_id)).length}).
         </p>
+      )}
+      {trovati && trovati.size > 0 && (
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          {cercaVini(vini, ricerca)
+            .slice(0, 8)
+            .map((v) => (
+              <p key={v.id} style={{ margin: "0.25rem 0" }}>
+                <a href={"/cantina/vino?id=" + v.id}>{nomeVino(v)}</a>{" "}
+                <span className="muted" style={{ fontSize: "0.85em" }}>
+                  {giacenza(v.id)} in cantina
+                </span>
+              </p>
+            ))}
+        </div>
       )}
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
 
@@ -422,6 +451,35 @@ export default function CantinaPage() {
         </Modale>
       )}
 
+      {maturitaPer && (
+        <Modale titolo={"Maturità: " + nomeVino(maturitaPer.vino)} onChiudi={() => setMaturitaPer(null)}>
+          <p className="muted">
+            Indica lo stato attuale del vino e tra quanti anni raggiungerà gli stati successivi. Riceverai una notifica a ogni cambio di stato.
+          </p>
+          <MaturitaForm
+            vino={maturitaPer.vino}
+            etichettaSalva="Salva e inserisci la bottiglia"
+            onAnnulla={() => {
+              const { vino, dove } = maturitaPer;
+              setMaturitaSaltata((p) => new Set([...p, vino.id]));
+              setMaturitaPer(null);
+              piazza(vino, dove, true);
+            }}
+            onSalva={async (campi) => {
+              const { vino, dove } = maturitaPer;
+              const { error } = await supabase.from("cantina_vini").update(campi).eq("id", vino.id);
+              if (error) return "Errore: " + error.message;
+              const aggiornato = { ...vino, ...campi };
+              setVini((prev) => prev.map((x) => (x.id === vino.id ? aggiornato : x)));
+              setVinoRiempi((v) => (v && v.id === vino.id ? aggiornato : v));
+              setMaturitaPer(null);
+              await piazza(aggiornato, dove, true);
+              return null;
+            }}
+          />
+        </Modale>
+      )}
+
       {sel && sel.bottiglia && (
         <Modale titolo={sel.scaffale ? "Posizione " + codicePosizione(sel.scaffale, sel.col, sel.riga) : sel.zona} onChiudi={() => setSel(null)}>
           {(() => {
@@ -462,6 +520,9 @@ export default function CantinaPage() {
                   <button type="button" className="btn" onClick={() => rimuovi(sel.bottiglia, document.getElementById("motivo").value)}>
                     Togli la bottiglia
                   </button>
+                  <a href={"/cantina/vino?id=" + sel.bottiglia.vino_id} className="btn">
+                    Scheda del vino
+                  </a>
                   <a href={"/cantina/vini?id=" + sel.bottiglia.vino_id} className="btn btn-light">
                     Modifica il vino
                   </a>
@@ -485,7 +546,7 @@ export default function CantinaPage() {
                 await piazza(v, { scaffale: sel.scaffale, col: sel.col, riga: sel.riga });
               } else {
                 const n = parseInt(window.prompt("Quante bottiglie?", "1") || "0", 10);
-                for (let i = 0; i < n; i++) await piazza(v, { zona: sel.zona });
+                if (n > 0) await piazza(v, { zona: sel.zona, n });
               }
               setSel(null);
             }}

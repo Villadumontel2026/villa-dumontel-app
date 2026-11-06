@@ -8,6 +8,7 @@ const VUOTO = {
   produttore: "",
   nome: "",
   denominazione: "",
+  zona_produzione: "",
   tipologia: "Rosso",
   zucchero: "",
   vitigni: "",
@@ -113,6 +114,7 @@ export default function ViniCantinaPage() {
       produttore: mod.produttore.trim() || null,
       nome: mod.nome.trim(),
       denominazione: mod.denominazione.trim() || null,
+      zona_produzione: mod.zona_produzione.trim() || null,
       tipologia: mod.tipologia || null,
       zucchero: mod.zucchero.trim() || null,
       vitigni: mod.vitigni.trim() || null,
@@ -253,7 +255,9 @@ export default function ViniCantinaPage() {
                 style={{ cursor: "pointer" }}
               >
                 <span style={{ marginRight: "0.4rem" }}>{isAperto ? "▾" : "▸"}</span>
+                <a href={"/cantina/vino?id=" + v.id}>
                 <strong>{nomeVino(v)}</strong>
+              </a>
                 <span
                   style={{
                     marginLeft: "0.5rem",
@@ -327,6 +331,7 @@ export default function ViniCantinaPage() {
             {campo("produttore", "Produttore")}
             {campo("nome", "Nome del vino", { required: true })}
             {campo("denominazione", "Denominazione")}
+            {campo("zona_produzione", "Zona di produzione (es. Piemonte, Champagne, Valle d'Aosta)")}
             <label>
               Tipologia
               <select value={mod.tipologia} onChange={(e) => set("tipologia", e.target.value)}>

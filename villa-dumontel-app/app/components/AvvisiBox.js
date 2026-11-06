@@ -17,7 +17,17 @@ export default function AvvisiBox({ tipo, id = null }) {
   const [giaQui, setGiaQui] = useState(false);
 
   const soloEventi = avvisi.length > 0 && avvisi.every((a) => a.evento_id);
-  const destinazione = soloEventi ? "/calendario" : PAGINA[tipo];
+  const soloOrdiniVini = avvisi.length > 0 && avvisi.every((a) => String(a.evento || "").startsWith("ordine_vini"));
+  const soloVini = avvisi.length > 0 && avvisi.every((a) => a.evento === "vino_maturita");
+  const destinazione = soloEventi
+    ? "/calendario"
+    : soloOrdiniVini
+    ? tipo === "admin"
+      ? "/cantina/ordini"
+      : "/ospite/vini"
+    : soloVini
+    ? "/cantina/indice"
+    : PAGINA[tipo];
 
   useEffect(() => {
     setGiaQui(window.location.pathname.replace(/\/$/, "") === destinazione);

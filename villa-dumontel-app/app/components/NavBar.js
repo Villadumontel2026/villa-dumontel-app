@@ -29,6 +29,8 @@ const MENU = {
       label: "nav.cantina",
       voci: [
         { href: "/cantina", label: "nav.cantinaMappa", esatto: true },
+        { href: "/cantina/indice", label: "nav.cantinaIndice" },
+        { href: "/cantina/ordini", label: "nav.cantinaOrdini" },
         { href: "/cantina/vini", label: "nav.cantinaVini" },
         { href: "/cantina/scaffali", label: "nav.cantinaScaffali" },
       ],
@@ -45,6 +47,7 @@ const MENU = {
     { href: "/ospite", label: "nav.home", esatto: true },
     { href: "/ospite/prenota", label: "nav.prenota" },
     { href: "/ospite/richieste", label: "nav.mieRichieste" },
+    { href: "/ospite/vini", label: "nav.vini" },
     { href: "/calendario", label: "nav.calendario" },
     { href: "/info", label: "nav.info" },
   ],
