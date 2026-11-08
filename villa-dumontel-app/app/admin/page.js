@@ -8,6 +8,7 @@ import CalendarioVista from "../components/CalendarioVista";
 import AvvisiBox from "../components/AvvisiBox";
 import { espandiEventi, coloreEvento } from "../../lib/eventi";
 import AppartamentiBox from "../components/AppartamentiBox";
+import PopupScheda, { RichiestaDettaglio } from "../components/PopupEvento";
 
 const COLORI = ["#2f4739", "#2b6a9e", "#a2562c", "#7a4b94"];
 const iso = (d) =>
@@ -22,6 +23,7 @@ export default function AdminHome() {
   const [generiche, setGeneriche] = useState([]);
   const [filtro, setFiltro] = useState("tutte");
   const [eventiCal, setEventiCal] = useState([]);
+  const [pop, setPop] = useState(null);
 
   async function ricarica() {
     const { data: ric } = await supabase
@@ -150,7 +152,12 @@ export default function AdminHome() {
         {inAttesa(r) ? " (da confermare)" : ""}
         {r.proposta_data ? " (proposta inviata)" : ""}
       </p>
-      {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
+      <p style={{ margin: "0.35rem 0 0", display: "flex", gap: "0.6rem", alignItems: "center", flexWrap: "wrap" }}>
+        <button type="button" className="btn btn-light" style={{ padding: "0.25rem 0.8rem" }} onClick={() => setPop(r)}>
+          Apri
+        </button>
+        {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
+      </p>
     </div>
   );
 
@@ -162,6 +169,17 @@ export default function AdminHome() {
       <h1>Home</h1>
 
       <AvvisiBox tipo="admin" />
+
+      {pop && (
+        <PopupScheda
+          titolo={t("tipo." + pop.tipo)}
+          sottotitolo={fmtData(lang, pop.data) + (pop.ora ? " · " + String(pop.ora).slice(0, 5) : "")}
+          onChiudi={() => setPop(null)}
+          azioneModifica={{ href: "/richieste?id=" + pop.id }}
+        >
+          <RichiestaDettaglio r={pop} admin />
+        </PopupScheda>
+      )}
 
       {/* Da tenere d'occhio */}
       <div className="card" style={{ marginBottom: "1rem", background: nulla ? "#eef7ef" : "#fff6e0" }}>

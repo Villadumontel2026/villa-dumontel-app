@@ -5,6 +5,7 @@ import { applicaVista } from "../../lib/vista";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import AvvisiBox from "../components/AvvisiBox";
+import PopupScheda, { RichiestaDettaglio } from "../components/PopupEvento";
 import { fmtData, traduciSotto } from "../../lib/i18n";
 
 const ICONE = {
@@ -62,6 +63,7 @@ export default function OspiteHome() {
   const [alloggi, setAlloggi] = useState([]);
   const [inCorso, setInCorso] = useState([]);
   const [novita, setNovita] = useState([]);
+  const [pop, setPop] = useState(null);
 
   useEffect(() => {
     async function carica() {
@@ -260,16 +262,22 @@ export default function OspiteHome() {
         ))}
       </div>
 
+      {pop && (
+        <PopupScheda
+          titolo={t("tipo." + pop.tipo)}
+          sottotitolo={fmtData(lang, pop.data) + (pop.ora ? " · " + String(pop.ora).slice(0, 5) : "")}
+          onChiudi={() => setPop(null)}
+          azioneModifica={["nuova", "in gestione", "confermata"].includes(pop.stato) ? { href: "/ospite/richieste?id=" + pop.id } : null}
+        >
+          <RichiestaDettaglio r={pop} />
+        </PopupScheda>
+      )}
+
       <h2 style={{ marginTop: "2rem" }}>{t("oh.prossimi")}</h2>
       <div className="card">
         {prossimi.length === 0 && <p className="muted">{t("oh.nessunoProssimo")}</p>}
         {prossimi.map((r) => (
-          <a
-            key={r.id}
-            href="/ospite/richieste"
-            className="richiesta-item"
-            style={{ display: "block", textDecoration: "none", color: "inherit" }}
-          >
+          <div key={r.id} className="richiesta-item">
             <strong>
               {fmtData(lang, r.data, false)}
               {r.ora ? " · " + String(r.ora).slice(0, 5) : ""}
@@ -283,7 +291,10 @@ export default function OspiteHome() {
                 : ""}
               {r.stato !== "confermata" ? ` (${t("oh.inAttesa")})` : ""}
             </p>
-          </a>
+            <button type="button" className="btn btn-light" style={{ padding: "0.25rem 0.8rem", marginTop: "0.3rem" }} onClick={() => setPop(r)}>
+              {lang === "en" ? "Open" : "Apri"}
+            </button>
+          </div>
         ))}
         <p style={{ margin: "0.75rem 0 0" }}>
           <a href="/ospite/richieste" className="btn btn-light">

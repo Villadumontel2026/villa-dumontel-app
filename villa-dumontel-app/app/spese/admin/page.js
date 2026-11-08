@@ -46,6 +46,8 @@ export default function SpeseAdminPage() {
   const [archivio, setArchivio] = useState([]);
   const [cercaDoc, setCercaDoc] = useState("");
   const fileRef = useRef(null);
+  const fotoRef = useRef(null);
+  const galleriaRef = useRef(null);
 
   async function apriModale(spesa) {
     setCercaDoc("");
@@ -446,9 +448,41 @@ export default function SpeseAdminPage() {
               if (f) allega(modaleSpesa, f);
             }}
           />
-          <button type="button" className="btn btn-light" onClick={() => fileRef.current && fileRef.current.click()}>
-            Oppure carica un nuovo file dal computer
-          </button>
+          <input
+            ref={fotoRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files && e.target.files[0];
+              e.target.value = "";
+              if (f) allega(modaleSpesa, f);
+            }}
+          />
+          <input
+            ref={galleriaRef}
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const f = e.target.files && e.target.files[0];
+              e.target.value = "";
+              if (f) allega(modaleSpesa, f);
+            }}
+          />
+          <p className="muted" style={{ margin: "0 0 0.4rem" }}>Oppure aggiungi un nuovo file:</p>
+          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-light" onClick={() => fotoRef.current && fotoRef.current.click()}>
+              Scatta una foto
+            </button>
+            <button type="button" className="btn btn-light" onClick={() => galleriaRef.current && galleriaRef.current.click()}>
+              Scegli dalle foto
+            </button>
+            <button type="button" className="btn btn-light" onClick={() => fileRef.current && fileRef.current.click()}>
+              Scegli un file (PDF o altro)
+            </button>
+          </div>
         </Modale>
       )}
     </main>

@@ -7,6 +7,7 @@ import SelettoreNumero from "../components/SelettoreNumero";
 import CalendarButton from "../components/CalendarButton";
 import { useApp } from "../components/AppProvider";
 import { dmy, fmtCreata } from "../../lib/i18n";
+import PopupScheda, { RichiestaDettaglio } from "../components/PopupEvento";
 
 const STATI = ["nuova", "in gestione", "confermata", "completata", "annullata"];
 
@@ -25,6 +26,8 @@ export default function RichiestePage() {
   const [errore, setErrore] = useState(null);
   const [generiche, setGeneriche] = useState([]);
   const [famiglie, setFamiglie] = useState([]);
+  const [popId, setPopId] = useState(null);
+  const [schedaAperta, setSchedaAperta] = useState(false);
 
   async function caricaRichieste() {
     const { data } = await supabase
@@ -120,6 +123,13 @@ export default function RichiestePage() {
       const { data: famData } = await supabase.from("famiglie").select("id, nome").order("id");
       setFamiglie(famData || []);
       await caricaGeneriche();
+      try {
+        const q = new URLSearchParams(window.location.search).get("id");
+        if (q) {
+          setPopId(q);
+          setSchedaAperta(true);
+        }
+      } catch (e) {}
       setCaricamento(false);
     }
 
@@ -278,9 +288,9 @@ export default function RichiestePage() {
     return { ...c, aperte, chiuse, nuove };
   });
 
-  function riga(r) {
+  function schedaCompleta(r) {
     return (
-      <div key={r.id} className="richiesta-item">
+      <div key={r.id} className="richiesta-item" style={{ borderBottom: "none" }}>
         <span className={classeBadge(r.stato)}>{r.stato}</span>{" "}
         <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
         <p className="descrizione">
@@ -476,6 +486,36 @@ export default function RichiestePage() {
     );
   }
 
+  function riga(r) {
+    return (
+      <div key={r.id} className="richiesta-item">
+        <span className={classeBadge(r.stato)}>{r.stato}</span> <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
+        <p className="descrizione" style={{ margin: "0.15rem 0" }}>
+          {dmy(r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash; {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
+          {r.descrizione}
+          {r.pax ? ` (${r.pax} pers.)` : ""}
+          {r.tipo === "pulizie" && !r.collaboratore_id ? " — da assegnare" : ""}
+        </p>
+        {r.note && (
+          <p className="descrizione muted" style={{ margin: "0.1rem 0", whiteSpace: "pre-line" }}>
+            Note: {r.note}
+          </p>
+        )}
+        <button
+          type="button"
+          className="btn btn-light"
+          style={{ padding: "0.25rem 0.8rem", marginTop: "0.25rem" }}
+          onClick={() => {
+            setPopId(r.id);
+            setSchedaAperta(false);
+          }}
+        >
+          Apri
+        </button>
+      </div>
+    );
+  }
+
   return (
     <main>
       <h1>Richieste</h1>
@@ -612,6 +652,21 @@ export default function RichiestePage() {
           </div>
         </details>
       ))}
+      {popId && (() => {
+        const r = richieste.find((x) => String(x.id) === String(popId));
+        if (!r) return null;
+        return (
+          <PopupScheda
+            titolo={r.tipo === "pulizie" ? "Pulizie" : r.tipo === "trasporto" ? "Trasporto" : r.tipo === "ristorante" ? "Ristorante" : "Attività"}
+            sottotitolo={`${dmy(r.data)}${r.ora ? " · " + String(r.ora).slice(0, 5) : ""}`}
+            onChiudi={() => setPopId(null)}
+            azioneModifica={schedaAperta ? null : { onClick: () => setSchedaAperta(true) }}
+            larga={schedaAperta}
+          >
+            {schedaAperta ? schedaCompleta(r) : <RichiestaDettaglio r={r} admin />}
+          </PopupScheda>
+        );
+      })()}
     </main>
   );
 }

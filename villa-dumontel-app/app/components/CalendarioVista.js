@@ -7,6 +7,7 @@ import { fmtData, traduciSotto } from "../../lib/i18n";
 import { periodoEvento } from "../../lib/eventi";
 import AllegatiEvento from "./AllegatiEvento";
 import SelettoreNumero from "./SelettoreNumero";
+import PopupScheda, { RichiestaDettaglio } from "./PopupEvento";
 
 const GIORNI_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const GIORNI_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -49,6 +50,8 @@ export default function CalendarioVista({
   const [giornoSel, setGiornoSel] = useState(null);
   const [evSel, setEvSel] = useState(null);
   const [errore, setErrore] = useState(null);
+  const [pop, setPop] = useState(null);
+  const [modificaPop, setModificaPop] = useState(false);
 
   useEffect(() => {
     try {
@@ -125,6 +128,7 @@ export default function CalendarioVista({
     const { error } = await supabase.from("richieste").update({ stato: "annullata" }).eq("id", r.id);
     if (error) return setErrore(t("c.errore") + error.message);
     setEvSel(null);
+    chiudiPopup();
     onCambiato && (await onCambiato());
   }
 
@@ -164,125 +168,149 @@ export default function CalendarioVista({
     }
     if (error) return setErrore(t("c.errore") + error.message);
     setEvSel(null);
+    chiudiPopup();
     onCambiato && (await onCambiato());
   }
 
-  function dettaglioEvento(r) {
-    const selezionato = evSel === r.id;
-    const e = r._evento;
+  function formModifica(r) {
     return (
-      <div key={r.id} className="richiesta-item" style={{ borderLeft: "4px solid " + colore(r), paddingLeft: "0.6rem" }}>
-        <div style={{ cursor: "pointer" }} onClick={() => setEvSel(selezionato ? null : r.id)}>
+      <form onSubmit={(e) => salvaEvento(e, r)} style={{ marginTop: "0.8rem" }}>
+        <label>
+          {t("f.data")}
+          <input type="date" name="data" defaultValue={r.data || ""} required />
+        </label>
+        <label>
+          {t("f.ora")}
+          <input type="time" name="ora" defaultValue={r.ora ? String(r.ora).slice(0, 5) : ""} />
+        </label>
+        {r.tipo === "pulizie" && amministratore && (
+          <label>
+            {t("f.durata")}
+            <SelettoreNumero name="durata_ore" min={0.5} max={12} passo={0.5} defaultValue={r.durata_ore || ""} suffisso=" h" />
+          </label>
+        )}
+        {r.tipo === "pulizie" && (
+          <div style={{ margin: "0.5rem 0" }}>
+            <strong style={{ fontSize: "0.9rem" }}>{t("ro.indica")}</strong>
+            {task.map((tk) => (
+              <label key={tk.id || tk.nome_it} style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                <input
+                  type="checkbox"
+                  name="voci"
+                  value={tk.nome_it}
+                  defaultChecked={String(r.descrizione || "").includes(tk.nome_it)}
+                  style={{ width: "auto", marginBottom: 0 }}
+                />
+                {lang === "en" ? tk.nome_en || tk.nome_it : tk.nome_it}
+              </label>
+            ))}
+          </div>
+        )}
+        {r.tipo !== "pulizie" && (
+          <label>
+            {t("f.persone")}
+            <SelettoreNumero name="pax" min={1} max={20} defaultValue={r.pax || ""} />
+          </label>
+        )}
+        <label>
+          {t("f.note")}
+          <textarea name="note" defaultValue={r.note || ""}></textarea>
+        </label>
+        <p className="muted" style={{ fontSize: "0.85em" }}>
+          {amministratore ? t("cv.avvisoAdmin") : t("cv.avvisoOspite")}
+        </p>
+        <button type="submit" className="btn">
+          {t("c.salva")}
+        </button>
+      </form>
+    );
+  }
+
+  function chiudiPopup() {
+    setPop(null);
+    setModificaPop(false);
+  }
+
+  function popup() {
+    if (!pop) return null;
+    const r = pop;
+    if (r.tipo === "evento") {
+      const e = r._evento;
+      return (
+        <PopupScheda
+          titolo={r.titolo}
+          sottotitolo={periodoEvento(e, (d) => fmtData(lang, d))}
+          onChiudi={chiudiPopup}
+          azioneModifica={amministratore ? { href: "/calendario/evento?id=" + e.id } : null}
+        >
+          {r.note && (
+            <div style={{ background: "#faf7ef", borderRadius: 8, padding: "0.6rem 0.8rem", margin: "0.5rem 0" }}>
+              <strong style={{ fontSize: "0.88em" }}>{t("f.note")}</strong>
+              <p style={{ margin: "0.2rem 0 0", whiteSpace: "pre-line" }}>{r.note}</p>
+            </div>
+          )}
+          <AllegatiEvento eventoId={e.id} />
+        </PopupScheda>
+      );
+    }
+    const aperto = APERTI.includes(r.stato);
+    const puoModificare = aperto && !soloLettura;
+    return (
+      <PopupScheda
+        titolo={t("tipo." + r.tipo)}
+        sottotitolo={fmtData(lang, r.data) + (r.ora ? " · " + String(r.ora).slice(0, 5) : "")}
+        onChiudi={chiudiPopup}
+        azioneModifica={
+          amministratore
+            ? { href: "/richieste?id=" + r.id }
+            : puoModificare
+            ? { onClick: () => setModificaPop((v) => !v) }
+            : null
+        }
+      >
+        <RichiestaDettaglio r={r} admin={amministratore} />
+        {inAttesa(r) && !amministratore && (
+          <p className="muted" style={{ margin: "0.6rem 0 0", fontSize: "0.88em" }}>{testoAttesa || t("oh.inAttesa")}</p>
+        )}
+        {puoModificare && modificaPop && !amministratore && formModifica(r)}
+        {puoModificare && (
+          <p style={{ margin: "0.9rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+            <button type="button" className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }} onClick={() => annullaEvento(r)}>
+              {t("cv.annulla")}
+            </button>
+          </p>
+        )}
+      </PopupScheda>
+    );
+  }
+
+  function dettaglio(r) {
+    if (r.tipo === "evento") {
+      return (
+        <div key={r.id} className="richiesta-item" style={{ borderLeft: "4px solid " + colore(r), paddingLeft: "0.6rem", cursor: "pointer" }} onClick={() => setPop(r)}>
           <strong>
             {fmtData(lang, r.data, false)} {r.ora ? String(r.ora).slice(0, 5) : ""}
           </strong>{" "}
           &mdash; {r.titolo}
           {!r.primoGiorno && <span className="muted"> ({lang === "en" ? "continues" : "continua"})</span>}
         </div>
-        {selezionato && (
-          <div style={{ marginTop: "0.4rem" }}>
-            <p className="descrizione" style={{ margin: "0.15rem 0" }}>
-              {periodoEvento(e, (d) => fmtData(lang, d))}
-            </p>
-            {r.note && <p className="descrizione" style={{ whiteSpace: "pre-line" }}>{r.note}</p>}
-            <AllegatiEvento eventoId={e.id} />
-            {amministratore && (
-              <a href={"/calendario/evento?id=" + e.id} className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }}>
-                {t("ev.modifica")}
-              </a>
-            )}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  function dettaglio(r) {
-    if (r.tipo === "evento") return dettaglioEvento(r);
-    const aperto = APERTI.includes(r.stato);
-    const selezionato = evSel === r.id;
+      );
+    }
     return (
-      <div key={r.id} className="richiesta-item" style={{ borderLeft: "4px solid " + colore(r), paddingLeft: "0.6rem" }}>
-        <div style={{ cursor: "pointer" }} onClick={() => setEvSel(selezionato ? null : r.id)}>
-          <strong>
-            {fmtData(lang, r.data, false)} {r.ora ? String(r.ora).slice(0, 5) : ""}
-          </strong>{" "}
-          &mdash; {t("tipo." + r.tipo)}
-          <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>
-            {amministratore ? (r.famiglie?.nome || "") + " · " + (r.alloggi?.nome || "") : ""}
-            {!amministratore && mostraAlloggio ? r.alloggi?.nome || "" : ""}
-            {r.sotto_tipo ? ` ${r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo)}` : ""}
-            {r.descrizione ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}` : ""}
-            {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
-            {r.nome_prenotazione ? ` — ${t("f.nomePren")}: ${r.nome_prenotazione}` : ""}
-            {inAttesa(r) ? ` — ${testoAttesa || t("oh.inAttesa")}` : ""}
-            {r.stato === "annullata" ? ` — ${t("stato.annullata")}` : ""}
-          </p>
-        </div>
-        {aperto && !soloLettura && (
-          <p style={{ margin: "0.4rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <button type="button" className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }} onClick={() => setEvSel(selezionato ? null : r.id)}>
-              {t("cv.modifica")}
-            </button>
-            <button type="button" className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }} onClick={() => annullaEvento(r)}>
-              {t("cv.annulla")}
-            </button>
-          </p>
-        )}
-        {aperto && !soloLettura && selezionato && (
-          <form onSubmit={(e) => salvaEvento(e, r)} style={{ marginTop: "0.6rem" }}>
-            <label>
-              {t("f.data")}
-              <input type="date" name="data" defaultValue={r.data || ""} required />
-            </label>
-            <label>
-              {t("f.ora")}
-              <input type="time" name="ora" defaultValue={r.ora ? String(r.ora).slice(0, 5) : ""} />
-            </label>
-            {r.tipo === "pulizie" && amministratore && (
-              <label>
-                {t("f.durata")}
-                <SelettoreNumero name="durata_ore" min={0.5} max={12} passo={0.5} defaultValue={r.durata_ore || ""} suffisso=" h" />
-              </label>
-            )}
-            {r.tipo === "pulizie" && (
-              <div style={{ margin: "0.5rem 0" }}>
-                <strong style={{ fontSize: "0.9rem" }}>{t("ro.indica")}</strong>
-                {task.map((tk) => (
-                  <label
-                    key={tk.id || tk.nome_it}
-                    style={{ fontWeight: 400, display: "flex", alignItems: "center", gap: "0.4rem" }}
-                  >
-                    <input
-                      type="checkbox"
-                      name="voci"
-                      value={tk.nome_it}
-                      defaultChecked={String(r.descrizione || "").includes(tk.nome_it)}
-                      style={{ width: "auto", marginBottom: 0 }}
-                    />
-                    {lang === "en" ? tk.nome_en || tk.nome_it : tk.nome_it}
-                  </label>
-                ))}
-              </div>
-            )}
-            {r.tipo !== "pulizie" && (
-              <label>
-                {t("f.persone")}
-                <SelettoreNumero name="pax" min={1} max={20} defaultValue={r.pax || ""} />
-              </label>
-            )}
-            <label>
-              {t("f.note")}
-              <textarea name="note" defaultValue={r.note || ""}></textarea>
-            </label>
-            <p className="muted" style={{ fontSize: "0.85em" }}>
-              {amministratore ? t("cv.avvisoAdmin") : t("cv.avvisoOspite")}
-            </p>
-            <button type="submit" className="btn">
-              {t("c.salva")}
-            </button>
-          </form>
-        )}
+      <div key={r.id} className="richiesta-item" style={{ borderLeft: "4px solid " + colore(r), paddingLeft: "0.6rem", cursor: "pointer" }} onClick={() => setPop(r)}>
+        <strong>
+          {fmtData(lang, r.data, false)} {r.ora ? String(r.ora).slice(0, 5) : ""}
+        </strong>{" "}
+        &mdash; {t("tipo." + r.tipo)}
+        <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>
+          {amministratore ? (r.famiglie?.nome || "") + " · " + (r.alloggi?.nome || "") : ""}
+          {!amministratore && mostraAlloggio ? r.alloggi?.nome || "" : ""}
+          {r.sotto_tipo ? ` ${r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo)}` : ""}
+          {r.descrizione ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}` : ""}
+          {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
+          {inAttesa(r) ? ` — ${testoAttesa || t("oh.inAttesa")}` : ""}
+          {r.stato === "annullata" ? ` — ${t("stato.annullata")}` : ""}
+        </p>
       </div>
     );
   }
@@ -339,6 +367,7 @@ export default function CalendarioVista({
       </div>
 
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
+      {popup()}
 
       {vista === "mese" && (
         <>

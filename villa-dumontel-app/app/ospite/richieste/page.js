@@ -6,6 +6,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
 import { useApp } from "../../components/AppProvider";
 import { fmtData, fmtCreata, traduciSotto } from "../../../lib/i18n";
+import PopupScheda, { RichiestaDettaglio } from "../../components/PopupEvento";
 
 const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
@@ -33,6 +34,8 @@ export default function RichiesteOspitePage() {
   const [famigliaId, setFamigliaId] = useState(null);
   const [richieste, setRichieste] = useState([]);
   const [errore, setErrore] = useState(null);
+  const [popId, setPopId] = useState(null);
+  const [schedaAperta, setSchedaAperta] = useState(false);
 
   async function carica(famiglia_id) {
     const { data } = await supabase
@@ -70,6 +73,13 @@ export default function RichiesteOspitePage() {
 
       setFamigliaId(p.famiglia_id);
       await carica(p.famiglia_id);
+      try {
+        const q = new URLSearchParams(window.location.search).get("id");
+        if (q) {
+          setPopId(q);
+          setSchedaAperta(true);
+        }
+      } catch (e) {}
       setCaricamento(false);
     }
     inizia();
@@ -144,9 +154,9 @@ export default function RichiesteOspitePage() {
     .filter((r) => !ANNULLABILI.includes(r.stato))
     .sort(perCreazione);
 
-  function riga(r) {
+  function schedaCompleta(r) {
     return (
-      <div key={r.id} className="richiesta-item">
+      <div key={r.id} className="richiesta-item" style={{ borderBottom: "none" }}>
         <span
           className={
             "badge " +
@@ -236,6 +246,35 @@ export default function RichiesteOspitePage() {
     );
   }
 
+  function riga(r) {
+    return (
+      <div key={r.id} className="richiesta-item">
+        <span className={"badge " + (r.stato === "confermata" ? "badge-confermata" : r.stato === "completata" ? "badge-completata" : "badge-nuova")}>
+          {chiaveStato(r.stato) ? t(chiaveStato(r.stato)) : r.stato}
+        </span>{" "}
+        <strong>{t("tipo." + r.tipo)}</strong>
+        <p className="descrizione" style={{ margin: "0.15rem 0" }}>
+          {fmtData(lang, r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""}
+          {r.sotto_tipo ? ` — ${traduciSotto(lang, r.sotto_tipo)}` : ""}
+          {r.descrizione ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}` : ""}
+          {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
+        </p>
+        {r.proposta_data && <p style={{ margin: "0.2rem 0", color: "#a2562c" }}><strong>{t("pm.titolo")}</strong></p>}
+        <button
+          type="button"
+          className="btn btn-light"
+          style={{ padding: "0.25rem 0.8rem", marginTop: "0.2rem" }}
+          onClick={() => {
+            setPopId(r.id);
+            setSchedaAperta(false);
+          }}
+        >
+          {lang === "en" ? "Open" : "Apri"}
+        </button>
+      </div>
+    );
+  }
+
   return (
     <main>
       <h1>{t("ro.titolo")}</h1>
@@ -266,6 +305,22 @@ export default function RichiesteOspitePage() {
           <div style={{ marginTop: "0.75rem" }}>{chiuse.map(riga)}</div>
         </details>
       )}
+      {popId && (() => {
+        const r = richieste.find((x) => String(x.id) === String(popId));
+        if (!r) return null;
+        const modificabile = ANNULLABILI.includes(r.stato);
+        return (
+          <PopupScheda
+            titolo={t("tipo." + r.tipo)}
+            sottotitolo={fmtData(lang, r.data) + (r.ora ? " · " + String(r.ora).slice(0, 5) : "")}
+            onChiudi={() => setPopId(null)}
+            azioneModifica={modificabile && !schedaAperta ? { onClick: () => setSchedaAperta(true) } : null}
+            larga={schedaAperta}
+          >
+            {schedaAperta ? schedaCompleta(r) : <RichiestaDettaglio r={r} />}
+          </PopupScheda>
+        );
+      })()}
     </main>
   );
 }
