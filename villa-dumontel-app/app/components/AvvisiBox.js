@@ -42,7 +42,10 @@ export default function AvvisiBox({ tipo, id = null }) {
   const soloEventi = avvisi.length > 0 && avvisi.every((a) => a.evento_id);
   const soloOrdiniVini = avvisi.length > 0 && avvisi.every((a) => String(a.evento || "").startsWith("ordine_vini"));
   const soloVini = avvisi.length > 0 && avvisi.every((a) => a.evento === "vino_maturita");
-  const destinazione = soloEventi
+  const soloAccessi = avvisi.length > 0 && avvisi.every((a) => a.evento === "accesso_richiesto");
+  const destinazione = soloAccessi
+    ? "/admin/accessi"
+    : soloEventi
     ? "/calendario"
     : soloOrdiniVini
     ? tipo === "admin"

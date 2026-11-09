@@ -19,8 +19,16 @@ export default function DopoLogin() {
         .eq("id", session.user.id)
         .single();
 
-      const profilo = applicaVista(profiloRaw);
+      let profilo = applicaVista(profiloRaw);
       if (error || !profilo) {
+        // accesso approvato dall'admin tramite QR: crea il profilo al primo ingresso
+        const { data: attivato } = await supabase.rpc("attiva_mio_accesso");
+        if (attivato) {
+          const { data: nuovo } = await supabase.from("profili").select("*").eq("id", session.user.id).single();
+          profilo = applicaVista(nuovo);
+        }
+      }
+      if (!profilo) {
         setStato("noProfilo");
         return;
       }

@@ -1,5 +1,6 @@
 "use client";
 
+import { nomeGruppo } from "./GruppoTitolo";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
@@ -248,7 +249,7 @@ export default function FormRichiesta({
           <select value={posto} onChange={(e) => setPosto(e.target.value)} required>
             <option value="">{t("f.scegli")}</option>
             {Object.keys(gruppi).map((g) => (
-              <optgroup key={g} label={g}>
+              <optgroup key={g} label={nomeGruppo(g, lang)}>
                 {gruppi[g].map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.nome}

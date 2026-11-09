@@ -5,7 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 
 export default function LoginPage() {
-  const { t } = useApp();
+  const { t, lang } = useApp();
   const [modo, setModo] = useState("password");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

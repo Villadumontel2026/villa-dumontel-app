@@ -3,11 +3,12 @@ import PrenotaButton from "../../components/PrenotaButton";
 
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
+import GruppoTitolo from "../../components/GruppoTitolo";
 import Testo from "../../components/Testo";
 
 export const dynamic = "force-dynamic";
 
-const ORDINE_GRUPPI = ["Entrèves", "Courmayeur", "Aosta Valley", "Michelin", "Abroad"];
+const ORDINE_GRUPPI = ["Entrèves", "Courmayeur", "On the slopes", "Val Ferret", "Aosta Valley", "Michelin", "Abroad"];
 
 export default async function RistorantiPage() {
   const { data: posti } = await supabase
@@ -42,7 +43,9 @@ export default async function RistorantiPage() {
 
       {ordineFinale.map((gruppo) => (
         <section key={gruppo} style={{ marginBottom: "1.75rem" }}>
-          <h2>{gruppo}</h2>
+          <h2>
+            <GruppoTitolo nome={gruppo} />
+          </h2>
           <div style={{ display: "grid", gap: "1rem" }}>
             {gruppi[gruppo].map((p) => (
               <div key={p.id} className="card">

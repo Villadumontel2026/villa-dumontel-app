@@ -24,6 +24,7 @@ export default function AdminHome() {
   const [filtro, setFiltro] = useState("tutte");
   const [eventiCal, setEventiCal] = useState([]);
   const [pop, setPop] = useState(null);
+  const [accessiInAttesa, setAccessiInAttesa] = useState(0);
 
   async function ricarica() {
     const { data: ric } = await supabase
@@ -72,6 +73,8 @@ export default function AdminHome() {
         .eq("stato", "da fare")
         .order("scadenza", { ascending: true, nullsFirst: false });
       setGeneriche(gen || []);
+      const { count } = await supabase.from("richieste_accesso").select("id", { count: "exact", head: true }).eq("stato", "in attesa");
+      setAccessiInAttesa(count || 0);
       setCaricamento(false);
     }
     carica();
@@ -162,7 +165,7 @@ export default function AdminHome() {
   );
 
   const nuoveLista = nuove.slice(0, 6);
-  const nulla = nuove.length === 0 && pulizieDaAssegnare.length === 0 && proposte.length === 0 && generiche.length === 0;
+  const nulla = nuove.length === 0 && pulizieDaAssegnare.length === 0 && proposte.length === 0 && generiche.length === 0 && accessiInAttesa === 0;
 
   return (
     <main>
@@ -197,6 +200,12 @@ export default function AdminHome() {
         {pulizieDaAssegnare.length > 0 && (
           <p style={{ margin: "0.4rem 0" }}>
             <strong>{pulizieDaAssegnare.length}</strong> pulizie senza collaboratrice
+          </p>
+        )}
+        {accessiInAttesa > 0 && (
+          <p style={{ margin: "0.4rem 0" }}>
+            <strong>{accessiInAttesa}</strong> {accessiInAttesa === 1 ? "richiesta di accesso da approvare" : "richieste di accesso da approvare"}{" "}
+            <a href="/admin/accessi" className="btn btn-light" style={{ padding: "0.2rem 0.8rem" }}>Apri</a>
           </p>
         )}
         {proposte.length > 0 && (
