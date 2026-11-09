@@ -302,12 +302,28 @@ export default function AdminHome() {
               {f.nome}
             </button>
           ))}
-        </div>
-        <p style={{ marginTop: 0 }}>
-          <a href="/calendario/evento" className="btn">
-            Aggiungi un evento
+          <a
+            href="/calendario/evento"
+            title="Aggiungi un evento"
+            aria-label="Aggiungi un evento"
+            style={{
+              width: 38,
+              height: 38,
+              borderRadius: 999,
+              background: "#2f4739",
+              color: "white",
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              textDecoration: "none",
+              marginLeft: "auto",
+            }}
+          >
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
           </a>
-        </p>
+        </div>
         <CalendarioVista
           eventi={[
             ...visibili,
