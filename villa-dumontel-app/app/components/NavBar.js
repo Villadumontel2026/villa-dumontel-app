@@ -178,7 +178,7 @@ export default function NavBar() {
 
             /* --- Telefono: barra in basso + foglio "Altro" --- */
             .header-inner nav.vd-bar, .vd-foglio, .vd-velo { display: none; }
-            @media (max-width: 720px) {
+            @media (max-width: 860px) {
               .header-inner nav.vd-desk { display: none; }
               body { padding-bottom: calc(68px + env(safe-area-inset-bottom)); }
               .header-inner nav.vd-bar {

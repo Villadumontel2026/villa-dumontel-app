@@ -25,6 +25,16 @@ export default function AdminHome() {
   const [eventiCal, setEventiCal] = useState([]);
   const [pop, setPop] = useState(null);
   const [accessiInAttesa, setAccessiInAttesa] = useState(0);
+  const [calAperto, setCalAperto] = useState(false);
+
+  // Schermi larghi (PC, tablet in orizzontale): pagina piu' ampia, calendario a fianco e aperto
+  useEffect(() => {
+    document.body.classList.add("vd-largo");
+    if (window.matchMedia && window.matchMedia("(min-width: 1000px) and (orientation: landscape)").matches) {
+      setCalAperto(true);
+    }
+    return () => document.body.classList.remove("vd-largo");
+  }, []);
 
   async function ricarica() {
     const { data: ric } = await supabase
@@ -184,6 +194,8 @@ export default function AdminHome() {
         </PopupScheda>
       )}
 
+      <div className="vd-due-col">
+      <div className="vd-col-sx">
       {/* Da tenere d'occhio */}
       <div className="card" style={{ marginBottom: "1rem", background: nulla ? "#eef7ef" : "#fff6e0" }}>
         <h2 style={{ marginTop: 0 }}>Da tenere d'occhio</h2>
@@ -258,8 +270,10 @@ export default function AdminHome() {
         {prossimi.slice(0, 5).map(dettaglio)}
       </div>
 
-      {/* Calendario completo (chiuso di default) */}
-      <details className="card" style={{ marginBottom: "2rem" }}>
+      </div>
+      <div className="vd-col-dx">
+      {/* Calendario completo (chiuso su telefono e tablet in verticale, aperto a fianco su schermi larghi) */}
+      <details className="card" style={{ marginBottom: "2rem" }} open={calAperto} onToggle={(e) => setCalAperto(e.currentTarget.open)}>
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>Calendario completo</summary>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", margin: "0.8rem 0" }}>
           <button
@@ -309,6 +323,8 @@ export default function AdminHome() {
           onCambiato={ricarica}
         />
       </details>
+      </div>
+      </div>
     </main>
   );
 }

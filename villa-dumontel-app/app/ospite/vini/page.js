@@ -182,7 +182,7 @@ export default function ViniOspitePage() {
         dangerouslySetInnerHTML={{
           __html: `
             .vi-carrello { position: sticky; bottom: 12px; z-index: 30; }
-            @media (max-width: 720px) { .vi-carrello { bottom: calc(76px + env(safe-area-inset-bottom)); } }
+            @media (max-width: 860px) { .vi-carrello { bottom: calc(76px + env(safe-area-inset-bottom)); } }
           `,
         }}
       />
