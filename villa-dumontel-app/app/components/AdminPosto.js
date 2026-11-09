@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
+import PopupScheda from "./PopupEvento";
+import { Matita, Piu } from "./IconeAzione";
 
 const oggi = () => new Date().toISOString().slice(0, 10);
 
@@ -174,5 +176,99 @@ export function AdminNuovoPosto({ categoria, gruppi = [], conGruppo = false, eti
         {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
       </form>
     </details>
+  );
+}
+
+// ---- Versione a icona: matita sulla scheda (admin) e "+" per aggiungere ----
+
+// Matita in alto a destra sulla scheda: apre una finestra per correggere, segnare "Nuovo" o eliminare.
+export function PostoMatita({ posto, gruppi = [], conGruppo = false }) {
+  const { ruolo } = useApp();
+  const [aperto, setAperto] = useState(false);
+  const [errore, setErrore] = useState(null);
+  if (ruolo !== "admin") return null;
+
+  const giorni = posto.nuovo_dal ? (Date.now() - new Date(posto.nuovo_dal).getTime()) / 86400000 : null;
+  const èNuovo = giorni !== null && giorni <= 92;
+
+  async function salva(e) {
+    e.preventDefault();
+    setErrore(null);
+    const f = e.target;
+    const { error } = await supabase
+      .from("posti")
+      .update({ ...leggi(f, conGruppo), nuovo_dal: f.nuovo.checked ? (èNuovo ? posto.nuovo_dal : oggi()) : null })
+      .eq("id", posto.id);
+    if (error) return setErrore("Errore: " + error.message);
+    window.location.reload();
+  }
+
+  async function elimina() {
+    if (!window.confirm("Eliminare «" + posto.nome + "» dalla lista?")) return;
+    const { error } = await supabase.from("posti").delete().eq("id", posto.id);
+    if (error) return setErrore("Errore: " + error.message);
+    window.location.reload();
+  }
+
+  return (
+    <>
+      <span style={{ position: "absolute", top: "0.5rem", right: "0.5rem" }}>
+        <Matita onClick={() => setAperto(true)} titolo="Modifica" />
+      </span>
+      {aperto && (
+        <PopupScheda titolo={posto.nome} sottotitolo="Modifica" onChiudi={() => setAperto(false)} larga>
+          <form onSubmit={salva} style={{ marginTop: "0.5rem" }}>
+            <Campi posto={posto} gruppi={gruppi} conGruppo={conGruppo} nuovoDefault={èNuovo} />
+            {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+              <button type="submit" className="btn">
+                Salva
+              </button>
+              <button type="button" className="btn btn-light" onClick={elimina}>
+                Elimina
+              </button>
+            </div>
+          </form>
+        </PopupScheda>
+      )}
+    </>
+  );
+}
+
+// "+" accanto al titolo della pagina per aggiungere un posto
+export function PostoPiu({ categoria, gruppi = [], conGruppo = false, etichetta = "Aggiungi" }) {
+  const { ruolo } = useApp();
+  const [aperto, setAperto] = useState(false);
+  const [errore, setErrore] = useState(null);
+  if (ruolo !== "admin") return null;
+
+  async function aggiungi(e) {
+    e.preventDefault();
+    setErrore(null);
+    const f = e.target;
+    const { error } = await supabase.from("posti").insert({
+      categoria,
+      ...leggi(f, conGruppo),
+      nuovo_dal: f.nuovo.checked ? oggi() : null,
+    });
+    if (error) return setErrore("Errore: " + error.message);
+    window.location.reload();
+  }
+
+  return (
+    <>
+      <Piu onClick={() => setAperto(true)} titolo={etichetta} />
+      {aperto && (
+        <PopupScheda titolo={etichetta} onChiudi={() => setAperto(false)} larga>
+          <form onSubmit={aggiungi} style={{ marginTop: "0.5rem" }}>
+            <Campi gruppi={gruppi} conGruppo={conGruppo} nuovoDefault={true} />
+            {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
+            <button type="submit" className="btn">
+              Aggiungi
+            </button>
+          </form>
+        </PopupScheda>
+      )}
+    </>
   );
 }

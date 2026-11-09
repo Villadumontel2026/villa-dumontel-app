@@ -1,5 +1,6 @@
 "use client";
 
+import { Matita, Cestino } from "../../components/IconeAzione";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { TIPOLOGIE, cercaVini, coloreTipologia, nomeVino, codicePosizione } from "../../../lib/cantina";
@@ -306,12 +307,8 @@ export default function ViniCantinaPage() {
                     </p>
                   )}
                   <p style={{ margin: "0.5rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <button type="button" className="btn btn-light" onClick={() => setMod(daRiga(v))}>
-                      Modifica
-                    </button>
-                    <button type="button" className="btn btn-light" onClick={() => elimina(v)}>
-                      Elimina
-                    </button>
+                    <Matita onClick={() => setMod(daRiga(v))} titolo="Modifica" />
+                    <Cestino onClick={() => elimina(v)} />
                   </p>
                 </div>
               )}

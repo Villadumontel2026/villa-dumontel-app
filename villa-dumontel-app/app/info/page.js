@@ -5,6 +5,7 @@ import InfoCards from "../components/InfoCards";
 const SEZIONI = [
   { href: "/info/generale", titolo: "i.gen", descrizione: "i.genSub" },
   { href: "/info/utili", titolo: "i.utili", descrizione: "i.utiliSub" },
+  { href: "/info/modelli", titolo: "i.modelli", descrizione: "i.modelliSub", soloAdmin: true },
   { href: "/info/ristoranti", titolo: "i.rist", descrizione: "i.ristSub" },
   { href: "/info/bar", titolo: "i.bar", descrizione: "i.barSub" },
   { href: "/info/food-drink", titolo: "i.food", descrizione: "i.foodSub" },

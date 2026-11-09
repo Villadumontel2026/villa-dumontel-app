@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
+import PopupScheda from "./PopupEvento";
+import { Matita, Cestino, Piu } from "./IconeAzione";
 
 const oggi = () => new Date().toISOString().slice(0, 10);
 
@@ -54,6 +56,8 @@ export default function NovitaAdminBox() {
   const { ruolo } = useApp();
   const [novita, setNovita] = useState([]);
   const [errore, setErrore] = useState(null);
+  const [nuovaAperta, setNuovaAperta] = useState(false);
+  const [editId, setEditId] = useState(null);
 
   async function carica() {
     const { data } = await supabase
@@ -83,6 +87,7 @@ export default function NovitaAdminBox() {
     if (error) return setErrore("Errore: " + error.message);
     f.reset();
     setErrore(null);
+    setNuovaAperta(false);
     await carica();
   }
 
@@ -100,15 +105,19 @@ export default function NovitaAdminBox() {
       </p>
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
 
-      <details style={{ margin: "0.75rem 0" }}>
-        <summary style={{ cursor: "pointer", fontWeight: 600 }}>+ Nuova novità</summary>
-        <form onSubmit={aggiungi} style={{ marginTop: "0.75rem" }}>
-          <Campi />
-          <button type="submit" className="btn">
-            Pubblica
-          </button>
-        </form>
-      </details>
+      <p style={{ margin: "0.75rem 0" }}>
+        <Piu onClick={() => setNuovaAperta(true)} titolo="Nuova novità" />
+      </p>
+      {nuovaAperta && (
+        <PopupScheda titolo="Nuova novità" onChiudi={() => setNuovaAperta(false)} larga>
+          <form onSubmit={aggiungi} style={{ marginTop: "0.5rem" }}>
+            <Campi />
+            <button type="submit" className="btn">
+              Pubblica
+            </button>
+          </form>
+        </PopupScheda>
+      )}
 
       {novita.length === 0 && <p className="muted">Nessuna novità.</p>}
       {novita.map((n) => (
@@ -118,12 +127,29 @@ export default function NovitaAdminBox() {
             {n.data_pubblicazione}
             {n.attiva ? "" : " — nascosta"}
           </p>
-          <details style={{ margin: "0.5rem 0" }}>
-            <summary style={{ cursor: "pointer" }}>Modifica</summary>
+          <div style={{ display: "flex", gap: "0.4rem", alignItems: "center", flexWrap: "wrap" }}>
+            <Matita onClick={() => setEditId(n.id)} titolo="Modifica" />
+            <button type="button" className="btn btn-light" style={{ padding: "0.2rem 0.7rem" }} onClick={() => gestisci(supabase.from("novita").update({ attiva: !n.attiva }).eq("id", n.id))}>
+              {n.attiva ? "Nascondi" : "Mostra"}
+            </button>
+            <Cestino
+              onClick={() => {
+                if (window.confirm("Eliminare questa novità?")) gestisci(supabase.from("novita").delete().eq("id", n.id));
+              }}
+            />
+          </div>
+        </div>
+      ))}
+      {editId && (() => {
+        const n = novita.find((x) => x.id === editId);
+        if (!n) return null;
+        return (
+          <PopupScheda titolo={n.titolo_it} sottotitolo="Modifica" onChiudi={() => setEditId(null)} larga>
             <form
-              onSubmit={(e) => {
+              onSubmit={async (e) => {
                 e.preventDefault();
-                gestisci(supabase.from("novita").update(leggi(e.target)).eq("id", n.id));
+                await gestisci(supabase.from("novita").update(leggi(e.target)).eq("id", n.id));
+                setEditId(null);
               }}
               style={{ marginTop: "0.5rem" }}
             >
@@ -132,22 +158,9 @@ export default function NovitaAdminBox() {
                 Salva
               </button>
             </form>
-          </details>
-          <div className="stato-actions">
-            <button type="button" onClick={() => gestisci(supabase.from("novita").update({ attiva: !n.attiva }).eq("id", n.id))}>
-              {n.attiva ? "Nascondi" : "Mostra"}
-            </button>{" "}
-            <button
-              type="button"
-              onClick={() => {
-                if (window.confirm("Eliminare questa novità?")) gestisci(supabase.from("novita").delete().eq("id", n.id));
-              }}
-            >
-              Elimina
-            </button>
-          </div>
-        </div>
-      ))}
+          </PopupScheda>
+        );
+      })()}
     </details>
   );
 }

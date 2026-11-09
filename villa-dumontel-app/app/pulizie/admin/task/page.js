@@ -1,5 +1,6 @@
 "use client";
 
+import { Matita, Cestino } from "../../../components/IconeAzione";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 
@@ -178,21 +179,18 @@ export default function TaskPulizieAdminPage() {
               >
                 {x.attivo ? "Nascondi" : "Mostra"}
               </button>
-              <button
-                type="button"
-                className="btn btn-light"
-                style={{ padding: "0.25rem 0.7rem" }}
+              <Cestino
                 onClick={() => {
                   if (window.confirm("Eliminare «" + x.nome_it + "» dalla lista?")) {
                     esegui(supabase.from("task_pulizie").delete().eq("id", x.id));
                   }
                 }}
-              >
-                Elimina
-              </button>
+              />
             </div>
             <details>
-              <summary style={{ cursor: "pointer" }}>Modifica i nomi</summary>
+              <summary style={{ cursor: "pointer", listStyle: "none" }} title="Modifica i nomi" aria-label="Modifica i nomi">
+                <Matita onClick={() => {}} titolo="Modifica i nomi" />
+              </summary>
               <form onSubmit={(e) => salva(e, x)} style={{ marginTop: "0.5rem" }}>
                 <label>
                   Nome (italiano)

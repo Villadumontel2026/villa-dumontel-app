@@ -6,7 +6,8 @@ import { useApp } from "./AppProvider";
 export default function InfoCards({ sezioni }) {
   const { t, ruolo, pronto } = useApp();
   if (!pronto) return null;
-  const visibili = ruolo === "collaboratore" ? sezioni.filter((s) => s.href === "/info/generale") : sezioni;
+  const base = ruolo === "collaboratore" ? sezioni.filter((s) => s.href === "/info/generale") : sezioni;
+  const visibili = base.filter((s) => !s.soloAdmin || ruolo === "admin");
   return (
     <div style={{ display: "grid", gap: "1rem" }}>
       {visibili.map((s) => (

@@ -3,16 +3,28 @@
 import { useApp } from "./AppProvider";
 
 const NOMI = {
-  "On the slopes": { it: "Sulle piste", en: "On the slopes" },
+  "Entrèves": { it: "Entrèves", en: "Entrèves" },
   "Val Ferret": { it: "Val Ferret", en: "Val Ferret" },
+  "Courmayeur": { it: "Courmayeur", en: "Courmayeur" },
+  "On the slopes": { it: "Sulle piste", en: "On the slopes" },
+  "Valdigne": { it: "Valdigne (Morgex, La Salle, Avise, Arvier)", en: "Valdigne (Morgex, La Salle, Avise, Arvier)", br: "Valdigne" },
+  "Aosta area": { it: "Aosta e dintorni", en: "Aosta and surroundings", br: "Aosta" },
+  "Chamonix": { it: "Chamonix (Francia)", en: "Chamonix (France)", br: "Chamonix" },
+  "Elsewhere": { it: "Altrove", en: "Elsewhere" },
 };
 
-export function nomeGruppo(nome, lang) {
+export function nomeGruppo(nome, lang, breve = false) {
   const n = NOMI[nome];
-  return n ? (lang === "en" ? n.en : n.it) : nome;
+  if (!n) return nome;
+  if (breve && n.br) return n.br;
+  return lang === "en" ? n.en : n.it;
 }
 
-export default function GruppoTitolo({ nome }) {
+export function slugGruppo(nome) {
+  return "zona-" + String(nome).toLowerCase().replace(/[^a-z0-9]+/g, "-");
+}
+
+export default function GruppoTitolo({ nome, breve = false }) {
   const { lang } = useApp();
-  return <>{nomeGruppo(nome, lang)}</>;
+  return <>{nomeGruppo(nome, lang, breve)}</>;
 }

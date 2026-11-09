@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useApp } from "../../components/AppProvider";
+import PopupScheda from "../../components/PopupEvento";
+import { Matita } from "../../components/IconeAzione";
 
 export default function InfoGeneralePage() {
   const { t, lang, ruolo, email, pronto } = useApp();
   const [info, setInfo] = useState(null);
   const [caricato, setCaricato] = useState(false);
   const [errore, setErrore] = useState(null);
+  const [modifica, setModifica] = useState(false);
 
   async function carica() {
     const { data } = await supabase.from("info_generale").select("*").eq("id", 1).maybeSingle();
@@ -35,6 +38,7 @@ export default function InfoGeneralePage() {
       note_en: v("note_en"),
     });
     if (error) return setErrore("Errore: " + error.message);
+    setModifica(false);
     await carica();
   }
 
@@ -47,7 +51,10 @@ export default function InfoGeneralePage() {
           {t("i.back")}
         </a>
       </p>
-      <h1>{t("i.gen")}</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "1rem" }}>
+        <h1 style={{ margin: 0 }}>{t("i.gen")}</h1>
+        {ruolo === "admin" && info && <Matita onClick={() => setModifica(true)} titolo="Modifica le informazioni" />}
+      </div>
 
       {pronto && !email && (
         <div className="card">
@@ -87,10 +94,9 @@ export default function InfoGeneralePage() {
             </div>
           )}
 
-          {ruolo === "admin" && (
-            <details className="card" style={{ borderLeft: "4px solid var(--color-accent)" }}>
-              <summary style={{ cursor: "pointer", fontWeight: 600 }}>Modifica le informazioni (solo admin)</summary>
-              <form onSubmit={salva} style={{ marginTop: "0.75rem" }}>
+          {ruolo === "admin" && modifica && (
+            <PopupScheda titolo={t("i.gen")} sottotitolo="Modifica" onChiudi={() => setModifica(false)} larga>
+              <form onSubmit={salva} style={{ marginTop: "0.5rem" }}>
                 <label>
                   Contatti (una riga per nome, telefono, email; riga vuota per separare)
                   <textarea name="contatti" rows={8} defaultValue={info.contatti || ""}></textarea>
@@ -120,7 +126,7 @@ export default function InfoGeneralePage() {
                   Salva
                 </button>
               </form>
-            </details>
+            </PopupScheda>
           )}
         </>
       )}

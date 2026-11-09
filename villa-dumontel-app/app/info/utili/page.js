@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useApp } from "../../components/AppProvider";
+import PopupScheda from "../../components/PopupEvento";
+import { Matita, Piu } from "../../components/IconeAzione";
 
 const VUOTA = { ordine: 100, titolo_it: "", titolo_en: "", testo_it: "", testo_en: "", link_url: "", link_etichetta_it: "", link_etichetta_en: "", attiva: true };
 
@@ -12,6 +14,7 @@ export default function InfoUtiliPage() {
   const [caricato, setCaricato] = useState(false);
   const [errore, setErrore] = useState(null);
   const [nuova, setNuova] = useState(false);
+  const [editId, setEditId] = useState(null);
 
   async function carica() {
     const { data } = await supabase.from("info_voci").select("*").order("ordine", { ascending: true }).order("id", { ascending: true });
@@ -46,6 +49,7 @@ export default function InfoUtiliPage() {
     const { error } = id ? await supabase.from("info_voci").update(riga).eq("id", id) : await supabase.from("info_voci").insert(riga);
     if (error) return setErrore("Errore: " + error.message);
     setNuova(false);
+    setEditId(null);
     await carica();
   }
 
@@ -109,7 +113,10 @@ export default function InfoUtiliPage() {
           {t("i.back")}
         </a>
       </p>
-      <h1>{t("i.utili")}</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <h1 style={{ margin: 0 }}>{t("i.utili")}</h1>
+        {admin && caricato && <Piu onClick={() => setNuova(true)} titolo="Aggiungi una voce" />}
+      </div>
 
       {pronto && !email && (
         <div className="card">
@@ -128,8 +135,8 @@ export default function InfoUtiliPage() {
 
       <div style={{ display: "grid", gap: "1rem" }}>
         {voci.map((v) => (
-          <div key={v.id} className="card" style={{ opacity: v.attiva ? 1 : 0.55 }}>
-            <h2 style={{ marginTop: 0 }}>{L(v.titolo_it, v.titolo_en)}</h2>
+          <div key={v.id} className="card" style={{ opacity: v.attiva ? 1 : 0.55, position: "relative" }}>
+            <h2 style={{ marginTop: 0, paddingRight: "2.2rem" }}>{L(v.titolo_it, v.titolo_en)}{!v.attiva ? " (nascosta)" : ""}</h2>
             {L(v.testo_it, v.testo_en) && <p style={{ whiteSpace: "pre-line" }}>{L(v.testo_it, v.testo_en)}</p>}
             {v.link_url && (
               <p style={{ margin: "0.5rem 0 0" }}>
@@ -139,24 +146,31 @@ export default function InfoUtiliPage() {
               </p>
             )}
             {admin && (
-              <details style={{ marginTop: "0.75rem" }}>
-                <summary style={{ cursor: "pointer" }}>Modifica (solo admin){!v.attiva ? " — nascosta" : ""}</summary>
-                {form(v, v.id)}
-                <button type="button" className="btn btn-light" style={{ marginTop: "0.5rem" }} onClick={() => elimina(v.id)}>
-                  Elimina
-                </button>
-              </details>
+              <span style={{ position: "absolute", top: "0.5rem", right: "0.5rem" }}>
+                <Matita onClick={() => setEditId(v.id)} titolo="Modifica" />
+              </span>
             )}
           </div>
         ))}
       </div>
 
-      {admin && caricato && (
-        <details className="card" style={{ marginTop: "1.5rem", borderLeft: "4px solid var(--color-accent)" }} open={nuova} onToggle={(e) => setNuova(e.target.open)}>
-          <summary style={{ cursor: "pointer", fontWeight: 600 }}>Aggiungi una voce (solo admin)</summary>
-          {nuova && form(VUOTA, null)}
-        </details>
+      {admin && nuova && (
+        <PopupScheda titolo="Nuova voce" onChiudi={() => setNuova(false)} larga>
+          {form(VUOTA, null)}
+        </PopupScheda>
       )}
+      {admin && editId && (() => {
+        const v = voci.find((x) => x.id === editId);
+        if (!v) return null;
+        return (
+          <PopupScheda titolo={L(v.titolo_it, v.titolo_en)} sottotitolo="Modifica" onChiudi={() => setEditId(null)} larga>
+            {form(v, v.id)}
+            <button type="button" className="btn btn-light" style={{ marginTop: "0.5rem" }} onClick={() => elimina(v.id)}>
+              Elimina
+            </button>
+          </PopupScheda>
+        );
+      })()}
     </main>
   );
 }

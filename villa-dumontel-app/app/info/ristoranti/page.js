@@ -3,12 +3,14 @@ import PrenotaButton from "../../components/PrenotaButton";
 
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
-import GruppoTitolo from "../../components/GruppoTitolo";
+import GruppoTitolo, { slugGruppo } from "../../components/GruppoTitolo";
+import ZonaDetails from "../../components/ZonaDetails";
+import { PostoMatita, PostoPiu } from "../../components/AdminPosto";
 import Testo from "../../components/Testo";
 
 export const dynamic = "force-dynamic";
 
-const ORDINE_GRUPPI = ["Entrèves", "Courmayeur", "On the slopes", "Val Ferret", "Aosta Valley", "Michelin", "Abroad"];
+const ORDINE_GRUPPI = ["Entrèves", "Val Ferret", "Courmayeur", "On the slopes", "Valdigne", "Aosta area", "Chamonix", "Elsewhere"];
 
 export default async function RistorantiPage() {
   const { data: posti } = await supabase
@@ -36,20 +38,27 @@ export default async function RistorantiPage() {
           <T k="i.back" />
         </a>
       </p>
-      <h1>
-        <T k="i.rist" />
-      </h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+        <h1 style={{ margin: 0 }}>
+          <T k="i.rist" />
+        </h1>
+        <PostoPiu categoria="ristorante" gruppi={ordineFinale} conGruppo={true} etichetta="Aggiungi un ristorante" />
+      </div>
 
+      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "1rem 0 1.25rem" }}>
+        {ordineFinale.map((gruppo) => (
+          <a key={gruppo} href={"#" + slugGruppo(gruppo)} className="btn btn-light" style={{ padding: "0.3rem 0.85rem", fontSize: "0.9rem" }}>
+            <GruppoTitolo nome={gruppo} breve /> ({gruppi[gruppo].length})
+          </a>
+        ))}
+      </div>
 
       {ordineFinale.map((gruppo) => (
-        <section key={gruppo} style={{ marginBottom: "1.75rem" }}>
-          <h2>
-            <GruppoTitolo nome={gruppo} />
-          </h2>
+        <ZonaDetails key={gruppo} id={slugGruppo(gruppo)} titolo={<GruppoTitolo nome={gruppo} />} conteggio={gruppi[gruppo].length}>
           <div style={{ display: "grid", gap: "1rem" }}>
             {gruppi[gruppo].map((p) => (
-              <div key={p.id} className="card">
-                <h3 style={{ marginBottom: "0.25rem" }}>
+              <div key={p.id} className="card" style={{ position: "relative", boxShadow: "none", border: "1px solid var(--color-border)" }}>
+                <h3 style={{ marginBottom: "0.25rem", paddingRight: "2.2rem" }}>
                   {p.nome}
                   <NuovoBadge dal={p.nuovo_dal} />
                 </h3>
@@ -68,10 +77,11 @@ export default async function RistorantiPage() {
                   </p>
                 )}
                 <PrenotaButton tipo="ristorante" nome={p.nome} />
+                <PostoMatita posto={p} gruppi={ordineFinale} conGruppo />
               </div>
             ))}
           </div>
-        </section>
+        </ZonaDetails>
       ))}
     </main>
   );
