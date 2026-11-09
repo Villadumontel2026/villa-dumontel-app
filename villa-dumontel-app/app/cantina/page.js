@@ -43,7 +43,7 @@ function ScegliVino({ vini, onScegli }) {
     <div>
       <label>
         Cerca il vino
-        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="es. Barbaresco, Anselmet, 2020" autoFocus />
+        <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="es. Barbaresco, Anselmet, 2020" />
       </label>
       <div style={{ maxHeight: "45vh", overflowY: "auto" }}>
         {elenco.length === 0 && <p className="muted">Nessun vino trovato.</p>}

@@ -16,7 +16,7 @@ function Modale({ titolo, onChiudi, children }) {
   return (
     <div
       onClick={onChiudi}
-      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "3vh 1rem", overflowY: "auto" }}
+      style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.45)", zIndex: 50, display: "flex", alignItems: "flex-start", justifyContent: "center", padding: "3vh 0.6rem", overflowY: "auto", overscrollBehavior: "contain" }}
     >
       <div className="card" onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: 560, background: "#fff" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "1rem" }}>
@@ -415,9 +415,9 @@ export default function SpeseAdminPage() {
           </p>
           <label>
             Cerca nell&apos;archivio
-            <input value={cercaDoc} onChange={(e) => setCercaDoc(e.target.value)} placeholder="es. 08 09" autoFocus />
+            <input value={cercaDoc} onChange={(e) => setCercaDoc(e.target.value)} placeholder="es. 08 09" style={{ width: "100%", boxSizing: "border-box", padding: "0.6rem 0.75rem", border: "1px solid var(--color-border)", borderRadius: 8, marginBottom: "0.75rem" }} />
           </label>
-          <div style={{ maxHeight: "40vh", overflowY: "auto", marginBottom: "1rem" }}>
+          <div style={{ maxHeight: "38vh", overflowY: "auto", marginBottom: "1rem", WebkitOverflowScrolling: "touch" }}>
             {archivio
               .filter((d) => {
                 const q = cercaDoc.trim().toLowerCase();

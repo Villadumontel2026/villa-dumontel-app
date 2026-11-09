@@ -4,7 +4,6 @@ import PrenotaButton from "../../components/PrenotaButton";
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
 import Testo from "../../components/Testo";
-import { AdminPostoRiga, AdminNuovoPosto } from "../../components/AdminPosto";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +39,6 @@ export default async function RistorantiPage() {
         <T k="i.rist" />
       </h1>
 
-      <AdminNuovoPosto categoria="ristorante" gruppi={ordineFinale} conGruppo={true} etichetta="Aggiungi un nuovo ristorante" />
 
       {ordineFinale.map((gruppo) => (
         <section key={gruppo} style={{ marginBottom: "1.75rem" }}>
@@ -67,7 +65,6 @@ export default async function RistorantiPage() {
                   </p>
                 )}
                 <PrenotaButton tipo="ristorante" nome={p.nome} />
-                <AdminPostoRiga posto={p} gruppi={ordineFinale} conGruppo />
               </div>
             ))}
           </div>

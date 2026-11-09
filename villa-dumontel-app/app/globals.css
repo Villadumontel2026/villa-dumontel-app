@@ -324,3 +324,21 @@ form input[type="checkbox"] {
   background: var(--color-primary-light);
   color: var(--color-primary-dark);
 }
+
+/* Mobile: font da 16px nei campi, altrimenti iPhone fa lo zoom quando li tocchi */
+@media (max-width: 820px) {
+  input,
+  select,
+  textarea,
+  form input,
+  form select,
+  form textarea {
+    font-size: 16px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+  select,
+  textarea {
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
