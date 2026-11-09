@@ -20,10 +20,6 @@ export function nomeGruppo(nome, lang, breve = false) {
   return lang === "en" ? n.en : n.it;
 }
 
-export function slugGruppo(nome) {
-  return "zona-" + String(nome).toLowerCase().replace(/[^a-z0-9]+/g, "-");
-}
-
 export default function GruppoTitolo({ nome, breve = false }) {
   const { lang } = useApp();
   return <>{nomeGruppo(nome, lang, breve)}</>;

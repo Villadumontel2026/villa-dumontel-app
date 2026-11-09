@@ -3,7 +3,8 @@ import PrenotaButton from "../../components/PrenotaButton";
 
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
-import GruppoTitolo, { slugGruppo } from "../../components/GruppoTitolo";
+import GruppoTitolo from "../../components/GruppoTitolo";
+import { slugGruppo } from "../../../lib/zone";
 import ZonaDetails from "../../components/ZonaDetails";
 import { PostoMatita, PostoPiu } from "../../components/AdminPosto";
 import Testo from "../../components/Testo";
