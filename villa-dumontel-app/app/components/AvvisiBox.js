@@ -103,7 +103,7 @@ export default function AvvisiBox({ tipo, id = null }) {
     ) : (
       <PopupScheda
         titolo={t("tipo." + dettaglio.richiesta.tipo)}
-        sottotitolo={fmtData(lang, dettaglio.richiesta.data) + (dettaglio.richiesta.ora ? " · " + String(dettaglio.richiesta.ora).slice(0, 5) : "")}
+        sottotitolo={(dettaglio.richiesta.data ? fmtData(lang, dettaglio.richiesta.data) : lang === "en" ? "Date to be defined" : "Data da definire") + (dettaglio.richiesta.ora ? " · " + String(dettaglio.richiesta.ora).slice(0, 5) : "")}
         onChiudi={() => setDettaglio(null)}
         azioneModifica={{ href: (tipo === "admin" ? "/richieste?id=" : "/ospite/richieste?id=") + dettaglio.richiesta.id }}
       >

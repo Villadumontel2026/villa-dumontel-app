@@ -294,7 +294,7 @@ export default function RichiestePage() {
         <span className={classeBadge(r.stato)}>{r.stato}</span>{" "}
         <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
         <p className="descrizione">
-          {dmy(r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash;{" "}
+          {r.data ? dmy(r.data) : "data da definire"} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash;{" "}
           {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
           {r.descrizione}
           {r.pax ? ` (${r.pax} pers.)` : ""}
@@ -491,7 +491,7 @@ export default function RichiestePage() {
       <div key={r.id} className="richiesta-item">
         <span className={classeBadge(r.stato)}>{r.stato}</span> <strong>{r.alloggi?.nome}</strong> &mdash; {r.famiglie?.nome}
         <p className="descrizione" style={{ margin: "0.15rem 0" }}>
-          {dmy(r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash; {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
+          {r.data ? dmy(r.data) : "data da definire"} {r.ora ? String(r.ora).slice(0, 5) : ""} &mdash; {r.sotto_tipo ? `${r.sotto_tipo} — ` : ""}
           {r.descrizione}
           {r.pax ? ` (${r.pax} pers.)` : ""}
           {r.tipo === "pulizie" && !r.collaboratore_id ? " — da assegnare" : ""}
@@ -658,7 +658,7 @@ export default function RichiestePage() {
         return (
           <PopupScheda
             titolo={r.tipo === "pulizie" ? "Pulizie" : r.tipo === "trasporto" ? "Trasporto" : r.tipo === "ristorante" ? "Ristorante" : "Attività"}
-            sottotitolo={`${dmy(r.data)}${r.ora ? " · " + String(r.ora).slice(0, 5) : ""}`}
+            sottotitolo={`${r.data ? dmy(r.data) : "data da definire"}${r.ora ? " · " + String(r.ora).slice(0, 5) : ""}`}
             onChiudi={() => setPopId(null)}
             azioneModifica={schedaAperta ? null : { onClick: () => setSchedaAperta(true) }}
             larga={schedaAperta}

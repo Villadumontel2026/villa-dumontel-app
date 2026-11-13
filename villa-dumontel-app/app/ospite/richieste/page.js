@@ -171,7 +171,7 @@ export default function RichiesteOspitePage() {
         </span>{" "}
         <strong>{t("tipo." + r.tipo)}</strong>
         <p className="descrizione">
-          {fmtData(lang, r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""}
+          {r.data ? fmtData(lang, r.data) : lang === "en" ? "Date to be defined" : "Data da definire"} {r.ora ? String(r.ora).slice(0, 5) : ""}
           {r.sotto_tipo ? ` — ${traduciSotto(lang, r.sotto_tipo)}` : ""}
           {r.descrizione
             ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}`
@@ -254,7 +254,7 @@ export default function RichiesteOspitePage() {
         </span>{" "}
         <strong>{t("tipo." + r.tipo)}</strong>
         <p className="descrizione" style={{ margin: "0.15rem 0" }}>
-          {fmtData(lang, r.data)} {r.ora ? String(r.ora).slice(0, 5) : ""}
+          {r.data ? fmtData(lang, r.data) : lang === "en" ? "Date to be defined" : "Data da definire"} {r.ora ? String(r.ora).slice(0, 5) : ""}
           {r.sotto_tipo ? ` — ${traduciSotto(lang, r.sotto_tipo)}` : ""}
           {r.descrizione ? ` — ${r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione}` : ""}
           {r.pax ? ` (${r.pax} ${t("c.persone")})` : ""}
@@ -312,7 +312,7 @@ export default function RichiesteOspitePage() {
         return (
           <PopupScheda
             titolo={t("tipo." + r.tipo)}
-            sottotitolo={fmtData(lang, r.data) + (r.ora ? " · " + String(r.ora).slice(0, 5) : "")}
+            sottotitolo={(r.data ? fmtData(lang, r.data) : lang === "en" ? "Date to be defined" : "Data da definire") + (r.ora ? " · " + String(r.ora).slice(0, 5) : "")}
             onChiudi={() => setPopId(null)}
             azioneModifica={modificabile && !schedaAperta ? { onClick: () => setSchedaAperta(true) } : null}
             larga={schedaAperta}

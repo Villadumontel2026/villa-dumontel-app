@@ -96,10 +96,10 @@ export default function CollaboratoreHome() {
   const oggi = iso(new Date());
   const daAccettare = pulizie.filter((r) => !r.accettata_il && ["nuova", "in gestione", "confermata"].includes(r.stato));
   const prossime = pulizie
-    .filter((r) => r.data >= oggi && ["nuova", "in gestione", "confermata"].includes(r.stato))
+    .filter((r) => (!r.data || r.data >= oggi) && ["nuova", "in gestione", "confermata"].includes(r.stato))
     .sort(
       (a, b) =>
-        String(a.data).localeCompare(String(b.data)) || String(a.ora || "").localeCompare(String(b.ora || ""))
+        String(a.data || "9999").localeCompare(String(b.data || "9999")) || String(a.ora || "").localeCompare(String(b.ora || ""))
     )
     .slice(0, 10);
 
@@ -127,7 +127,7 @@ export default function CollaboratoreHome() {
         {prossime.map((r) => (
           <div key={r.id} className="richiesta-item">
             <strong>
-              {fmtData(lang, r.data, false)}
+              {r.data ? fmtData(lang, r.data, false) : "Data da definire"}
               {r.ora ? " · " + String(r.ora).slice(0, 5) : ""}
             </strong>{" "}
             &mdash; {r.alloggi?.nome}

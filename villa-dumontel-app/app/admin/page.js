@@ -156,7 +156,7 @@ export default function AdminHome() {
         }}
       />
       <strong>
-        {fmtData(lang, r.data, false)} {r.ora ? String(r.ora).slice(0, 5) : ""}
+        {r.data ? fmtData(lang, r.data, false) : "Data da definire"} {r.ora ? String(r.ora).slice(0, 5) : ""}
       </strong>{" "}
       &mdash; {t("tipo." + r.tipo)}
       <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>
@@ -186,7 +186,7 @@ export default function AdminHome() {
       {pop && (
         <PopupScheda
           titolo={t("tipo." + pop.tipo)}
-          sottotitolo={fmtData(lang, pop.data) + (pop.ora ? " · " + String(pop.ora).slice(0, 5) : "")}
+          sottotitolo={(pop.data ? fmtData(lang, pop.data) : "Data da definire") + (pop.ora ? " · " + String(pop.ora).slice(0, 5) : "")}
           onChiudi={() => setPop(null)}
           azioneModifica={{ href: "/richieste?id=" + pop.id }}
         >

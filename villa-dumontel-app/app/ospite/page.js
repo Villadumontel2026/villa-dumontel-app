@@ -265,7 +265,7 @@ export default function OspiteHome() {
       {pop && (
         <PopupScheda
           titolo={t("tipo." + pop.tipo)}
-          sottotitolo={fmtData(lang, pop.data) + (pop.ora ? " · " + String(pop.ora).slice(0, 5) : "")}
+          sottotitolo={(pop.data ? fmtData(lang, pop.data) : lang === "en" ? "Date to be defined" : "Data da definire") + (pop.ora ? " · " + String(pop.ora).slice(0, 5) : "")}
           onChiudi={() => setPop(null)}
           azioneModifica={["nuova", "in gestione", "confermata"].includes(pop.stato) ? { href: "/ospite/richieste?id=" + pop.id } : null}
         >
@@ -279,7 +279,7 @@ export default function OspiteHome() {
         {prossimi.map((r) => (
           <div key={r.id} className="richiesta-item">
             <strong>
-              {fmtData(lang, r.data, false)}
+              {r.data ? fmtData(lang, r.data, false) : lang === "en" ? "Date to be defined" : "Data da definire"}
               {r.ora ? " · " + String(r.ora).slice(0, 5) : ""}
             </strong>
             <p className="descrizione" style={{ margin: "0.15rem 0 0" }}>

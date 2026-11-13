@@ -153,6 +153,40 @@ export default function PaginaCollaboratrice() {
     setMsg("Incarico accettato.");
   }
 
+  async function impostaQuando(r, data, ora) {
+    setMsg(null);
+    if (!data && !ora) return;
+    const upd = {};
+    if (data) upd.data = data;
+    if (ora) upd.ora = ora;
+    const { error } = await supabase.from("richieste").update(upd).eq("id", r.id);
+    if (error) {
+      setMsg("Errore: " + error.message);
+      return;
+    }
+    await ricaricaRichieste();
+    setMsg("Data e ora salvate.");
+  }
+
+  const quandoForm = (r) =>
+    !r.data || !r.ora ? (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          impostaQuando(r, e.target.qdata.value, e.target.qora.value);
+        }}
+        style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap", margin: "0.4rem 0" }}
+      >
+        <span className="muted">{!r.data ? "Data e ora da definire:" : "Ora da definire:"}</span>
+        {!r.data && <input type="date" name="qdata" style={{ width: "auto", marginBottom: 0 }} />}
+        {r.data && <input type="hidden" name="qdata" value="" />}
+        <input type="time" name="qora" defaultValue={r.ora ? String(r.ora).slice(0, 5) : ""} style={{ width: "auto", marginBottom: 0 }} />
+        <button type="submit" className="btn btn-light">
+          Salva
+        </button>
+      </form>
+    ) : null;
+
   async function convalida(r, durata) {
     setMsg(null);
     const ore = parseFloat(durata);
@@ -240,8 +274,9 @@ export default function PaginaCollaboratrice() {
             .map((r) => (
               <div key={r.id} className="richiesta-item">
                 <span className="badge badge-nuova">da accettare</span>{" "}
-                <strong>{r.alloggi?.nome}</strong> &mdash; {dmy(r.data)}{" "}
+                <strong>{r.alloggi?.nome}</strong> &mdash; {r.data ? dmy(r.data) : "data da definire"}{" "}
                 {r.ora ? String(r.ora).slice(0, 5) : ""}
+                {quandoForm(r)}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
                 {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
@@ -282,8 +317,9 @@ export default function PaginaCollaboratrice() {
             .sort((a, b) => String(b.creato_il || "").localeCompare(String(a.creato_il || "")))
             .map((r) => (
               <div key={r.id} className="richiesta-item">
-                <strong>{r.alloggi?.nome}</strong> &mdash; {dmy(r.data)}{" "}
+                <strong>{r.alloggi?.nome}</strong> &mdash; {r.data ? dmy(r.data) : "data da definire"}{" "}
                 {r.ora ? String(r.ora).slice(0, 5) : ""}
+                {quandoForm(r)}
                 {r.durata_ore ? ` — previste ${r.durata_ore} ore` : ""}
                 <p className="descrizione" style={{ margin: "0.15rem 0" }}>
                   {r.sotto_tipo === "fine_soggiorno"

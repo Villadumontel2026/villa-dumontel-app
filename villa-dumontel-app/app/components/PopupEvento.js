@@ -72,7 +72,7 @@ export function RichiestaDettaglio({ r, admin = false }) {
   const righe = [];
   const add = (k, v) => v !== null && v !== undefined && v !== "" && righe.push([k, v]);
 
-  add(lang === "en" ? "When" : "Quando", fmtData(lang, r.data) + (r.ora ? " · " + String(r.ora).slice(0, 5) : ""));
+  add(lang === "en" ? "When" : "Quando", (r.data ? fmtData(lang, r.data) : lang === "en" ? "Date to be defined" : "Data da definire") + (r.ora ? " · " + String(r.ora).slice(0, 5) : ""));
   if (admin) add(lang === "en" ? "Guests" : "Famiglia", [r.famiglie?.nome, r.alloggi?.nome].filter(Boolean).join(" · "));
   else add(lang === "en" ? "Apartment" : "Alloggio", r.alloggi?.nome);
   if (r.sotto_tipo) add(lang === "en" ? "Type" : "Tipo", r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo));

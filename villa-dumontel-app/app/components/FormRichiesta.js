@@ -185,7 +185,7 @@ export default function FormRichiesta({
 
     // Controlli sui campi obbligatori
     if (tipo !== "pulizie") {
-      if (!val("data") || !val("ora") || !val("pax")) {
+      if (!val("data") || (tipo !== "trasporto" && !val("ora")) || !val("pax")) {
         setErrore(t("f.errObbligatori"));
         return;
       }
@@ -396,7 +396,7 @@ export default function FormRichiesta({
           </label>
           <label>
             {t("f.ora")}
-            <input type="time" name="ora" required />
+            <input type="time" name="ora" />
           </label>
           <label>
             {t("f.passeggeri")}
@@ -475,13 +475,16 @@ export default function FormRichiesta({
               )}
             </label>
           )}
+          <p className="muted" style={{ margin: "0 0 0.6rem", fontSize: "0.9em" }}>
+            {t("f.dataOraFacolt")}
+          </p>
           <label>
             {t("f.dataDesiderata")}
-            <input type="date" name="data" required onChange={(e) => setPulData(e.target.value)} />
+            <input type="date" name="data" onChange={(e) => setPulData(e.target.value)} />
           </label>
           <label>
             {t("f.oraInizio")}
-            <input type="time" name="ora" required />
+            <input type="time" name="ora" />
           </label>
           {collaboratori && (
             <label>
