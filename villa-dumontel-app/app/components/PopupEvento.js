@@ -79,11 +79,16 @@ export function RichiestaDettaglio({ r, admin = false }) {
   const righe = [];
   const add = (k, v) => v !== null && v !== undefined && v !== "" && righe.push([k, v]);
 
-  add(lang === "en" ? "When" : "Quando", (r.data ? fmtData(lang, r.data) : lang === "en" ? "Date to be defined" : "Data da definire") + (r.ora ? " · " + String(r.ora).slice(0, 5) : ""));
+  add(lang === "en" ? "When" : "Quando", (r.data ? fmtData(lang, r.data) : lang === "en" ? "Date to be defined" : "Data da definire") + (r.ora && !(r.tipo === "trasporto" && r.tipologia_trasporto === "aeroporto") ? " · " + String(r.ora).slice(0, 5) : ""));
   if (admin) add(lang === "en" ? "Guests" : "Famiglia", [r.famiglie?.nome, r.alloggi?.nome].filter(Boolean).join(" · "));
   else add(lang === "en" ? "Apartment" : "Alloggio", r.alloggi?.nome);
   if (r.sotto_tipo) add(lang === "en" ? "Type" : "Tipo", r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo));
-  if (r.tipo === "trasporto" && r.orario_tipo) add(lang === "en" ? "Time refers to" : "L'orario è di", r.orario_tipo === "arrivo" ? (lang === "en" ? "arrival" : "arrivo") : (lang === "en" ? "departure" : "partenza"));
+  if (r.tipo === "trasporto" && r.orario_tipo && r.tipologia_trasporto !== "aeroporto") add(lang === "en" ? "Time refers to" : "L'orario è di", r.orario_tipo === "arrivo" ? (lang === "en" ? "arrival" : "arrivo") : (lang === "en" ? "departure" : "partenza"));
+  if (r.tipo === "trasporto" && r.tipologia_trasporto === "aeroporto" && r.ora) {
+    add(r.orario_tipo === "arrivo" ? (lang === "en" ? "Flight arrival" : "Arrivo del volo") : (lang === "en" ? "Flight departure" : "Partenza del volo"), String(r.ora).slice(0, 5));
+  }
+  if (r.tipo === "trasporto" && r.navetta_partenza) add(lang === "en" ? "Shuttle departure" : "Partenza navetta", String(r.navetta_partenza).slice(0, 5));
+  if (r.tipo === "trasporto" && r.navetta_arrivo) add(lang === "en" ? "Shuttle arrival" : "Arrivo navetta", String(r.navetta_arrivo).slice(0, 5));
   if (r.zone) add(lang === "en" ? "Areas" : "Zone", traduciZone(lang, r.zone, zoneTutte));
   if (r.descrizione) add(r.tipo === "pulizie" ? (lang === "en" ? "To do" : "Cosa fare") : (lang === "en" ? "Details" : "Dettagli"), r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione);
   if (r.pax) add(t("f.persone"), `${r.pax}`);

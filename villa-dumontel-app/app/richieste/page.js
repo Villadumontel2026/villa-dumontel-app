@@ -146,6 +146,21 @@ export default function RichiestePage() {
     await caricaRichieste();
   }
 
+  async function confermaConNavetta(e, r) {
+    e.preventDefault();
+    const f = e.target;
+    const v = (n) => (f[n].value ? f[n].value : null);
+    const { error } = await supabase
+      .from("richieste")
+      .update({ navetta_partenza: v("navetta_partenza"), navetta_arrivo: v("navetta_arrivo"), stato: "confermata" })
+      .eq("id", r.id);
+    if (error) {
+      setErrore("Errore: " + error.message);
+      return;
+    }
+    await caricaRichieste();
+  }
+
   async function assegnaCollaboratrice(id, collaboratore_id) {
     const { error } = await supabase
       .from("richieste")
@@ -186,6 +201,8 @@ export default function RichiestePage() {
       .update({
         data: v("data"),
         ora: v("ora"),
+        navetta_partenza: f.navetta_partenza ? v("navetta_partenza") : r.navetta_partenza,
+        navetta_arrivo: f.navetta_arrivo ? v("navetta_arrivo") : r.navetta_arrivo,
         durata_ore: v("durata_ore") ? parseFloat(v("durata_ore")) : null,
         pax: v("pax") ? parseInt(v("pax"), 10) : null,
         sotto_tipo: v("sotto_tipo"),
@@ -313,6 +330,31 @@ export default function RichiestePage() {
           {r.note ? ` (${r.note})` : ""}
         </p>
         {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
+        {r.tipo === "trasporto" && r.tipologia_trasporto === "aeroporto" && (
+          <p className="descrizione" style={{ margin: "0.3rem 0" }}>
+            {r.orario_tipo === "arrivo" ? "Arrivo del volo" : "Partenza del volo"}: <strong>{r.ora ? String(r.ora).slice(0, 5) : "non indicata"}</strong>
+            {r.navetta_partenza ? ` — navetta: partenza ${String(r.navetta_partenza).slice(0, 5)}` : ""}
+            {r.navetta_arrivo ? `, arrivo ${String(r.navetta_arrivo).slice(0, 5)}` : ""}
+          </p>
+        )}
+        {r.tipo === "trasporto" && r.tipologia_trasporto === "aeroporto" && !CHIUSE.includes(r.stato) && r.stato !== "confermata" && (
+          <form
+            onSubmit={(e) => confermaConNavetta(e, r)}
+            style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center", margin: "0.4rem 0", background: "#eef7ef", padding: "0.5rem 0.7rem", borderRadius: 8 }}
+          >
+            <label style={{ margin: 0, fontWeight: 400 }}>
+              Navetta: partenza{" "}
+              <input type="time" name="navetta_partenza" required style={{ width: "auto", marginBottom: 0 }} />
+            </label>
+            <label style={{ margin: 0, fontWeight: 400 }}>
+              arrivo{" "}
+              <input type="time" name="navetta_arrivo" style={{ width: "auto", marginBottom: 0 }} />
+            </label>
+            <button type="submit" className="btn">
+              Conferma con questi orari
+            </button>
+          </form>
+        )}
         {r.tipo === "pulizie" && (
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center", margin: "0.5rem 0" }}>
             <label style={{ margin: 0, fontWeight: 400 }}>
@@ -420,6 +462,18 @@ export default function RichiestePage() {
               Ora
               <input type="time" name="ora" defaultValue={r.ora ? String(r.ora).slice(0, 5) : ""} />
             </label>
+            {r.tipo === "trasporto" && (
+              <>
+                <label>
+                  Navetta: ora di partenza
+                  <input type="time" name="navetta_partenza" defaultValue={r.navetta_partenza ? String(r.navetta_partenza).slice(0, 5) : ""} />
+                </label>
+                <label>
+                  Navetta: ora di arrivo
+                  <input type="time" name="navetta_arrivo" defaultValue={r.navetta_arrivo ? String(r.navetta_arrivo).slice(0, 5) : ""} />
+                </label>
+              </>
+            )}
             {r.tipo === "pulizie" && (
               <label>
                 Durata (ore)

@@ -168,6 +168,7 @@ export default function FormRichiesta({
     if (tipo === "trasporto") {
       tipologia_trasporto = tipologia;
       orario_tipo = val("orario_tipo") || "partenza";
+      if (tipologia === "aeroporto") orario_tipo = e_malpensa(aeroA) ? "partenza" : "arrivo";
       if (tipologia === "aeroporto") {
         const da = aeroDa === ALTRO ? (val("aero_da_altro") || "").trim() : aeroDa;
         const a = aeroA === ALTRO ? (val("aero_a_altro") || "").trim() : aeroA;
@@ -447,16 +448,27 @@ export default function FormRichiesta({
             {t("f.data")}
             <input type="date" name="data" required />
           </label>
+          {tipologia !== "aeroporto" && (
+            <label>
+              {t("f.orarioDi")}
+              <select name="orario_tipo" defaultValue="partenza" required>
+                <option value="partenza">{t("f.oraPartenza")}</option>
+                <option value="arrivo">{t("f.oraArrivo")}</option>
+              </select>
+            </label>
+          )}
           <label>
-            {t("f.orarioDi")}
-            <select name="orario_tipo" defaultValue="partenza" required>
-              <option value="partenza">{t("f.oraPartenza")}</option>
-              <option value="arrivo">{t("f.oraArrivo")}</option>
-            </select>
-          </label>
-          <label>
-            {t("f.ora")}
+            {tipologia === "aeroporto"
+              ? e_malpensa(aeroA)
+                ? t("f.oraVoloPartenza")
+                : t("f.oraVoloArrivo")
+              : t("f.ora")}
             <input type="time" name="ora" />
+            {tipologia === "aeroporto" && (
+              <span className="muted" style={{ fontSize: "0.85em" }}>
+                {t("f.navettaHint")}
+              </span>
+            )}
           </label>
           <label>
             {t("f.passeggeri")}

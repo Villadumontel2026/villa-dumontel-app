@@ -92,6 +92,19 @@ export function costruisciEvento(r, opzioni = {}) {
     mi = parseInt(p[1] || "0", 10);
   }
 
+  // Navetta aeroporto: nel calendario vale l'orario della navetta indicato dall'admin
+  const orarioVolo = hh === null ? null : pad(hh) + ":" + pad(mi);
+  let fineNavetta = null;
+  if (r.tipo === "trasporto" && r.navetta_partenza) {
+    const p = String(r.navetta_partenza).split(":");
+    hh = parseInt(p[0], 10);
+    mi = parseInt(p[1] || "0", 10);
+    if (r.navetta_arrivo) {
+      const q = String(r.navetta_arrivo).split(":");
+      fineNavetta = [parseInt(q[0], 10), parseInt(q[1] || "0", 10)];
+    }
+  }
+
   const daConfermare = r.stato === "nuova" || r.stato === "in gestione";
   const daAccettare = r.tipo === "pulizie" && ruolo === "collaboratore" && !r.accettata_il;
 
@@ -111,6 +124,9 @@ export function costruisciEvento(r, opzioni = {}) {
     if (r.descrizione) righe.push(X.daFare + traduciVoci(lang, r.descrizione, opzioni.taskMap));
   } else if (r.sotto_tipo && r.descrizione) {
     righe.push(traduciSotto(lang, r.sotto_tipo));
+  }
+  if (r.tipo === "trasporto" && r.tipologia_trasporto === "aeroporto" && orarioVolo) {
+    righe.push((lang === "en" ? (r.orario_tipo === "arrivo" ? "Flight arrival: " : "Flight departure: ") : r.orario_tipo === "arrivo" ? "Arrivo del volo: " : "Partenza del volo: ") + orarioVolo);
   }
   if (r.pax) righe.push(r.pax + X.persone);
   if (r.note) righe.push(X.note + r.note);
@@ -140,7 +156,11 @@ export function costruisciEvento(r, opzioni = {}) {
   }
   const inizio = romaInUtc(y, m, d, hh, mi);
   const minuti = Math.round((r.durata_ore || DURATA_DEFAULT_ORE[r.tipo] || 1) * 60);
-  const fine = new Date(inizio.getTime() + minuti * 60000);
+  let fine = new Date(inizio.getTime() + minuti * 60000);
+  if (fineNavetta) {
+    const f2 = romaInUtc(y, m, d, fineNavetta[0], fineNavetta[1]);
+    if (f2 > inizio) fine = f2;
+  }
   return { ...base, tuttoGiorno: false, inizio, fine };
 }
 
