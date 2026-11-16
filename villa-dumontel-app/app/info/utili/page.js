@@ -1,5 +1,7 @@
 "use client";
 
+import { campo } from "../../../lib/lingua";
+import ModificaLingue, { CampoLingue } from "../../components/ModificaLingue";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useApp } from "../../components/AppProvider";
@@ -27,7 +29,7 @@ export default function InfoUtiliPage() {
   }, [pronto, email]);
 
   const admin = ruolo === "admin";
-  const L = (it, en) => (lang === "en" ? en || it : it || en);
+  const L = (it, en, fr) => campo({ it, en, fr }, "", lang);
 
   async function salva(e, id) {
     e.preventDefault();
@@ -38,6 +40,9 @@ export default function InfoUtiliPage() {
       ordine: f.ordine.value ? parseInt(f.ordine.value, 10) : 100,
       titolo_it: v("titolo_it"),
       titolo_en: v("titolo_en"),
+      titolo_fr: v("titolo_fr"),
+      testo_fr: v("testo_fr"),
+      link_etichetta_fr: v("link_etichetta_fr"),
       testo_it: v("testo_it"),
       testo_en: v("testo_en"),
       link_url: v("link_url"),
@@ -67,34 +72,15 @@ export default function InfoUtiliPage() {
           Ordine (numero più basso = più in alto)
           <input type="number" name="ordine" defaultValue={v.ordine} />
         </label>
-        <label>
-          Titolo — italiano
-          <input type="text" name="titolo_it" defaultValue={v.titolo_it || ""} required />
-        </label>
-        <label>
-          Titolo — inglese
-          <input type="text" name="titolo_en" defaultValue={v.titolo_en || ""} />
-        </label>
-        <label>
-          Testo — italiano
-          <textarea name="testo_it" rows={4} defaultValue={v.testo_it || ""}></textarea>
-        </label>
-        <label>
-          Testo — inglese
-          <textarea name="testo_en" rows={4} defaultValue={v.testo_en || ""}></textarea>
-        </label>
-        <label>
-          Link (https://...)
-          <input type="url" name="link_url" defaultValue={v.link_url || ""} />
-        </label>
-        <label>
-          Testo del pulsante — italiano
-          <input type="text" name="link_etichetta_it" defaultValue={v.link_etichetta_it || ""} />
-        </label>
-        <label>
-          Testo del pulsante — inglese
-          <input type="text" name="link_etichetta_en" defaultValue={v.link_etichetta_en || ""} />
-        </label>
+        <ModificaLingue>
+          <CampoLingue etichetta="Titolo" nomi={{ it: "titolo_it", en: "titolo_en", fr: "titolo_fr" }} valori={{ it: v.titolo_it, en: v.titolo_en, fr: v.titolo_fr }} richiesto />
+          <CampoLingue etichetta="Testo" area righe={4} nomi={{ it: "testo_it", en: "testo_en", fr: "testo_fr" }} valori={{ it: v.testo_it, en: v.testo_en, fr: v.testo_fr }} />
+          <label>
+            Link (https://...)
+            <input type="url" name="link_url" defaultValue={v.link_url || ""} />
+          </label>
+          <CampoLingue etichetta="Testo del pulsante" nomi={{ it: "link_etichetta_it", en: "link_etichetta_en", fr: "link_etichetta_fr" }} valori={{ it: v.link_etichetta_it, en: v.link_etichetta_en, fr: v.link_etichetta_fr }} />
+        </ModificaLingue>
         <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontWeight: 400 }}>
           <input type="checkbox" name="attiva" defaultChecked={v.attiva !== false} style={{ width: "auto", marginBottom: 0 }} />
           Visibile agli ospiti
@@ -136,12 +122,12 @@ export default function InfoUtiliPage() {
       <div style={{ display: "grid", gap: "1rem" }}>
         {voci.map((v) => (
           <div key={v.id} className="card" style={{ opacity: v.attiva ? 1 : 0.55, position: "relative" }}>
-            <h2 style={{ marginTop: 0, paddingRight: "2.2rem" }}>{L(v.titolo_it, v.titolo_en)}{!v.attiva ? " (nascosta)" : ""}</h2>
-            {L(v.testo_it, v.testo_en) && <p style={{ whiteSpace: "pre-line" }}>{L(v.testo_it, v.testo_en)}</p>}
+            <h2 style={{ marginTop: 0, paddingRight: "2.2rem" }}>{L(v.titolo_it, v.titolo_en, v.titolo_fr)}{!v.attiva ? " (nascosta)" : ""}</h2>
+            {L(v.testo_it, v.testo_en, v.testo_fr) && <p style={{ whiteSpace: "pre-line" }}>{L(v.testo_it, v.testo_en, v.testo_fr)}</p>}
             {v.link_url && (
               <p style={{ margin: "0.5rem 0 0" }}>
                 <a href={v.link_url} target="_blank" rel="noreferrer" className="btn">
-                  {L(v.link_etichetta_it, v.link_etichetta_en) || (lang === "en" ? "Open link" : "Apri il link")}
+                  {L(v.link_etichetta_it, v.link_etichetta_en, v.link_etichetta_fr) || (lang === "en" ? "Open link" : lang === "fr" ? "Ouvrir le lien" : "Apri il link")}
                 </a>
               </p>
             )}
@@ -163,7 +149,7 @@ export default function InfoUtiliPage() {
         const v = voci.find((x) => x.id === editId);
         if (!v) return null;
         return (
-          <PopupScheda titolo={L(v.titolo_it, v.titolo_en)} sottotitolo="Modifica" onChiudi={() => setEditId(null)} larga>
+          <PopupScheda titolo={L(v.titolo_it, v.titolo_en, v.titolo_fr)} sottotitolo="Modifica" onChiudi={() => setEditId(null)} larga>
             {form(v, v.id)}
             <button type="button" className="btn btn-light" style={{ marginTop: "0.5rem" }} onClick={() => elimina(v.id)}>
               Elimina

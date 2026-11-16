@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { supabase } from "../../lib/supabaseClient";
 import { LINGUE, tradurre, traduciVoci, DIZ } from "../../lib/i18n";
 import { leggiVista } from "../../lib/vista";
+import { campo } from "../../lib/lingua";
 import Toast from "./Toast";
 
 const Ctx = createContext({
@@ -137,7 +138,7 @@ export function AppProvider({ children }) {
         traduciVoci(
           lang,
           testo,
-          Object.fromEntries(taskTutte.filter((x) => x.nome_en).map((x) => [x.nome_it, x.nome_en]))
+          Object.fromEntries(taskTutte.map((x) => [x.nome_it, campo(x, "nome", lang)]))
         ),
     }),
     [lang, setLang, pronto, email, ruolo, ruoloReale, taskTutte]

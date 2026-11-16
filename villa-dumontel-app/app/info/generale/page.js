@@ -1,5 +1,7 @@
 "use client";
 
+import { campo } from "../../../lib/lingua";
+import ModificaLingue, { CampoLingue } from "../../components/ModificaLingue";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../lib/supabaseClient";
 import { useApp } from "../../components/AppProvider";
@@ -36,13 +38,14 @@ export default function InfoGeneralePage() {
       indirizzo: v("indirizzo"),
       note_it: v("note_it"),
       note_en: v("note_en"),
+      note_fr: v("note_fr"),
     });
     if (error) return setErrore("Errore: " + error.message);
     setModifica(false);
     await carica();
   }
 
-  const nota = info && (lang === "it" ? info.note_it || info.note_en : info.note_en || info.note_it);
+  const nota = info && campo(info, "note", lang);
 
   return (
     <main>
@@ -113,14 +116,9 @@ export default function InfoGeneralePage() {
                   Indirizzo
                   <input type="text" name="indirizzo" defaultValue={info.indirizzo || ""} />
                 </label>
-                <label>
-                  Nota — italiano (facoltativa)
-                  <textarea name="note_it" defaultValue={info.note_it || ""}></textarea>
-                </label>
-                <label>
-                  Nota — inglese (facoltativa)
-                  <textarea name="note_en" defaultValue={info.note_en || ""}></textarea>
-                </label>
+                <ModificaLingue>
+                  <CampoLingue etichetta="Nota (facoltativa)" area nomi={{ it: "note_it", en: "note_en", fr: "note_fr" }} valori={{ it: info.note_it, en: info.note_en, fr: info.note_fr }} />
+                </ModificaLingue>
                 {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
                 <button type="submit" className="btn">
                   Salva

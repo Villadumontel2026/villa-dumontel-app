@@ -1,5 +1,6 @@
 "use client";
 
+import { campo } from "../../lib/lingua";
 import { useEffect, useMemo, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
@@ -201,7 +202,7 @@ export default function CalendarioVista({
                   defaultChecked={String(r.descrizione || "").includes(tk.nome_it)}
                   style={{ width: "auto", marginBottom: 0 }}
                 />
-                {lang === "en" ? tk.nome_en || tk.nome_it : tk.nome_it}
+                {campo(tk, "nome", lang)}
               </label>
             ))}
           </div>

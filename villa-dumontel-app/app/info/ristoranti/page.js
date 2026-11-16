@@ -71,8 +71,8 @@ export default async function RistorantiPage() {
                     </a>
                   </p>
                 )}
-                <Testo en={p.perche} it={p.perche_it} style={{ margin: "0.25rem 0" }} />
-                <Testo en={p.quando} it={p.quando_it} className="muted" style={{ margin: "0.25rem 0" }} />
+                <Testo en={p.perche} it={p.perche_it} fr={p.perche_fr} style={{ margin: "0.25rem 0" }} />
+                <Testo en={p.quando} it={p.quando_it} fr={p.quando_fr} className="muted" style={{ margin: "0.25rem 0" }} />
                 {p.indirizzo && (
                   <p className="muted" style={{ margin: "0.25rem 0", fontSize: "0.9em" }}>
                     {p.indirizzo}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "./AppProvider";
+import { campo } from "../../lib/lingua";
 
 export const TUTTA_LA_CASA = "Tutta la casa";
 
@@ -36,8 +37,8 @@ export default function ChipZone({ zone, selezionate, onChange, conTutta = false
 
   return (
     <div className="vd-chips">
-      {conTutta && chip(TUTTA_LA_CASA, lang === "en" ? "Whole house" : TUTTA_LA_CASA, false)}
-      {zone.map((z) => chip(z.nome, z.nome, tutta))}
+      {conTutta && chip(TUTTA_LA_CASA, lang === "en" ? "Whole house" : lang === "fr" ? "Toute la maison" : TUTTA_LA_CASA, false)}
+      {zone.map((z) => chip(z.nome, campo(z, "nome", lang), tutta))}
     </div>
   );
 }

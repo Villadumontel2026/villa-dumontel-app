@@ -3,6 +3,7 @@
 import { Matita, Cestino } from "../../../components/IconeAzione";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
+import ModificaLingue, { CampoLingue } from "../../../components/ModificaLingue";
 
 export default function TaskPulizieAdminPage() {
   const [caricamento, setCaricamento] = useState(true);
@@ -61,6 +62,7 @@ export default function TaskPulizieAdminPage() {
       supabase.from("task_pulizie").insert({
         nome_it: f.nome_it.value.trim(),
         nome_en: f.nome_en.value.trim() || null,
+        nome_fr: f.nome_fr.value.trim() || null,
         ordine: maxOrdine + 1,
       }),
       "Task aggiunto."
@@ -74,7 +76,7 @@ export default function TaskPulizieAdminPage() {
     await esegui(
       supabase
         .from("task_pulizie")
-        .update({ nome_it: f.nome_it.value.trim(), nome_en: f.nome_en.value.trim() || null })
+        .update({ nome_it: f.nome_it.value.trim(), nome_en: f.nome_en.value.trim() || null, nome_fr: f.nome_fr.value.trim() || null })
         .eq("id", x.id),
       "Salvato."
     );
@@ -143,14 +145,9 @@ export default function TaskPulizieAdminPage() {
       <details className="card" style={{ marginBottom: "1.5rem" }} open>
         <summary style={{ cursor: "pointer", fontWeight: 600 }}>+ Nuovo task</summary>
         <form onSubmit={aggiungi} style={{ marginTop: "0.75rem" }}>
-          <label>
-            Nome (italiano)
-            <input type="text" name="nome_it" required />
-          </label>
-          <label>
-            Nome (inglese, lo vede l&apos;ospite)
-            <input type="text" name="nome_en" />
-          </label>
+          <ModificaLingue>
+            <CampoLingue etichetta="Nome" nomi={{ it: "nome_it", en: "nome_en", fr: "nome_fr" }} richiesto />
+          </ModificaLingue>
           <button type="submit" className="btn">
             Aggiungi
           </button>
@@ -162,7 +159,10 @@ export default function TaskPulizieAdminPage() {
         {task.map((x, i) => (
           <div key={x.id} className="richiesta-item" style={{ opacity: x.attivo ? 1 : 0.55 }}>
             <strong>{x.nome_it}</strong>
-            {x.nome_en ? <span className="muted"> &mdash; {x.nome_en}</span> : null}
+            <span className="muted">
+              {" "}
+              &mdash; EN {x.nome_en ? "✓" : "—"} · FR {x.nome_fr ? "✓" : "—"}
+            </span>
             {!x.attivo && <span className="muted"> (nascosto)</span>}
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "0.4rem 0" }}>
               <button type="button" className="btn btn-light" style={{ padding: "0.25rem 0.7rem" }} disabled={i === 0} onClick={() => sposta(i, -1)}>
@@ -192,14 +192,9 @@ export default function TaskPulizieAdminPage() {
                 <Matita onClick={() => {}} titolo="Modifica i nomi" />
               </summary>
               <form onSubmit={(e) => salva(e, x)} style={{ marginTop: "0.5rem" }}>
-                <label>
-                  Nome (italiano)
-                  <input type="text" name="nome_it" defaultValue={x.nome_it} required />
-                </label>
-                <label>
-                  Nome (inglese)
-                  <input type="text" name="nome_en" defaultValue={x.nome_en || ""} />
-                </label>
+                <ModificaLingue>
+                  <CampoLingue etichetta="Nome" nomi={{ it: "nome_it", en: "nome_en", fr: "nome_fr" }} valori={{ it: x.nome_it, en: x.nome_en, fr: x.nome_fr }} richiesto />
+                </ModificaLingue>
                 <button type="submit" className="btn">
                   Salva
                 </button>

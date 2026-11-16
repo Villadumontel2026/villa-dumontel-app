@@ -45,7 +45,7 @@ export default async function AttivitaPage() {
                 </a>
               </p>
             )}
-            <Testo en={p.perche} it={p.perche_it} style={{ margin: "0.25rem 0" }} />
+            <Testo en={p.perche} it={p.perche_it} fr={p.perche_fr} style={{ margin: "0.25rem 0" }} />
             <PrenotaButton tipo="attivita" nome={p.nome} />
             <Stellina postoId={p.id} />
             <PostoMatita posto={p} />

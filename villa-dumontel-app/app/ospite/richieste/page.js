@@ -1,5 +1,6 @@
 "use client";
 
+import { campo } from "../../../lib/lingua";
 import { useEffect, useState } from "react";
 import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
@@ -223,7 +224,7 @@ export default function RichiesteOspitePage() {
                     defaultChecked={String(r.descrizione || "").includes(voce)}
                     style={{ width: "auto", marginBottom: 0 }}
                   />
-                  {lang === "en" ? (task.find((x) => x.nome_it === voce)?.nome_en || voce) : voce}
+                  {campo(task.find((x) => x.nome_it === voce), "nome", lang) || voce}
                 </label>
               ))}
               <label>

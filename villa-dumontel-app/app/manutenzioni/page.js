@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import { fmtCreata } from "../../lib/i18n";
+import { traduciZone } from "../../lib/lingua";
 import PopupScheda from "../components/PopupEvento";
 import FormManutenzione from "../components/FormManutenzione";
 import FotoRichiesta from "../components/FotoRichiesta";
@@ -74,7 +75,7 @@ export default function ManutenzioniPage() {
       if (p && p.ruolo === "ospite" && p.famiglia_id) qa = qa.eq("famiglia_id", p.famiglia_id);
       const { data: a } = await qa;
       setAlloggi(a || []);
-      const { data: z } = await supabase.from("zone_alloggio").select("famiglia_id, nome, ordine").order("ordine", { ascending: true });
+      const { data: z } = await supabase.from("zone_alloggio").select("*").order("ordine", { ascending: true });
       setZone(z || []);
       const dati = await carica();
       const id = new URLSearchParams(window.location.search).get("id");
@@ -129,7 +130,7 @@ export default function ManutenzioniPage() {
         <dl style={{ margin: 0, display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.35rem 0.9rem" }}>
           {admin && <><dt className="muted">{en ? "Guests" : "Famiglia"}</dt><dd style={{ margin: 0 }}>{[m.famiglie?.nome, m.alloggi?.nome].filter(Boolean).join(" · ")}</dd></>}
           {!admin && m.alloggi?.nome && <><dt className="muted">{en ? "Apartment" : "Alloggio"}</dt><dd style={{ margin: 0 }}>{m.alloggi.nome}</dd></>}
-          {m.zone && <><dt className="muted">{en ? "Where" : "Dove"}</dt><dd style={{ margin: 0 }}>{m.zone}</dd></>}
+          {m.zone && <><dt className="muted">{en ? "Where" : "Dove"}</dt><dd style={{ margin: 0 }}>{traduciZone(lang, m.zone, zone)}</dd></>}
           <dt className="muted">{en ? "Reported" : "Segnalata"}</dt><dd style={{ margin: 0 }}>{fmtCreata(en ? "en" : "it", m.creato_il)}</dd>
           {m.prezzo !== null && <><dt className="muted">{en ? "Quote" : "Preventivo"}</dt><dd style={{ margin: 0 }}><strong>{euro(m.prezzo)}</strong></dd></>}
         </dl>
@@ -299,7 +300,7 @@ export default function ManutenzioniPage() {
             </div>
             <p className="descrizione" style={{ margin: "0.2rem 0 0" }}>
               {admin ? [m.famiglie?.nome, m.alloggi?.nome].filter(Boolean).join(" · ") + (m.zone ? " — " : "") : ""}
-              {m.zone || ""}
+              {traduciZone(lang, m.zone, zone) || ""}
               {m.prezzo !== null ? " · " + euro(m.prezzo) : ""}
             </p>
             <span className="creata">{fmtCreata(en ? "en" : "it", m.creato_il)}</span>

@@ -5,28 +5,17 @@ import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
 import PopupScheda from "./PopupEvento";
 import { Matita, Cestino, Piu } from "./IconeAzione";
+import ModificaLingue, { CampoLingue } from "./ModificaLingue";
 
 const oggi = () => new Date().toISOString().slice(0, 10);
 
 function Campi({ n = {} }) {
   return (
     <>
-      <label>
-        Titolo (italiano)
-        <input type="text" name="titolo_it" defaultValue={n.titolo_it || ""} required />
-      </label>
-      <label>
-        Titolo (inglese)
-        <input type="text" name="titolo_en" defaultValue={n.titolo_en || ""} />
-      </label>
-      <label>
-        Testo (italiano)
-        <textarea name="testo_it" defaultValue={n.testo_it || ""}></textarea>
-      </label>
-      <label>
-        Testo (inglese)
-        <textarea name="testo_en" defaultValue={n.testo_en || ""}></textarea>
-      </label>
+      <ModificaLingue>
+        <CampoLingue etichetta="Titolo" nomi={{ it: "titolo_it", en: "titolo_en", fr: "titolo_fr" }} valori={{ it: n.titolo_it, en: n.titolo_en, fr: n.titolo_fr }} richiesto />
+        <CampoLingue etichetta="Testo" area nomi={{ it: "testo_it", en: "testo_en", fr: "testo_fr" }} valori={{ it: n.testo_it, en: n.testo_en, fr: n.testo_fr }} />
+      </ModificaLingue>
       <label>
         Link (facoltativo, es. /info/ristoranti o https://...)
         <input type="text" name="link" defaultValue={n.link || ""} />
@@ -46,6 +35,8 @@ const leggi = (f) => {
     titolo_en: v("titolo_en"),
     testo_it: v("testo_it"),
     testo_en: v("testo_en"),
+    titolo_fr: v("titolo_fr"),
+    testo_fr: v("testo_fr"),
     link: v("link"),
     data_pubblicazione: v("data_pubblicazione") || oggi(),
   };

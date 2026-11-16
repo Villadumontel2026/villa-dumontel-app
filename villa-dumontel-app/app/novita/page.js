@@ -1,5 +1,6 @@
 "use client";
 
+import { campo } from "../../lib/lingua";
 import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
@@ -18,8 +19,8 @@ export default function NovitaPage() {
       .then(({ data }) => setRighe(data || []));
   }, []);
 
-  const titolo = (n) => (lang === "en" && n.titolo_en) || n.titolo_it;
-  const testo = (n) => (lang === "en" && n.testo_en) || n.testo_it;
+  const titolo = (n) => campo(n, "titolo", lang);
+  const testo = (n) => campo(n, "testo", lang);
 
   return (
     <main>

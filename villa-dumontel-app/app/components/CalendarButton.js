@@ -1,6 +1,7 @@
 "use client";
 
 import { useApp } from "./AppProvider";
+import { campo } from "../../lib/lingua";
 import { costruisciEvento, calendarioIcs, linkGoogle } from "../../lib/calendario";
 
 // Aggiunge una singola richiesta al calendario (file .ics o link Google).
@@ -8,7 +9,7 @@ import { costruisciEvento, calendarioIcs, linkGoogle } from "../../lib/calendari
 export default function CalendarButton({ richiesta }) {
   const { t, lang, task } = useApp();
   if (!richiesta || !richiesta.data) return null;
-  const taskMap = Object.fromEntries(task.filter((x) => x.nome_en).map((x) => [x.nome_it, x.nome_en]));
+  const taskMap = Object.fromEntries(task.map((x) => [x.nome_it, campo(x, "nome", lang)]));
   const ev = costruisciEvento(richiesta, { lang, taskMap });
 
   function scarica() {

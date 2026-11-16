@@ -5,6 +5,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
 import PopupScheda from "./PopupEvento";
 import { Matita, Piu } from "./IconeAzione";
+import ModificaLingue, { CampoLingue } from "./ModificaLingue";
 
 const oggi = () => new Date().toISOString().slice(0, 10);
 
@@ -31,22 +32,19 @@ function Campi({ posto = {}, gruppi = [], conGruppo, nuovoDefault }) {
         Sito web (facoltativo)
         <input type="text" name="sito_web" defaultValue={posto.sito_web || ""} />
       </label>
-      <label>
-        Descrizione — inglese
-        <textarea name="perche" defaultValue={posto.perche || ""}></textarea>
-      </label>
-      <label>
-        Descrizione — italiano
-        <textarea name="perche_it" defaultValue={posto.perche_it || ""}></textarea>
-      </label>
-      <label>
-        Quando andarci / consiglio — inglese (facoltativo)
-        <input type="text" name="quando" defaultValue={posto.quando || ""} />
-      </label>
-      <label>
-        Quando andarci / consiglio — italiano (facoltativo)
-        <input type="text" name="quando_it" defaultValue={posto.quando_it || ""} />
-      </label>
+      <ModificaLingue>
+        <CampoLingue
+          etichetta="Descrizione"
+          area
+          nomi={{ it: "perche_it", en: "perche", fr: "perche_fr" }}
+          valori={{ it: posto.perche_it, en: posto.perche, fr: posto.perche_fr }}
+        />
+        <CampoLingue
+          etichetta="Quando andarci / consiglio (facoltativo)"
+          nomi={{ it: "quando_it", en: "quando", fr: "quando_fr" }}
+          valori={{ it: posto.quando_it, en: posto.quando, fr: posto.quando_fr }}
+        />
+      </ModificaLingue>
       <label>
         Indirizzo (facoltativo)
         <input type="text" name="indirizzo" defaultValue={posto.indirizzo || ""} />
@@ -71,6 +69,8 @@ function leggi(f, conGruppo) {
     perche_it: v("perche_it"),
     quando: v("quando"),
     quando_it: v("quando_it"),
+    perche_fr: v("perche_fr"),
+    quando_fr: v("quando_fr"),
     indirizzo: v("indirizzo"),
   };
 }

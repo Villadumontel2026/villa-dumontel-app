@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import { Matita, Cestino } from "../../../components/IconeAzione";
 import PopupScheda from "../../../components/PopupEvento";
+import ModificaLingue, { CampoLingue } from "../../../components/ModificaLingue";
 
 // Zone di ogni alloggio (camere, soggiorno, cucina...) tra cui scegliere nelle richieste di pulizia e manutenzione
 export default function ZoneAlloggioPage() {
@@ -53,10 +54,18 @@ export default function ZoneAlloggioPage() {
   async function aggiungi(e, famigliaId) {
     e.preventDefault();
     const f = e.target;
-    const nome = f.nome.value.trim();
+    const nome = f.nome_it.value.trim();
     if (!nome) return;
     const max = zone.filter((z) => z.famiglia_id === famigliaId).reduce((m, z) => Math.max(m, z.ordine || 0), 0);
-    await esegui(supabase.from("zone_alloggio").insert({ famiglia_id: famigliaId, nome, ordine: max + 1 }));
+    await esegui(
+      supabase.from("zone_alloggio").insert({
+        famiglia_id: famigliaId,
+        nome,
+        nome_en: f.nome_en.value.trim() || null,
+        nome_fr: f.nome_fr.value.trim() || null,
+        ordine: max + 1,
+      })
+    );
     f.reset();
   }
 
@@ -106,7 +115,13 @@ export default function ZoneAlloggioPage() {
             {lista.length === 0 && <p className="muted">Nessuna zona.</p>}
             {lista.map((z, i) => (
               <div key={z.id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.25rem 0" }}>
-                <span style={{ flex: 1 }}>{z.nome}</span>
+                <span style={{ flex: 1 }}>
+                  {z.nome}
+                  <span className="muted" style={{ fontSize: "0.8em" }}>
+                    {" "}
+                    EN {z.nome_en ? "✓" : "—"} · FR {z.nome_fr ? "✓" : "—"}
+                  </span>
+                </span>
                 <button type="button" className="btn btn-light" style={{ padding: "0.1rem 0.5rem" }} disabled={i === 0} onClick={() => sposta(z, -1)} aria-label="Su">↑</button>
                 <button type="button" className="btn btn-light" style={{ padding: "0.1rem 0.5rem" }} disabled={i === lista.length - 1} onClick={() => sposta(z, 1)} aria-label="Giù">↓</button>
                 <Matita onClick={() => setModifica(z)} titolo="Rinomina" />
@@ -118,8 +133,12 @@ export default function ZoneAlloggioPage() {
               </div>
             ))}
             <form onSubmit={(e) => aggiungi(e, fam.id)} style={{ display: "flex", gap: "0.5rem", marginTop: "0.6rem" }}>
-              <input type="text" name="nome" placeholder="Nuova zona (es. Camera Blu)" style={{ marginBottom: 0 }} />
-              <button type="submit" className="btn">Aggiungi</button>
+              <div style={{ flex: 1 }}>
+                <ModificaLingue>
+                  <CampoLingue etichetta="Nuova zona" nomi={{ it: "nome_it", en: "nome_en", fr: "nome_fr" }} />
+                </ModificaLingue>
+              </div>
+              <button type="submit" className="btn" style={{ alignSelf: "flex-end" }}>Aggiungi</button>
             </form>
           </div>
         );
@@ -130,12 +149,21 @@ export default function ZoneAlloggioPage() {
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              const nome = e.target.nome.value.trim();
-              if (nome) await esegui(supabase.from("zone_alloggio").update({ nome }).eq("id", modifica.id));
+              const f = e.target;
+              const nome = f.nome_it.value.trim();
+              if (nome)
+                await esegui(
+                  supabase
+                    .from("zone_alloggio")
+                    .update({ nome, nome_en: f.nome_en.value.trim() || null, nome_fr: f.nome_fr.value.trim() || null })
+                    .eq("id", modifica.id)
+                );
               setModifica(null);
             }}
           >
-            <input type="text" name="nome" defaultValue={modifica.nome} required />
+            <ModificaLingue>
+              <CampoLingue etichetta="Nome" nomi={{ it: "nome_it", en: "nome_en", fr: "nome_fr" }} valori={{ it: modifica.nome, en: modifica.nome_en, fr: modifica.nome_fr }} richiesto />
+            </ModificaLingue>
             <button type="submit" className="btn">Salva</button>
           </form>
         </PopupScheda>

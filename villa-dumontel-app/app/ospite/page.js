@@ -1,5 +1,6 @@
 "use client";
 
+import { campo } from "../../lib/lingua";
 import { useEffect, useState } from "react";
 import { applicaVista } from "../../lib/vista";
 import { supabase } from "../../lib/supabaseClient";
@@ -242,7 +243,7 @@ export default function OspiteHome() {
           </p>
           {novita.map((n) => (
             <p key={n.id} style={{ margin: "0.35rem 0 0" }}>
-              <strong>{(lang === "en" && n.titolo_en) || n.titolo_it}</strong>
+              <strong>{campo(n, "titolo", lang)}</strong>
             </p>
           ))}
           <p style={{ margin: "0.6rem 0 0" }}>

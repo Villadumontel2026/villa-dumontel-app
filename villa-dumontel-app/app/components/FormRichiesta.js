@@ -6,6 +6,7 @@ import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
 import SelettoreNumero from "./SelettoreNumero";
 import ChipZone from "./ChipZone";
+import { campo } from "../../lib/lingua";
 import FotoInput from "./FotoInput";
 import FormManutenzione from "./FormManutenzione";
 
@@ -87,7 +88,7 @@ export default function FormRichiesta({
   useEffect(() => {
     supabase
       .from("zone_alloggio")
-      .select("famiglia_id, nome, ordine")
+      .select("*")
       .order("ordine", { ascending: true })
       .then(({ data }) => setZoneTutte(data || []));
   }, []);
@@ -573,7 +574,7 @@ export default function FormRichiesta({
             {task.map((tk) => tk.nome_it).map((voce) => (
               <label key={voce} className="vd-voce">
                 <input type="checkbox" name="voci" value={voce} style={{ width: "auto", marginBottom: 0 }} />
-                {lang === "en" ? (task.find((x) => x.nome_it === voce)?.nome_en || voce) : voce}
+                {campo(task.find((x) => x.nome_it === voce), "nome", lang) || voce}
               </label>
             ))}
             <label className="vd-voce">

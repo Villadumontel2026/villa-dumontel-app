@@ -44,7 +44,7 @@ export default async function FoodDrinkPage() {
                 </a>
               </p>
             )}
-            <Testo en={p.perche} it={p.perche_it} style={{ margin: "0.25rem 0" }} />
+            <Testo en={p.perche} it={p.perche_it} fr={p.perche_fr} style={{ margin: "0.25rem 0" }} />
             {p.indirizzo && (
               <p className="muted" style={{ margin: "0.25rem 0", fontSize: "0.9em" }}>
                 {p.indirizzo}

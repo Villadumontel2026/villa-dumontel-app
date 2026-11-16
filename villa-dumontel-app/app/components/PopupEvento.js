@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { zoneAlloggio } from "../../lib/zoneAlloggio";
+import { traduciZone } from "../../lib/lingua";
 import { useApp } from "./AppProvider";
 import { fmtData, traduciSotto } from "../../lib/i18n";
 import FotoRichiesta from "./FotoRichiesta";
@@ -70,6 +72,10 @@ const STATO_CHIAVE = {
 // Riepilogo chiaro di una richiesta (trasporto, ristorante, attivita, pulizie)
 export function RichiestaDettaglio({ r, admin = false }) {
   const { t, lang, voci } = useApp();
+  const [zoneTutte, setZoneTutte] = useState([]);
+  useEffect(() => {
+    if (r.zone && lang !== "it") zoneAlloggio().then(setZoneTutte);
+  }, [r.zone, lang]);
   const righe = [];
   const add = (k, v) => v !== null && v !== undefined && v !== "" && righe.push([k, v]);
 
@@ -78,7 +84,7 @@ export function RichiestaDettaglio({ r, admin = false }) {
   else add(lang === "en" ? "Apartment" : "Alloggio", r.alloggi?.nome);
   if (r.sotto_tipo) add(lang === "en" ? "Type" : "Tipo", r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo));
   if (r.tipo === "trasporto" && r.orario_tipo) add(lang === "en" ? "Time refers to" : "L'orario è di", r.orario_tipo === "arrivo" ? (lang === "en" ? "arrival" : "arrivo") : (lang === "en" ? "departure" : "partenza"));
-  if (r.zone) add(lang === "en" ? "Areas" : "Zone", lang === "en" ? String(r.zone).replace("Tutta la casa", "Whole house") : r.zone);
+  if (r.zone) add(lang === "en" ? "Areas" : "Zone", traduciZone(lang, r.zone, zoneTutte));
   if (r.descrizione) add(r.tipo === "pulizie" ? (lang === "en" ? "To do" : "Cosa fare") : (lang === "en" ? "Details" : "Dettagli"), r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione);
   if (r.pax) add(t("f.persone"), `${r.pax}`);
   if (r.nome_prenotazione) add(t("f.nomePren"), r.nome_prenotazione);
