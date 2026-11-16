@@ -8,7 +8,8 @@ export function campo(riga, base, lang) {
   if (!riga) return "";
   const ordine = lang === "it" ? ["it", "en", "fr"] : lang === "fr" ? ["fr", "en", "it"] : ["en", "it", "fr"];
   for (const l of ordine) {
-    const v = base ? riga[base + "_" + l] : riga[l];
+    // l'italiano e' la lingua base: se manca il campo "nome_it" vale il campo "nome" (es. zone_alloggio)
+    const v = base ? riga[base + "_" + l] || (l === "it" ? riga[base] : null) : riga[l];
     if (v) return v;
   }
   return riga[base] || "";
