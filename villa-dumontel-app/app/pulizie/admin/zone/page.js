@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import { Matita, Cestino } from "../../../components/IconeAzione";
 import PopupScheda from "../../../components/PopupEvento";
-import ModificaLingue, { CampoLingue } from "../../../components/ModificaLingue";
+import ModificaLingue, { CampoLingue, VistaLingua } from "../../../components/ModificaLingue";
 
 // Zone di ogni alloggio (camere, soggiorno, cucina...) tra cui scegliere nelle richieste di pulizia e manutenzione
 export default function ZoneAlloggioPage() {
@@ -14,6 +14,7 @@ export default function ZoneAlloggioPage() {
   const [zone, setZone] = useState([]);
   const [errore, setErrore] = useState(null);
   const [modifica, setModifica] = useState(null);
+  const [vista, setVista] = useState("it");
 
   async function carica() {
     const { data: z } = await supabase.from("zone_alloggio").select("*").order("ordine", { ascending: true });
@@ -106,6 +107,7 @@ export default function ZoneAlloggioPage() {
         Sono le voci tra cui gli ospiti scelgono cosa pulire (o dove c&apos;è un problema di manutenzione). &laquo;Tutta la casa&raquo; è già prevista da sola.
       </p>
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
+      <VistaLingua lingua={vista} onChange={setVista} />
 
       {famiglie.map((fam) => {
         const lista = zone.filter((z) => z.famiglia_id === fam.id);
@@ -116,11 +118,11 @@ export default function ZoneAlloggioPage() {
             {lista.map((z, i) => (
               <div key={z.id} style={{ display: "flex", alignItems: "center", gap: "0.3rem", padding: "0.25rem 0" }}>
                 <span style={{ flex: 1 }}>
-                  {z.nome}
-                  <span className="muted" style={{ fontSize: "0.8em" }}>
-                    {" "}
-                    EN {z.nome_en ? "✓" : "—"} · FR {z.nome_fr ? "✓" : "—"}
-                  </span>
+                  {vista === "it" ? z.nome : z["nome_" + vista] || (
+                    <span style={{ color: "#a32d2d" }}>
+                      <em>manca la traduzione</em> <span className="muted">({z.nome})</span>
+                    </span>
+                  )}
                 </span>
                 <button type="button" className="btn btn-light" style={{ padding: "0.1rem 0.5rem" }} disabled={i === 0} onClick={() => sposta(z, -1)} aria-label="Su">↑</button>
                 <button type="button" className="btn btn-light" style={{ padding: "0.1rem 0.5rem" }} disabled={i === lista.length - 1} onClick={() => sposta(z, 1)} aria-label="Giù">↓</button>

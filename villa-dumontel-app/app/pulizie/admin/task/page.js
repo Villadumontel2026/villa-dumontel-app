@@ -3,7 +3,8 @@
 import { Matita, Cestino } from "../../../components/IconeAzione";
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
-import ModificaLingue, { CampoLingue } from "../../../components/ModificaLingue";
+import ModificaLingue, { CampoLingue, VistaLingua } from "../../../components/ModificaLingue";
+import PopupScheda from "../../../components/PopupEvento";
 
 export default function TaskPulizieAdminPage() {
   const [caricamento, setCaricamento] = useState(true);
@@ -11,6 +12,8 @@ export default function TaskPulizieAdminPage() {
   const [task, setTask] = useState([]);
   const [errore, setErrore] = useState(null);
   const [messaggio, setMessaggio] = useState(null);
+  const [vista, setVista] = useState("it");
+  const [editId, setEditId] = useState(null);
 
   async function carica() {
     const { data } = await supabase.from("task_pulizie").select("*").order("ordine", { ascending: true });
@@ -154,15 +157,18 @@ export default function TaskPulizieAdminPage() {
         </form>
       </details>
 
+      <VistaLingua lingua={vista} onChange={setVista} />
       <div className="card">
         {task.length === 0 && <p className="muted">Nessun task: esegui lo SQL task_pulizie.sql.</p>}
         {task.map((x, i) => (
           <div key={x.id} className="richiesta-item" style={{ opacity: x.attivo ? 1 : 0.55 }}>
-            <strong>{x.nome_it}</strong>
-            <span className="muted">
-              {" "}
-              &mdash; EN {x.nome_en ? "✓" : "—"} · FR {x.nome_fr ? "✓" : "—"}
-            </span>
+            {x["nome_" + vista] ? (
+              <strong>{x["nome_" + vista]}</strong>
+            ) : (
+              <span style={{ color: "#a32d2d" }}>
+                <em>manca la traduzione</em> <span className="muted">({x.nome_it})</span>
+              </span>
+            )}
             {!x.attivo && <span className="muted"> (nascosto)</span>}
             <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", margin: "0.4rem 0" }}>
               <button type="button" className="btn btn-light" style={{ padding: "0.25rem 0.7rem" }} disabled={i === 0} onClick={() => sposta(i, -1)}>
@@ -187,22 +193,32 @@ export default function TaskPulizieAdminPage() {
                 }}
               />
             </div>
-            <details>
-              <summary style={{ cursor: "pointer", listStyle: "none" }} title="Modifica i nomi" aria-label="Modifica i nomi">
-                <Matita onClick={() => {}} titolo="Modifica i nomi" />
-              </summary>
-              <form onSubmit={(e) => salva(e, x)} style={{ marginTop: "0.5rem" }}>
-                <ModificaLingue>
-                  <CampoLingue etichetta="Nome" nomi={{ it: "nome_it", en: "nome_en", fr: "nome_fr" }} valori={{ it: x.nome_it, en: x.nome_en, fr: x.nome_fr }} richiesto />
-                </ModificaLingue>
-                <button type="submit" className="btn">
-                  Salva
-                </button>
-              </form>
-            </details>
+            <Matita onClick={() => setEditId(x.id)} titolo="Modifica i nomi" />
           </div>
         ))}
       </div>
+      {editId && (() => {
+        const x = task.find((k) => k.id === editId);
+        if (!x) return null;
+        return (
+          <PopupScheda titolo={x.nome_it} sottotitolo="Nomi nelle tre lingue" onChiudi={() => setEditId(null)} larga>
+            <form
+              onSubmit={async (e) => {
+                await salva(e, x);
+                setEditId(null);
+              }}
+              style={{ marginTop: "0.5rem" }}
+            >
+              <ModificaLingue>
+                <CampoLingue etichetta="Nome" nomi={{ it: "nome_it", en: "nome_en", fr: "nome_fr" }} valori={{ it: x.nome_it, en: x.nome_en, fr: x.nome_fr }} richiesto />
+              </ModificaLingue>
+              <button type="submit" className="btn">
+                Salva
+              </button>
+            </form>
+          </PopupScheda>
+        );
+      })()}
     </main>
   );
 }
