@@ -13,6 +13,7 @@ const MENU = {
       label: "nav.gestione",
       voci: [
         { href: "/richieste", label: "nav.richieste" },
+        { href: "/manutenzioni", label: "nav.manutenzioni" },
         { href: "/pulizie/admin", label: "nav.pulizie" },
         { href: "/calendario", label: "nav.calendario" },
       ],
@@ -40,6 +41,7 @@ const MENU = {
   collaboratore: [
     { href: "/collaboratore", label: "nav.home", esatto: true },
     { href: "/pulizie/collaboratore", label: "nav.pulizie" },
+    { href: "/manutenzioni", label: "nav.manutenzioni" },
     { href: "/calendario", label: "nav.calendario" },
     { href: "/info", label: "nav.info" },
   ],
@@ -47,6 +49,7 @@ const MENU = {
     { href: "/ospite", label: "nav.home", esatto: true },
     { href: "/ospite/prenota", label: "nav.prenota" },
     { href: "/ospite/richieste", label: "nav.mieRichieste" },
+    { href: "/manutenzioni", label: "nav.manutenzioni" },
     { href: "/ospite/vini", label: "nav.vini" },
     { href: "/calendario", label: "nav.calendario" },
     { href: "/info", label: "nav.info" },

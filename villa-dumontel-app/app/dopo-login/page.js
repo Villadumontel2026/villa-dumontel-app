@@ -6,6 +6,14 @@ import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "../components/AppProvider";
 import { applicaVista } from "../../lib/vista";
 
+function haPassword(session) {
+  try {
+    const p = JSON.parse(atob(session.access_token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+    if ((p.amr || []).some((a) => a.method === "password")) return true;
+  } catch (e) {}
+  return !!(session.user && session.user.user_metadata && session.user.user_metadata.password_set === true);
+}
+
 export default function DopoLogin() {
   const { t } = useApp();
   const [stato, setStato] = useState(null);
@@ -13,24 +21,38 @@ export default function DopoLogin() {
 
   useEffect(() => {
     async function verifica(session) {
-      const { data: profiloRaw, error } = await supabase
+      const { data: profiloIniziale, error } = await supabase
         .from("profili")
         .select("*")
         .eq("id", session.user.id)
         .single();
 
+      let profiloRaw = profiloIniziale;
       let profilo = applicaVista(profiloRaw);
       if (error || !profilo) {
         // accesso approvato dall'admin tramite QR: crea il profilo al primo ingresso
         const { data: attivato } = await supabase.rpc("attiva_mio_accesso");
         if (attivato) {
           const { data: nuovo } = await supabase.from("profili").select("*").eq("id", session.user.id).single();
+          profiloRaw = nuovo;
           profilo = applicaVista(nuovo);
         }
       }
       if (!profilo) {
         setStato("noProfilo");
         return;
+      }
+
+      // Ospite arrivato con il link via email e senza password: la facciamo scegliere subito
+      if (profiloRaw && profiloRaw.ruolo === "ospite" && !haPassword(session)) {
+        let saltata = false;
+        try {
+          saltata = window.sessionStorage.getItem("vd_password_dopo") === "1";
+        } catch (e) {}
+        if (!saltata) {
+          router.replace("/imposta-password");
+          return;
+        }
       }
 
       if (profilo.ruolo === "admin") {

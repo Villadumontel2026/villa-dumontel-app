@@ -5,6 +5,9 @@ import { useEffect, useState } from "react";
 import { supabase } from "../../lib/supabaseClient";
 import { useApp } from "./AppProvider";
 import SelettoreNumero from "./SelettoreNumero";
+import ChipZone from "./ChipZone";
+import FotoInput from "./FotoInput";
+import FormManutenzione from "./FormManutenzione";
 
 const CHECKLIST_PULIZIE = [
   "Cambio lenzuola",
@@ -53,6 +56,8 @@ export default function FormRichiesta({
   collaboratori = null,
   tipoIniziale = "ristorante",
   soloTipo = false,
+  conManutenzione = true,
+  preferiti = [],
   nomeIniziale = "",
   onSubmit,
   etichettaBottone = "Invia richiesta",
@@ -74,6 +79,18 @@ export default function FormRichiesta({
   const [aeroA, setAeroA] = useState("Malpensa T1");
   const [errore, setErrore] = useState(null);
   const [formKey, setFormKey] = useState(0);
+  const [zoneTutte, setZoneTutte] = useState([]);
+  const [zoneSel, setZoneSel] = useState([]);
+  const [altri, setAltri] = useState([]);
+  const [foto, setFoto] = useState([]);
+
+  useEffect(() => {
+    supabase
+      .from("zone_alloggio")
+      .select("famiglia_id, nome, ordine")
+      .order("ordine", { ascending: true })
+      .then(({ data }) => setZoneTutte(data || []));
+  }, []);
 
   const isAdmin = !!collaboratori;
 
@@ -106,6 +123,8 @@ export default function FormRichiesta({
         setFiniSoggiorno(out);
       });
   }, [isAdmin]);
+  const alloggioScelto = (alloggi || []).find((x) => String(x.id) === String(pulAlloggio || (alloggi && alloggi[0] ? alloggi[0].id : "")));
+  const zoneFam = zoneTutte.filter((z) => alloggioScelto && z.famiglia_id === alloggioScelto.famiglia_id);
   const suggerisceFine = (() => {
     const idA = pulAlloggio || (alloggi && alloggi[0] ? String(alloggi[0].id) : "");
     const a = (alloggi || []).find((x) => String(x.id) === String(idA));
@@ -143,6 +162,7 @@ export default function FormRichiesta({
     let posto_id = null;
     let tipologia_trasporto = null;
     let orario_tipo = null;
+    let zone = null;
 
     if (tipo === "trasporto") {
       tipologia_trasporto = tipologia;
@@ -180,7 +200,12 @@ export default function FormRichiesta({
       const voci = Array.from(
         f.querySelectorAll('input[name="voci"]:checked')
       ).map((c) => c.value);
-      descrizione = voci.length ? voci.join(", ") : null;
+      const extra = Array.from(f.querySelectorAll('input[name="altro_voce"]'))
+        .map((i) => i.value.trim())
+        .filter(Boolean);
+      const tutte = [...voci, ...extra];
+      descrizione = tutte.length ? tutte.join(", ") : null;
+      zone = zoneSel.length ? zoneSel.join(", ") : null;
     }
 
     // Controlli sui campi obbligatori
@@ -226,7 +251,8 @@ export default function FormRichiesta({
       nome_prenotazione: tipo === "pulizie" ? null : (val("nome_prenotazione") || "").trim() || null,
       tipologia_trasporto,
       orario_tipo,
-    });
+      zone,
+    }, foto);
 
     if (err) {
       setErrore(err);
@@ -236,9 +262,14 @@ export default function FormRichiesta({
       setAeroDa("Aosta");
       setAeroA("Malpensa T1");
       setTipologia("aeroporto");
+      setZoneSel([]);
+      setAltri([]);
+      setFoto([]);
       setFormKey((k) => k + 1);
     }
   }
+
+  const preferitiTipo = (tp) => postiTipo(tp).filter((p) => preferiti.includes(p.id));
 
   function selezionePosto(tp, etichetta) {
     const gruppi = raggruppa(postiTipo(tp));
@@ -248,6 +279,15 @@ export default function FormRichiesta({
           {etichetta}
           <select value={posto} onChange={(e) => setPosto(e.target.value)} required>
             <option value="">{t("f.scegli")}</option>
+            {preferitiTipo(tp).length > 0 && (
+              <optgroup label={lang === "en" ? "★ Favourites" : "★ Preferiti"}>
+                {preferitiTipo(tp).map((p) => (
+                  <option key={"pf" + p.id} value={p.id}>
+                    {p.nome}
+                  </option>
+                ))}
+              </optgroup>
+            )}
             {Object.keys(gruppi).map((g) => (
               <optgroup key={g} label={nomeGruppo(g, lang)}>
                 {gruppi[g].map((p) => (
@@ -289,25 +329,44 @@ export default function FormRichiesta({
     </label>
   );
 
+  const selettoreTipo = !soloTipo && (
+    <label>
+      {t("f.cosa")}
+      <select value={tipo} onChange={(e) => cambiaTipo(e.target.value)}>
+        <option value="ristorante">{t("tipo.ristorante")}</option>
+        <option value="attivita">{t("tipo.attivita")}</option>
+        <option value="trasporto">{t("tipo.trasporto")}</option>
+        <option value="pulizie">{t("tipo.pulizie")}</option>
+        {conManutenzione && <option value="manutenzione">{t("tipo.manutenzione")}</option>}
+      </select>
+    </label>
+  );
+
+  if (tipo === "manutenzione") {
+    return (
+      <div>
+        {selettoreTipo}
+        <FormManutenzione alloggi={alloggi} zone={zoneTutte} />
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={invia} key={formKey}>
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
 
-      {!soloTipo && (
-      <label>
-        {t("f.cosa")}
-        <select value={tipo} onChange={(e) => cambiaTipo(e.target.value)}>
-          <option value="ristorante">{t("tipo.ristorante")}</option>
-          <option value="attivita">{t("tipo.attivita")}</option>
-          <option value="trasporto">{t("tipo.trasporto")}</option>
-          <option value="pulizie">{t("tipo.pulizie")}</option>
-        </select>
-      </label>
-      )}
+      {selettoreTipo}
 
       <label>
         {t("f.alloggio")}
-        <select name="alloggio_id" required onChange={(e) => setPulAlloggio(e.target.value)}>
+        <select
+          name="alloggio_id"
+          required
+          onChange={(e) => {
+            setPulAlloggio(e.target.value);
+            setZoneSel([]);
+          }}
+        >
           {alloggi.map((a) => (
             <option key={a.id} value={a.id}>
               {a.nome}
@@ -503,26 +562,47 @@ export default function FormRichiesta({
             {t("f.durata")}
             <SelettoreNumero name="durata_ore" min={0.5} max={12} passo={0.5} defaultValue="3" required suffisso=" h" />
           </label>
+          {zoneFam.length > 0 && (
+            <>
+              <label>{lang === "en" ? "Areas to clean" : "Zone da pulire"}</label>
+              <ChipZone zone={zoneFam} selezionate={zoneSel} onChange={setZoneSel} conTutta />
+            </>
+          )}
           <label>{t("f.cosaServe")}</label>
-          {task.map((tk) => tk.nome_it).map((voce) => (
-            <label
-              key={voce}
-              style={{
-                fontWeight: 400,
-                display: "flex",
-                alignItems: "center",
-                gap: "0.4rem",
-              }}
-            >
+          <div className="vd-voci">
+            {task.map((tk) => tk.nome_it).map((voce) => (
+              <label key={voce} className="vd-voce">
+                <input type="checkbox" name="voci" value={voce} style={{ width: "auto", marginBottom: 0 }} />
+                {lang === "en" ? (task.find((x) => x.nome_it === voce)?.nome_en || voce) : voce}
+              </label>
+            ))}
+            <label className="vd-voce">
               <input
                 type="checkbox"
-                name="voci"
-                value={voce}
+                checked={false}
+                onChange={() => setAltri([...altri, ""])}
                 style={{ width: "auto", marginBottom: 0 }}
               />
-              {lang === "en" ? (task.find((x) => x.nome_it === voce)?.nome_en || voce) : voce}
+              {lang === "en" ? "Other" : "Altro"}
             </label>
+          </div>
+          {altri.map((v, i) => (
+            <div key={i} style={{ display: "flex", gap: "0.4rem", alignItems: "center", marginBottom: "0.5rem" }}>
+              <input
+                type="text"
+                name="altro_voce"
+                value={v}
+                autoFocus
+                placeholder={lang === "en" ? "Other task" : "Altra cosa da fare"}
+                onChange={(e) => setAltri(altri.map((x, k) => (k === i ? e.target.value : x)))}
+                style={{ marginBottom: 0 }}
+              />
+              <button type="button" className="btn btn-light" aria-label="Togli" onClick={() => setAltri(altri.filter((_, k) => k !== i))}>
+                ×
+              </button>
+            </div>
           ))}
+          <FotoInput files={foto} onChange={setFoto} />
         </>
       )}
 

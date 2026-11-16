@@ -120,6 +120,12 @@ export default function PaginaAdminPulizie() {
             Saldo e versamenti verso chi fa le pulizie
           </p>
         </a>
+        <a href="/pulizie/admin/zone" className="card" style={{ display: "block" }}>
+          <h2 style={{ marginBottom: "0.25rem" }}>Zone degli alloggi</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            Camere, soggiorno, cucina: le zone tra cui scegliere nelle richieste di pulizia
+          </p>
+        </a>
         <a href="/pulizie/admin/task" className="card" style={{ display: "block" }}>
           <h2 style={{ marginBottom: "0.25rem" }}>Lista dei task</h2>
           <p className="muted" style={{ margin: 0 }}>

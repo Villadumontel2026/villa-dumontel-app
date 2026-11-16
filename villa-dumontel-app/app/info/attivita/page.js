@@ -4,6 +4,7 @@ import PrenotaButton from "../../components/PrenotaButton";
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
 import { PostoMatita, PostoPiu } from "../../components/AdminPosto";
+import Stellina from "../../components/Stellina";
 import Testo from "../../components/Testo";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +34,7 @@ export default async function AttivitaPage() {
       <div style={{ display: "grid", gap: "1rem" }}>
         {(posti || []).map((p) => (
           <div key={p.id} className="card" style={{ position: "relative" }}>
-            <h3 style={{ marginBottom: "0.25rem", paddingRight: "2.2rem" }}>
+            <h3 style={{ marginBottom: "0.25rem", paddingRight: "5rem" }}>
               {p.nome}
               <NuovoBadge dal={p.nuovo_dal} />
             </h3>
@@ -46,6 +47,7 @@ export default async function AttivitaPage() {
             )}
             <Testo en={p.perche} it={p.perche_it} style={{ margin: "0.25rem 0" }} />
             <PrenotaButton tipo="attivita" nome={p.nome} />
+            <Stellina postoId={p.id} />
             <PostoMatita posto={p} />
           </div>
         ))}

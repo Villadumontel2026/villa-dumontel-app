@@ -7,6 +7,7 @@ import GruppoTitolo from "../../components/GruppoTitolo";
 import { slugGruppo } from "../../../lib/zone";
 import ZonaDetails from "../../components/ZonaDetails";
 import { PostoMatita, PostoPiu } from "../../components/AdminPosto";
+import Stellina from "../../components/Stellina";
 import Testo from "../../components/Testo";
 
 export const dynamic = "force-dynamic";
@@ -59,7 +60,7 @@ export default async function RistorantiPage() {
           <div style={{ display: "grid", gap: "1rem" }}>
             {gruppi[gruppo].map((p) => (
               <div key={p.id} className="card" style={{ position: "relative", boxShadow: "none", border: "1px solid var(--color-border)" }}>
-                <h3 style={{ marginBottom: "0.25rem", paddingRight: "2.2rem" }}>
+                <h3 style={{ marginBottom: "0.25rem", paddingRight: "5rem" }}>
                   {p.nome}
                   <NuovoBadge dal={p.nuovo_dal} />
                 </h3>
@@ -78,6 +79,7 @@ export default async function RistorantiPage() {
                   </p>
                 )}
                 <PrenotaButton tipo="ristorante" nome={p.nome} />
+                <Stellina postoId={p.id} />
                 <PostoMatita posto={p} gruppi={ordineFinale} conGruppo />
               </div>
             ))}

@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useApp } from "./AppProvider";
 import { fmtData, traduciSotto } from "../../lib/i18n";
+import FotoRichiesta from "./FotoRichiesta";
 
 // Finestra (pop-up) per vedere in modo chiaro un evento o una richiesta.
 // azioneModifica: { href } oppure { onClick }  -> mostra la matita in alto
@@ -77,6 +78,7 @@ export function RichiestaDettaglio({ r, admin = false }) {
   else add(lang === "en" ? "Apartment" : "Alloggio", r.alloggi?.nome);
   if (r.sotto_tipo) add(lang === "en" ? "Type" : "Tipo", r.tipo === "trasporto" ? r.sotto_tipo : traduciSotto(lang, r.sotto_tipo));
   if (r.tipo === "trasporto" && r.orario_tipo) add(lang === "en" ? "Time refers to" : "L'orario è di", r.orario_tipo === "arrivo" ? (lang === "en" ? "arrival" : "arrivo") : (lang === "en" ? "departure" : "partenza"));
+  if (r.zone) add(lang === "en" ? "Areas" : "Zone", lang === "en" ? String(r.zone).replace("Tutta la casa", "Whole house") : r.zone);
   if (r.descrizione) add(r.tipo === "pulizie" ? (lang === "en" ? "To do" : "Cosa fare") : (lang === "en" ? "Details" : "Dettagli"), r.tipo === "pulizie" ? voci(r.descrizione) : r.descrizione);
   if (r.pax) add(t("f.persone"), `${r.pax}`);
   if (r.nome_prenotazione) add(t("f.nomePren"), r.nome_prenotazione);
@@ -100,6 +102,9 @@ export function RichiestaDettaglio({ r, admin = false }) {
           </div>
         ))}
       </dl>
+      {r.tipo === "pulizie" && (
+        <FotoRichiesta richiestaId={r.id} famigliaId={r.famiglia_id} puoAggiungere={admin || r.stato !== "annullata"} />
+      )}
       {r.note && (
         <div style={{ marginTop: "0.8rem", background: "#faf7ef", borderRadius: 8, padding: "0.6rem 0.8rem" }}>
           <strong style={{ fontSize: "0.88em" }}>{t("f.note")}</strong>

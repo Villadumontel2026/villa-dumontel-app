@@ -12,10 +12,13 @@ export default function AccessiAdminPage() {
   const [famiglie, setFamiglie] = useState([]);
   const [errore, setErrore] = useState(null);
   const [msg, setMsg] = useState(null);
+  const [passwords, setPasswords] = useState([]);
 
   async function carica() {
     const { data } = await supabase.from("richieste_accesso").select("*").order("creata_il", { ascending: false }).limit(100);
     setRighe(data || []);
+    const { data: pw } = await supabase.from("richieste_password").select("*").order("creata_il", { ascending: false }).limit(50);
+    setPasswords(pw || []);
     const { data: fam } = await supabase.from("famiglie").select("id, nome, test").order("id");
     setFamiglie((fam || []).filter((f) => !f.test));
   }
@@ -44,6 +47,23 @@ export default function AccessiAdminPage() {
     });
     const j = await res.json().catch(() => ({}));
     setMsg(res.ok ? "Approvata. Email inviata a " + r.email + "." : "Approvata, ma l'email non è partita: " + (j.errore || res.status));
+    await carica();
+  }
+
+  async function inviaLinkPassword(r) {
+    setErrore(null);
+    setMsg(null);
+    const { error } = await supabase.auth.resetPasswordForEmail(r.email, {
+      redirectTo: window.location.origin + "/imposta-password",
+    });
+    if (error) return setErrore("Errore: " + error.message);
+    await supabase.from("richieste_password").update({ stato: "inviata", gestita_il: new Date().toISOString() }).eq("id", r.id);
+    setMsg("Link per la nuova password inviato a " + r.email + ".");
+    await carica();
+  }
+
+  async function ignoraPassword(r) {
+    await supabase.from("richieste_password").update({ stato: "ignorata", gestita_il: new Date().toISOString() }).eq("id", r.id);
     await carica();
   }
 
@@ -76,6 +96,25 @@ export default function AccessiAdminPage() {
       <h1>Richieste di accesso</h1>
       {errore && <p style={{ color: "#a32d2d" }}>{errore}</p>}
       {msg && <p style={{ color: "#2f4739" }}>{msg}</p>}
+
+      {passwords.filter((x) => x.stato === "in attesa").length > 0 && (
+        <>
+          <h2>Password dimenticate ({passwords.filter((x) => x.stato === "in attesa").length})</h2>
+          <div className="card" style={{ marginBottom: "1.5rem" }}>
+            {passwords
+              .filter((x) => x.stato === "in attesa")
+              .map((x) => (
+                <div key={x.id} className="richiesta-item">
+                  <strong>{x.nome || x.email}</strong> &mdash; {x.email}
+                  <p style={{ margin: "0.4rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <button type="button" className="btn" onClick={() => inviaLinkPassword(x)}>Invia il link per la nuova password</button>
+                    <button type="button" className="btn btn-light" onClick={() => ignoraPassword(x)}>Ignora</button>
+                  </p>
+                </div>
+              ))}
+          </div>
+        </>
+      )}
 
       <h2>Da approvare ({inAttesa.length})</h2>
       <div className="card" style={{ marginBottom: "1.5rem" }}>

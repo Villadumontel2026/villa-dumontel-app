@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 import { applicaVista } from "../../../lib/vista";
 import { supabase } from "../../../lib/supabaseClient";
 import FormRichiesta from "../../components/FormRichiesta";
+import { salvaFoto } from "../../../lib/foto";
 import { useApp } from "../../components/AppProvider";
 
-const TIPI_VALIDI = ["trasporto", "ristorante", "attivita", "pulizie"];
+const TIPI_VALIDI = ["trasporto", "ristorante", "attivita", "pulizie", "manutenzione"];
 
 export default function PrenotaOspitePage() {
   const { t } = useApp();
@@ -15,6 +16,7 @@ export default function PrenotaOspitePage() {
   const [profilo, setProfilo] = useState(null);
   const [alloggi, setAlloggi] = useState([]);
   const [posti, setPosti] = useState([]);
+  const [preferiti, setPreferiti] = useState([]);
   const [iniziale, setIniziale] = useState({ tipo: "ristorante", nome: "" });
   const [inviata, setInviata] = useState(false);
   const [errore, setErrore] = useState(null);
@@ -64,6 +66,8 @@ export default function PrenotaOspitePage() {
         .in("categoria", ["ristorante", "attivita"])
         .order("id", { ascending: true });
       setPosti(postiData || []);
+      const { data: pf } = await supabase.from("posti_preferiti").select("posto_id");
+      setPreferiti((pf || []).map((x) => x.posto_id));
 
       setCaricamento(false);
     }
@@ -71,15 +75,23 @@ export default function PrenotaOspitePage() {
     carica();
   }, []);
 
-  async function invia(valori) {
+  async function invia(valori, foto = []) {
     setInviata(false);
     setErrore(null);
-    const { error } = await supabase.from("richieste").insert({
-      ...valori,
-      famiglia_id: profilo.famiglia_id,
-      stato: "nuova",
-    });
+    const { data: nuova, error } = await supabase
+      .from("richieste")
+      .insert({
+        ...valori,
+        famiglia_id: profilo.famiglia_id,
+        stato: "nuova",
+      })
+      .select("id")
+      .single();
     if (error) return t("c.errore") + error.message;
+    if (foto.length) {
+      const e2 = await salvaFoto(foto, { famiglia_id: profilo.famiglia_id, richiesta_id: nuova.id });
+      if (e2) return t("c.errore") + e2;
+    }
     setInviata(true);
     return null;
   }
@@ -131,6 +143,7 @@ export default function PrenotaOspitePage() {
           key={iniziale.tipo + iniziale.nome + posti.length}
           alloggi={alloggi}
           posti={posti}
+          preferiti={preferiti}
           tipoIniziale={iniziale.tipo}
           nomeIniziale={iniziale.nome}
           onSubmit={invia}

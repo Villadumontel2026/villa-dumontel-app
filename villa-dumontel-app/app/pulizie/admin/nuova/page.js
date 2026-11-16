@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../../../../lib/supabaseClient";
 import FormRichiesta from "../../../components/FormRichiesta";
+import { salvaFoto } from "../../../../lib/foto";
 
 export default function NuovaPuliziaAdminPage() {
   const [caricamento, setCaricamento] = useState(true);
@@ -40,15 +41,23 @@ export default function NuovaPuliziaAdminPage() {
     carica();
   }, []);
 
-  async function crea(valori) {
+  async function crea(valori, foto = []) {
     setInviata(false);
     const alloggio = alloggi.find((a) => String(a.id) === String(valori.alloggio_id));
-    const { error } = await supabase.from("richieste").insert({
-      ...valori,
-      famiglia_id: alloggio?.famiglia_id || null,
-      stato: "nuova",
-    });
+    const { data: nuova, error } = await supabase
+      .from("richieste")
+      .insert({
+        ...valori,
+        famiglia_id: alloggio?.famiglia_id || null,
+        stato: "nuova",
+      })
+      .select("id")
+      .single();
     if (error) return "Errore: " + error.message;
+    if (foto.length) {
+      const e2 = await salvaFoto(foto, { famiglia_id: alloggio?.famiglia_id || null, richiesta_id: nuova.id });
+      if (e2) return "Prenotazione creata, ma una foto non è stata caricata: " + e2;
+    }
     setInviata(true);
     return null;
   }

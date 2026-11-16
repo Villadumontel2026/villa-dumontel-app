@@ -21,9 +21,13 @@ export default function AvvisiBox({ tipo, id = null }) {
   const [giaQui, setGiaQui] = useState(false);
   const [dettaglio, setDettaglio] = useState(null); // { evento } oppure { richiesta }
 
-  const haTarget = (a) => !!(a.evento_id || a.richiesta_id);
+  const haTarget = (a) => !!(a.evento_id || a.richiesta_id || a.manutenzione_id);
 
   async function apriDettaglio(a) {
+    if (a.manutenzione_id) {
+      window.location.href = "/manutenzioni?id=" + a.manutenzione_id;
+      return;
+    }
     if (a.evento_id) {
       const { data } = await supabase.from("eventi").select("*").eq("id", a.evento_id).maybeSingle();
       if (data) return setDettaglio({ evento: data });
@@ -42,7 +46,7 @@ export default function AvvisiBox({ tipo, id = null }) {
   const soloEventi = avvisi.length > 0 && avvisi.every((a) => a.evento_id);
   const soloOrdiniVini = avvisi.length > 0 && avvisi.every((a) => String(a.evento || "").startsWith("ordine_vini"));
   const soloVini = avvisi.length > 0 && avvisi.every((a) => a.evento === "vino_maturita");
-  const soloAccessi = avvisi.length > 0 && avvisi.every((a) => a.evento === "accesso_richiesto");
+  const soloAccessi = avvisi.length > 0 && avvisi.every((a) => a.evento === "accesso_richiesto" || a.evento === "password_richiesta");
   const destinazione = soloAccessi
     ? "/admin/accessi"
     : soloEventi

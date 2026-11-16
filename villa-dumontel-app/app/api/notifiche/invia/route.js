@@ -59,7 +59,7 @@ async function elabora(id, segreto, mappaTask) {
       const messaggio = {
         title: "Villa Dumontel",
         body: l === "en" ? avviso.testo_en : avviso.testo_it,
-        url: PAGINA[avviso.destinatario_tipo] || "/",
+        url: String(avviso.evento || "").startsWith("manutenzione") ? "/manutenzioni" : PAGINA[avviso.destinatario_tipo] || "/",
       };
       for (const sub of d.sottoscrizioni) {
         const esito = await inviaPush(sub, messaggio);
@@ -107,7 +107,9 @@ async function elabora(id, segreto, mappaTask) {
       ];
     }
 
-    const link = APP_URL + (PAGINA[avviso.destinatario_tipo] || "/");
+    const link =
+      APP_URL +
+      (String(avviso.evento || "").startsWith("manutenzione") ? "/manutenzioni" : PAGINA[avviso.destinatario_tipo] || "/");
     const html =
       '<div style="font-family:Arial,Helvetica,sans-serif;max-width:560px;margin:0 auto;color:#26261f">' +
       "<p>" + X.ciao + "</p>" +

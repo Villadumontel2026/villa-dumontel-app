@@ -3,6 +3,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import { T } from "../../components/AppProvider";
 import NuovoBadge from "../../components/NuovoBadge";
 import { PostoMatita, PostoPiu } from "../../components/AdminPosto";
+import Stellina from "../../components/Stellina";
 
 export const dynamic = "force-dynamic";
 
@@ -31,7 +32,7 @@ export default async function BarPage() {
       <div style={{ display: "grid", gap: "1rem" }}>
         {(posti || []).map((p) => (
           <div key={p.id} className="card" style={{ position: "relative" }}>
-            <h3 style={{ marginBottom: "0.25rem", paddingRight: "2.2rem" }}>
+            <h3 style={{ marginBottom: "0.25rem", paddingRight: "5rem" }}>
               {p.nome}
               <NuovoBadge dal={p.nuovo_dal} />
             </h3>
@@ -47,6 +48,7 @@ export default async function BarPage() {
                 {p.indirizzo}
               </p>
             )}
+            <Stellina postoId={p.id} />
             <PostoMatita posto={p} />
           </div>
         ))}

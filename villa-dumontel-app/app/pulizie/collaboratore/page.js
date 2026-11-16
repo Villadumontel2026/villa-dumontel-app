@@ -7,6 +7,7 @@ import { supabase } from "../../../lib/supabaseClient";
 import CalendarButton from "../../components/CalendarButton";
 import SelettoreNumero from "../../components/SelettoreNumero";
 import { dmy, fmtCreata } from "../../../lib/i18n";
+import FotoRichiesta from "../../components/FotoRichiesta";
 
 const ETICHETTE_STATO = {
   "da approvare": "da validare",
@@ -277,7 +278,9 @@ export default function PaginaCollaboratrice() {
                 <strong>{r.alloggi?.nome}</strong> &mdash; {r.data ? dmy(r.data) : "data da definire"}{" "}
                 {r.ora ? String(r.ora).slice(0, 5) : ""}
                 {quandoForm(r)}
+                {r.zone && <p className="descrizione">Zone: {r.zone}</p>}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
+                <FotoRichiesta richiestaId={r.id} />
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
                 {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
                 <form
@@ -353,7 +356,9 @@ export default function PaginaCollaboratrice() {
                     </button>
                   </p>
                 )}
+                {r.zone && <p className="descrizione">Zone: {r.zone}</p>}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
+                <FotoRichiesta richiestaId={r.id} />
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
                 {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
                 <div style={{ margin: "0.5rem 0" }}>

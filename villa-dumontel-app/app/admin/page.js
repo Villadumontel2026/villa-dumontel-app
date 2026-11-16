@@ -84,7 +84,8 @@ export default function AdminHome() {
         .order("scadenza", { ascending: true, nullsFirst: false });
       setGeneriche(gen || []);
       const { count } = await supabase.from("richieste_accesso").select("id", { count: "exact", head: true }).eq("stato", "in attesa");
-      setAccessiInAttesa(count || 0);
+      const { count: cp } = await supabase.from("richieste_password").select("id", { count: "exact", head: true }).eq("stato", "in attesa");
+      setAccessiInAttesa((count || 0) + (cp || 0));
       setCaricamento(false);
     }
     carica();
@@ -216,7 +217,7 @@ export default function AdminHome() {
         )}
         {accessiInAttesa > 0 && (
           <p style={{ margin: "0.4rem 0" }}>
-            <strong>{accessiInAttesa}</strong> {accessiInAttesa === 1 ? "richiesta di accesso da approvare" : "richieste di accesso da approvare"}{" "}
+            <strong>{accessiInAttesa}</strong> {accessiInAttesa === 1 ? "richiesta di accesso o password da gestire" : "richieste di accesso o password da gestire"}{" "}
             <a href="/admin/accessi" className="btn btn-light" style={{ padding: "0.2rem 0.8rem" }}>Apri</a>
           </p>
         )}
