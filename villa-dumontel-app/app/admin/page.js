@@ -9,6 +9,7 @@ import AvvisiBox from "../components/AvvisiBox";
 import { espandiEventi, coloreEvento } from "../../lib/eventi";
 import AppartamentiBox from "../components/AppartamentiBox";
 import PopupScheda, { RichiestaDettaglio } from "../components/PopupEvento";
+import { ListaTodo } from "../components/TodoAlloggio";
 
 const COLORI = ["#2f4739", "#2b6a9e", "#a2562c", "#7a4b94"];
 const iso = (d) =>
@@ -26,6 +27,14 @@ export default function AdminHome() {
   const [pop, setPop] = useState(null);
   const [accessiInAttesa, setAccessiInAttesa] = useState(0);
   const [calAperto, setCalAperto] = useState(false);
+  const [todo, setTodo] = useState([]);
+  const [alloggiTutti, setAlloggiTutti] = useState([]);
+  const [collabTutti, setCollabTutti] = useState([]);
+
+  async function caricaTodo() {
+    const { data } = await supabase.from("todo_alloggio").select("*, todo_voci(*)").order("scadenza", { ascending: true, nullsFirst: false });
+    setTodo(data || []);
+  }
 
   // Schermi larghi (PC, tablet in orizzontale): pagina piu' ampia, calendario a fianco e aperto
   useEffect(() => {
@@ -86,6 +95,11 @@ export default function AdminHome() {
       const { count } = await supabase.from("richieste_accesso").select("id", { count: "exact", head: true }).eq("stato", "in attesa");
       const { count: cp } = await supabase.from("richieste_password").select("id", { count: "exact", head: true }).eq("stato", "in attesa");
       setAccessiInAttesa((count || 0) + (cp || 0));
+      await caricaTodo();
+      const { data: al } = await supabase.from("alloggi").select("*");
+      setAlloggiTutti(al || []);
+      const { data: co } = await supabase.from("collaboratori").select("*");
+      setCollabTutti(co || []);
       setCaricamento(false);
     }
     carica();
@@ -261,6 +275,23 @@ export default function AdminHome() {
           </a>
         </p>
       </div>
+
+      {todo.some((x) => !(x.todo_voci || []).length || (x.todo_voci || []).some((p) => !p.fatto)) && (
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          <h2 style={{ marginTop: 0 }}>To Do degli appartamenti</h2>
+          <ListaTodo
+            todo={todo.filter((x) => !(x.todo_voci || []).length || (x.todo_voci || []).some((p) => !p.fatto))}
+            alloggi={alloggiTutti}
+            collaboratori={collabTutti}
+            onCambiato={caricaTodo}
+          />
+          <p style={{ margin: "0.7rem 0 0" }}>
+            <a href="/richieste" className="btn btn-light">
+              Tutti i To Do
+            </a>
+          </p>
+        </div>
+      )}
 
       <AppartamentiBox famiglie={famiglie.filter((x) => !x.test)} eventi={eventiCal} />
 
