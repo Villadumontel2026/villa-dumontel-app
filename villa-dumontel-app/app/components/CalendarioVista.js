@@ -9,6 +9,7 @@ import { periodoEvento } from "../../lib/eventi";
 import AllegatiEvento from "./AllegatiEvento";
 import SelettoreNumero from "./SelettoreNumero";
 import PopupScheda, { RichiestaDettaglio } from "./PopupEvento";
+import CancellaRichiesta from "./CancellaRichiesta";
 
 const GIORNI_IT = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 const GIORNI_EN = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
@@ -123,16 +124,6 @@ export default function CalendarioVista({
   const etichettaEv = (r) => (r.ora ? String(r.ora).slice(0, 5) + " " : "") + (r.tipo === "evento" ? r.titolo : t("tipo." + r.tipo));
 
   // ---------- azioni ----------
-  async function annullaEvento(r) {
-    if (!window.confirm(t("ro.confermaAnnulla"))) return;
-    setErrore(null);
-    const { error } = await supabase.from("richieste").update({ stato: "annullata" }).eq("id", r.id);
-    if (error) return setErrore(t("c.errore") + error.message);
-    setEvSel(null);
-    chiudiPopup();
-    onCambiato && (await onCambiato());
-  }
-
   async function salvaEvento(e, r) {
     e.preventDefault();
     setErrore(null);
@@ -276,9 +267,15 @@ export default function CalendarioVista({
         {puoModificare && modificaPop && !amministratore && formModifica(r)}
         {puoModificare && (
           <p style={{ margin: "0.9rem 0 0", display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <button type="button" className="btn btn-light" style={{ padding: "0.3rem 0.8rem" }} onClick={() => annullaEvento(r)}>
-              {t("cv.annulla")}
-            </button>
+            <CancellaRichiesta
+              r={r}
+              ruolo="ospite"
+              onFatto={async () => {
+                setEvSel(null);
+                chiudiPopup();
+                onCambiato && (await onCambiato());
+              }}
+            />
           </p>
         )}
       </PopupScheda>

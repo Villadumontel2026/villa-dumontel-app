@@ -8,6 +8,7 @@ import CalendarButton from "../../components/CalendarButton";
 import SelettoreNumero from "../../components/SelettoreNumero";
 import { dmy, fmtCreata } from "../../../lib/i18n";
 import FotoRichiesta from "../../components/FotoRichiesta";
+import CancellaRichiesta from "../../components/CancellaRichiesta";
 
 const ETICHETTE_STATO = {
   "da approvare": "da validare",
@@ -281,6 +282,12 @@ export default function PaginaCollaboratrice() {
                 {r.zone && <p className="descrizione">Zone: {r.zone}</p>}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
                 <FotoRichiesta richiestaId={r.id} />
+                {r.cancellazione_richiesta && (
+                  <p className="descrizione" style={{ background: "#fde9d8", padding: "0.4rem 0.6rem", borderRadius: 8 }}>
+                    Il cliente chiede di cancellare{r.cancellazione_nota ? ": " + r.cancellazione_nota : ""}
+                  </p>
+                )}
+                <CancellaRichiesta r={r} ruolo="collaboratore" onFatto={ricaricaRichieste} />
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
                 {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
                 <form
@@ -359,6 +366,12 @@ export default function PaginaCollaboratrice() {
                 {r.zone && <p className="descrizione">Zone: {r.zone}</p>}
                 {r.descrizione && <p className="descrizione">Da fare: {r.descrizione}</p>}
                 <FotoRichiesta richiestaId={r.id} />
+                {r.cancellazione_richiesta && (
+                  <p className="descrizione" style={{ background: "#fde9d8", padding: "0.4rem 0.6rem", borderRadius: 8 }}>
+                    Il cliente chiede di cancellare{r.cancellazione_nota ? ": " + r.cancellazione_nota : ""}
+                  </p>
+                )}
+                <CancellaRichiesta r={r} ruolo="collaboratore" onFatto={ricaricaRichieste} />
                 {r.note && <p className="descrizione">Note: {r.note}</p>}
                 {r.creato_il && <span className="creata">{fmtCreata("it", r.creato_il)}</span>}
                 <div style={{ margin: "0.5rem 0" }}>

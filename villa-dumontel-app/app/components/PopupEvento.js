@@ -70,7 +70,7 @@ const STATO_CHIAVE = {
 };
 
 // Riepilogo chiaro di una richiesta (trasporto, ristorante, attivita, pulizie)
-export function RichiestaDettaglio({ r, admin = false }) {
+export function RichiestaDettaglio({ r, admin = false, azioni = null }) {
   const { t, lang, voci } = useApp();
   const [zoneTutte, setZoneTutte] = useState([]);
   useEffect(() => {
@@ -131,6 +131,35 @@ export function RichiestaDettaglio({ r, admin = false }) {
           </strong>
         </p>
       )}
+      {r.cancellazione_richiesta && (
+        <div style={{ marginTop: "0.8rem", background: "#fde9d8", borderRadius: 8, padding: "0.6rem 0.8rem" }}>
+          <strong style={{ fontSize: "0.88em" }}>
+            {admin ? "Il cliente chiede di cancellare" : lang === "en" ? "Cancellation requested, waiting for confirmation" : "Cancellazione richiesta, in attesa di conferma"}
+          </strong>
+          {r.cancellazione_nota && <p style={{ margin: "0.2rem 0 0", whiteSpace: "pre-line" }}>{r.cancellazione_nota}</p>}
+        </div>
+      )}
+      {!r.cancellazione_richiesta && r.cancellazione_risposta && (
+        <p className="muted" style={{ marginTop: "0.8rem", fontSize: "0.9em" }}>
+          {lang === "en" ? "Cancellation not accepted: " : "Cancellazione non accettata: "}
+          {r.cancellazione_risposta}
+        </p>
+      )}
+      {r.stato === "annullata" && (r.cancellazione_da || r.cancellazione_nota) && (
+        <div style={{ marginTop: "0.8rem", background: "#eee", borderRadius: 8, padding: "0.6rem 0.8rem" }}>
+          <strong style={{ fontSize: "0.88em" }}>
+            {lang === "en" ? "Cancelled" : "Cancellata"}
+            {r.cancellazione_da
+              ? lang === "en"
+                ? " by " + { admin: "Villa Dumontel", ospite: "the guest", collaboratore: "the cleaner" }[r.cancellazione_da]
+                : " da " + { admin: "Villa Dumontel", ospite: "il cliente", collaboratore: "la collaboratrice" }[r.cancellazione_da]
+              : ""}
+            {r.cancellazione_il ? " · " + fmtData(lang, String(r.cancellazione_il).slice(0, 10)) : ""}
+          </strong>
+          {r.cancellazione_nota && <p style={{ margin: "0.2rem 0 0", whiteSpace: "pre-line" }}>{r.cancellazione_nota}</p>}
+        </div>
+      )}
+      {azioni && <div style={{ marginTop: "0.8rem", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>{azioni}</div>}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import CalendarButton from "../../components/CalendarButton";
 import { useApp } from "../../components/AppProvider";
 import { fmtData, fmtCreata, traduciSotto } from "../../../lib/i18n";
 import PopupScheda, { RichiestaDettaglio } from "../../components/PopupEvento";
+import CancellaRichiesta from "../../components/CancellaRichiesta";
 
 const ANNULLABILI = ["nuova", "in gestione", "confermata"];
 
@@ -105,20 +106,6 @@ export default function RichiesteOspitePage() {
   async function rispondi(id, accetta) {
     setErrore(null);
     const { error } = await supabase.rpc("rispondi_proposta", { p_id: id, p_accetta: accetta });
-    if (error) {
-      setErrore(t("c.errore") + error.message);
-      return;
-    }
-    await carica(famigliaId);
-  }
-
-  async function annulla(id) {
-    if (!window.confirm(t("ro.confermaAnnulla"))) return;
-    setErrore(null);
-    const { error } = await supabase
-      .from("richieste")
-      .update({ stato: "annullata" })
-      .eq("id", id);
     if (error) {
       setErrore(t("c.errore") + error.message);
       return;
@@ -240,7 +227,7 @@ export default function RichiesteOspitePage() {
         {ANNULLABILI.includes(r.stato) && (
           <div className="stato-actions">
             {(r.stato === "confermata" || r.tipo === "pulizie") && <CalendarButton richiesta={r} />}{" "}
-            <button onClick={() => annulla(r.id)}>{t("ro.annulla")}</button>
+            <CancellaRichiesta r={r} ruolo="ospite" onFatto={() => carica(famigliaId)} />
           </div>
         )}
       </div>
@@ -318,7 +305,14 @@ export default function RichiesteOspitePage() {
             azioneModifica={modificabile && !schedaAperta ? { onClick: () => setSchedaAperta(true) } : null}
             larga={schedaAperta}
           >
-            {schedaAperta ? schedaCompleta(r) : <RichiestaDettaglio r={r} />}
+            {schedaAperta ? (
+              schedaCompleta(r)
+            ) : (
+              <RichiestaDettaglio
+                r={r}
+                azioni={ANNULLABILI.includes(r.stato) ? <CancellaRichiesta r={r} ruolo="ospite" onFatto={() => carica(famigliaId)} /> : null}
+              />
+            )}
           </PopupScheda>
         );
       })()}

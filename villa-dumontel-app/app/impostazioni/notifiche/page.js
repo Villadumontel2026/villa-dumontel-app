@@ -16,6 +16,9 @@ const GRUPPI = [
       ["pulizia_accettata", "La collaboratrice accetta una pulizia"],
       ["pulizia_fatta", "La collaboratrice segna una pulizia come fatta (da validare)"],
       ["pulizia_in_corso", "La collaboratrice segna le pulizie come in corso"],
+      ["pulizia_annullata", "La collaboratrice cancella una pulizia"],
+      ["cancellazione_richiesta", "Un ospite chiede di cancellare una richiesta confermata"],
+      ["todo_fatto", "La collaboratrice segna un To Do come fatto"],
     ],
   ],
   [
@@ -27,6 +30,7 @@ const GRUPPI = [
       ["richiesta_annullata", "La richiesta viene annullata"],
       ["proposta_modifica", "Ricevono una proposta di modifica"],
       ["pulizia_accettata", "La collaboratrice accetta la pulizia"],
+      ["cancellazione_rifiutata", "La cancellazione richiesta non viene accettata"],
       ["evento_nuovo", "Nuovo evento nel calendario (se spunti \"Avvisa subito\")"],
       ["evento_modificato", "Un evento viene modificato"],
       ["evento_annullato", "Un evento viene eliminato"],
@@ -38,6 +42,8 @@ const GRUPPI = [
     [
       ["pulizia_assegnata", "Le viene assegnata una nuova pulizia"],
       ["pulizia_modificata", "Una sua pulizia viene modificata o annullata"],
+      ["cancellazione_richiesta", "Un ospite chiede di cancellare una sua pulizia"],
+      ["todo_assegnato", "Le viene assegnato un To Do"],
       ["evento_nuovo", "Nuovo evento nel calendario (se spunti \"Avvisa subito\")"],
       ["evento_modificato", "Un evento viene modificato"],
       ["evento_annullato", "Un evento viene eliminato"],

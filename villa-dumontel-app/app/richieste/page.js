@@ -9,8 +9,11 @@ import CalendarButton from "../components/CalendarButton";
 import { useApp } from "../components/AppProvider";
 import { dmy, fmtCreata } from "../../lib/i18n";
 import PopupScheda, { RichiestaDettaglio } from "../components/PopupEvento";
+import CancellaRichiesta from "../components/CancellaRichiesta";
+import { FormTodo, ListaTodo } from "../components/TodoAlloggio";
 
-const STATI = ["nuova", "in gestione", "confermata", "completata", "annullata"];
+// "annullata" non e' piu' tra i pulsanti: si cancella con il cestino (nota e avvisi)
+const STATI = ["nuova", "in gestione", "confermata", "completata"];
 
 function classeBadge(stato) {
   return "badge badge-" + String(stato).replace(" ", "-");
@@ -29,6 +32,15 @@ export default function RichiestePage() {
   const [famiglie, setFamiglie] = useState([]);
   const [popId, setPopId] = useState(null);
   const [schedaAperta, setSchedaAperta] = useState(false);
+  const [todo, setTodo] = useState([]);
+  const [nuovoAperto, setNuovoAperto] = useState(false);
+  const [nuovoTipo, setNuovoTipo] = useState(null); // null = scelta | "richiesta" | "generica" | "todo"
+  const [manutAperte, setManutAperte] = useState(0);
+
+  async function caricaTodo() {
+    const { data } = await supabase.from("todo_alloggio").select("*, todo_voci(*)").order("scadenza", { ascending: true, nullsFirst: false });
+    setTodo(data || []);
+  }
 
   async function caricaRichieste() {
     const { data } = await supabase
@@ -61,6 +73,7 @@ export default function RichiestePage() {
     }
     f.reset();
     await caricaGeneriche();
+    return true;
   }
 
   async function segnaGenerica(id, fatta) {
@@ -124,6 +137,12 @@ export default function RichiestePage() {
       const { data: famData } = await supabase.from("famiglie").select("id, nome").order("id");
       setFamiglie(famData || []);
       await caricaGeneriche();
+      await caricaTodo();
+      const { count: cm } = await supabase
+        .from("manutenzioni")
+        .select("id", { count: "exact", head: true })
+        .in("stato", ["segnalata", "in_valutazione", "info_richieste", "preventivo", "approvata", "in_corso"]);
+      setManutAperte(cm || 0);
       try {
         const q = new URLSearchParams(window.location.search).get("id");
         if (q) {
@@ -231,6 +250,7 @@ export default function RichiestePage() {
         proposta_il: new Date().toISOString(),
         proposta_esito: null,
         stato: "in gestione",
+        cancellazione_richiesta: false,
       })
       .eq("id", r.id);
     if (error) {
@@ -302,6 +322,10 @@ export default function RichiestePage() {
   ];
   const ORDINE_STATO = { nuova: 0, "in gestione": 1, confermata: 2 };
   const CHIUSE = ["completata", "annullata"];
+  const t_tipo = { trasporto: "Trasporto", ristorante: "Ristorante", attivita: "Attività", pulizie: "Pulizie" };
+  const cancellate = richieste
+    .filter((r) => r.stato === "annullata")
+    .sort((x, y) => String(y.cancellazione_il || y.creato_il || "").localeCompare(String(x.cancellazione_il || x.creato_il || "")));
   const perData = (x, y) => String(y.creato_il || "").localeCompare(String(x.creato_il || "")); // piu' recenti prima
 
   const categorie = CATEGORIE.map((c) => {
@@ -309,7 +333,7 @@ export default function RichiestePage() {
     const aperte = tutte
       .filter((r) => !CHIUSE.includes(r.stato))
       .sort(perData);
-    const chiuse = tutte.filter((r) => CHIUSE.includes(r.stato)).sort(perData);
+    const chiuse = tutte.filter((r) => r.stato === "completata").sort(perData);
     const nuove = tutte.filter((r) => r.stato === "nuova").length;
     return { ...c, aperte, chiuse, nuove };
   });
@@ -541,9 +565,10 @@ export default function RichiestePage() {
           )}{" "}
           {STATI.filter((s) => s !== r.stato).map((s) => (
             <button key={s} onClick={() => cambiaStato(r.id, s)}>
-              {s === "annullata" ? "Annulla" : "→ " + s}
+              {"→ " + s}
             </button>
-          ))}
+          ))}{" "}
+          <CancellaRichiesta r={r} ruolo="admin" onFatto={caricaRichieste} />
         </div>
       </div>
     );
@@ -581,7 +606,108 @@ export default function RichiestePage() {
 
   return (
     <main>
-      <h1>Richieste</h1>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap", marginBottom: "1rem" }}>
+        <h1 style={{ margin: 0 }}>Richieste</h1>
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setNuovoTipo(null);
+            setNuovoAperto(true);
+          }}
+        >
+          + Nuova prenotazione
+        </button>
+      </div>
+
+      {nuovoAperto && (
+        <PopupScheda
+          titolo="Nuova prenotazione"
+          sottotitolo={
+            nuovoTipo === "richiesta" ? "Richiesta" : nuovoTipo === "generica" ? "Richiesta generica" : nuovoTipo === "todo" ? "To Do" : "Cosa vuoi aggiungere?"
+          }
+          onChiudi={() => setNuovoAperto(false)}
+          larga
+        >
+          {nuovoTipo === null && (
+            <div style={{ display: "grid", gap: "0.7rem" }}>
+              {[
+                ["richiesta", "Richiesta", "Trasporto, ristorante, attività, pulizie o manutenzione per un cliente"],
+                ["generica", "Richiesta generica", "Un promemoria per te, con scadenza e famiglia facoltative"],
+                ["todo", "To Do", "Cose da controllare o fare in un appartamento, con scadenza; visibile solo a te (e alla collaboratrice, se la scegli)"],
+              ].map(([k, titolo, desc]) => (
+                <button key={k} type="button" className="card" style={{ textAlign: "left", cursor: "pointer", font: "inherit" }} onClick={() => setNuovoTipo(k)}>
+                  <strong>{titolo}</strong>
+                  <br />
+                  <span className="muted">{desc}</span>
+                </button>
+              ))}
+            </div>
+          )}
+          {nuovoTipo === "richiesta" && (
+            <FormRichiesta
+              alloggi={alloggi}
+              posti={posti}
+              collaboratori={collaboratori}
+              tipoIniziale="trasporto"
+              onSubmit={async (valori, foto) => {
+                const err = await creaRichiesta(valori, foto);
+                if (!err) setNuovoAperto(false);
+                return err;
+              }}
+              etichettaBottone="Aggiungi richiesta"
+            />
+          )}
+          {nuovoTipo === "generica" && (
+            <form
+              onSubmit={async (e) => {
+                const ok = await aggiungiGenerica(e);
+                if (ok) setNuovoAperto(false);
+              }}
+            >
+              <label>
+                Cosa devo ricordare
+                <input type="text" name="testo" placeholder="es. Aggiungere un freezer" required />
+              </label>
+              <label>
+                Famiglia (facoltativa)
+                <select name="famiglia_id" defaultValue="">
+                  <option value="">— generale —</option>
+                  {famiglie.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.nome}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Entro il (facoltativo)
+                <input type="date" name="scadenza" />
+              </label>
+              <button type="submit" className="btn">
+                Aggiungi richiesta generica
+              </button>
+            </form>
+          )}
+          {nuovoTipo === "todo" && (
+            <FormTodo
+              alloggi={alloggi}
+              collaboratori={collaboratori}
+              onFatto={async () => {
+                await caricaTodo();
+                setNuovoAperto(false);
+              }}
+            />
+          )}
+          {nuovoTipo !== null && (
+            <p style={{ marginTop: "1rem" }}>
+              <button type="button" className="btn btn-light" onClick={() => setNuovoTipo(null)}>
+                &larr; Cambia tipo
+              </button>
+            </p>
+          )}
+        </PopupScheda>
+      )}
 
       {errore && (
         <div className="card" style={{ marginBottom: "1rem" }}>
@@ -632,30 +758,6 @@ export default function RichiestePage() {
               </span>
             </summary>
             <div style={{ marginTop: "0.75rem" }}>
-              <form onSubmit={aggiungiGenerica} style={{ marginBottom: "1rem" }}>
-                <label>
-                  Cosa devo ricordare
-                  <input type="text" name="testo" placeholder="es. Aggiungere un freezer" required />
-                </label>
-                <label>
-                  Famiglia (facoltativa)
-                  <select name="famiglia_id" defaultValue="">
-                    <option value="">— generale —</option>
-                    {famiglie.map((f) => (
-                      <option key={f.id} value={f.id}>
-                        {f.nome}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <label>
-                  Entro il (facoltativo)
-                  <input type="date" name="scadenza" />
-                </label>
-                <button type="submit" className="btn">
-                  Aggiungi richiesta generica
-                </button>
-              </form>
               {aperte.length === 0 && <p className="muted">Nessuna richiesta generica aperta.</p>}
               {aperte.map(rigaG)}
               {fatte.length > 0 && (
@@ -670,20 +772,6 @@ export default function RichiestePage() {
           </details>
         );
       })()}
-
-      <details className="card" style={{ marginBottom: "2rem" }}>
-        <summary style={{ cursor: "pointer", fontWeight: 600 }}>+ Nuova richiesta</summary>
-        <div style={{ marginTop: "1rem" }}>
-          <FormRichiesta
-            alloggi={alloggi}
-            posti={posti}
-            collaboratori={collaboratori}
-            tipoIniziale="trasporto"
-            onSubmit={creaRichiesta}
-            etichettaBottone="Aggiungi richiesta"
-          />
-        </div>
-      </details>
 
       {categorie.map((c) => (
         <details
@@ -707,7 +795,7 @@ export default function RichiestePage() {
             {c.chiuse.length > 0 && (
               <details style={{ marginTop: "1rem" }}>
                 <summary className="muted" style={{ cursor: "pointer" }}>
-                  Completate e annullate ({c.chiuse.length})
+                  Completate ({c.chiuse.length})
                 </summary>
                 <div style={{ marginTop: "0.5rem" }}>{c.chiuse.map(riga)}</div>
               </details>
@@ -715,6 +803,69 @@ export default function RichiestePage() {
           </div>
         </details>
       ))}
+      <details className="card" style={{ marginBottom: "1rem" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "1.1em" }}>
+          Manutenzioni{" "}
+          <span className="muted" style={{ fontWeight: 400 }}>
+            ({manutAperte} aperte)
+          </span>
+        </summary>
+        <p style={{ marginTop: "0.75rem" }}>
+          <a href="/manutenzioni" className="btn btn-light">
+            Apri le manutenzioni
+          </a>
+        </p>
+      </details>
+
+      <details open={todo.some((x) => !(x.todo_voci || []).every((p) => p.fatto) || !(x.todo_voci || []).length)} className="card" style={{ marginBottom: "1rem" }}>
+        <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "1.1em" }}>
+          To Do degli appartamenti{" "}
+          <span className="muted" style={{ fontWeight: 400 }}>
+            ({todo.filter((x) => !(x.todo_voci || []).length || (x.todo_voci || []).some((p) => !p.fatto)).length} da completare)
+          </span>
+        </summary>
+        <div style={{ marginTop: "0.75rem" }}>
+          <ListaTodo todo={todo} alloggi={alloggi} collaboratori={collaboratori} onCambiato={caricaTodo} />
+        </div>
+      </details>
+
+      {cancellate.length > 0 && (
+        <details className="card" style={{ marginBottom: "2rem" }}>
+          <summary style={{ cursor: "pointer", fontWeight: 600, fontSize: "1.1em" }}>
+            Cancellate{" "}
+            <span className="muted" style={{ fontWeight: 400 }}>
+              ({cancellate.length})
+            </span>
+          </summary>
+          <div style={{ marginTop: "0.75rem" }}>
+            {cancellate.map((r) => (
+              <div key={r.id} className="richiesta-item" style={{ opacity: 0.8 }}>
+                <strong>{t_tipo[r.tipo] || r.tipo}</strong> &mdash; {r.alloggi?.nome} &middot; {r.famiglie?.nome}
+                <p className="descrizione" style={{ margin: "0.15rem 0" }}>
+                  {r.data ? dmy(r.data) : "data da definire"} {r.ora ? String(r.ora).slice(0, 5) : ""}
+                  {r.cancellazione_da
+                    ? ` — cancellata da ${{ admin: "te", ospite: "il cliente", collaboratore: "la collaboratrice" }[r.cancellazione_da]}`
+                    : " — cancellata"}
+                  {r.cancellazione_il ? ` il ${dmy(String(r.cancellazione_il).slice(0, 10))}` : ""}
+                  {r.cancellazione_nota ? ` — ${r.cancellazione_nota}` : ""}
+                </p>
+                <button
+                  type="button"
+                  className="btn btn-light"
+                  style={{ padding: "0.2rem 0.8rem" }}
+                  onClick={() => {
+                    setPopId(r.id);
+                    setSchedaAperta(false);
+                  }}
+                >
+                  Apri
+                </button>
+              </div>
+            ))}
+          </div>
+        </details>
+      )}
+
       {popId && (() => {
         const r = richieste.find((x) => String(x.id) === String(popId));
         if (!r) return null;
@@ -726,7 +877,15 @@ export default function RichiestePage() {
             azioneModifica={schedaAperta ? null : { onClick: () => setSchedaAperta(true) }}
             larga={schedaAperta}
           >
-            {schedaAperta ? schedaCompleta(r) : <RichiestaDettaglio r={r} admin />}
+            {schedaAperta ? (
+              schedaCompleta(r)
+            ) : (
+              <RichiestaDettaglio
+                r={r}
+                admin
+                azioni={!CHIUSE.includes(r.stato) ? <CancellaRichiesta r={r} ruolo="admin" onFatto={caricaRichieste} /> : null}
+              />
+            )}
           </PopupScheda>
         );
       })()}
